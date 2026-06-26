@@ -132,7 +132,7 @@ public class DisplayController : Controller
                 counterName = LocalizeCounterName(a.CounterName, selectedLang),
                 serviceName = LocalizeServiceName(a.ServiceName, selectedLang),
                 calledAt = a.CalledAt.ToString("HH:mm:ss"),
-                calledAtTicks = a.CalledAt.Ticks,
+                calledAtTicks = a.CalledAt.Ticks.ToString(),
                 isFresh = a.CalledAt >= DateTime.Now.AddSeconds(-20)
             }),
             history = history.Select(h => new

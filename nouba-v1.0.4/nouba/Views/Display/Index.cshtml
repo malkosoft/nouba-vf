@@ -1296,6 +1296,10 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
         if (result && result.ok) {
           noubaSoundDebugHide();
           console.info('[Nouba TTS] Audio TV confirme par bip de controle.');
+        } else if (isLikelyTvBrowser) {
+          // TV sans geste utilisateur au démarrage : conserver l'état débloqué.
+          // Le retry VIDAA va relancer l'AudioContext toutes les 6 s.
+          console.warn('[Nouba TTS] TV : bip echoue au demarrage — audio maintenu deverrouille (retry VIDAA actif).');
         } else {
           markAudioLocked(true);
           noubaSoundLog('Son a reautoriser : cliquez sur le bouton Son TV.', true);
@@ -1381,13 +1385,18 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
       vidaaRetryCount++;
       // Tenter un unlock silencieux via AudioContext seulement (pas de popup).
       var ctx = getAudioCtx();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume().then(function(){
-          if (ctx.state === 'running' && !audioUnlocked) {
-            try { markAudioUnlocked(false); } catch(_) {}
+      if (ctx && (ctx.state === 'suspended' || ctx.state === 'running')) {
+        var doUnlock = function(){
+          if (!audioUnlocked) {
+            try { markAudioUnlocked(true); playUnlockBeep(0.15).catch(function(){}); } catch(_) {}
             clearInterval(vidaaRetryTimer);
           }
-        }).catch(function(){});
+        };
+        if (ctx.state === 'running') {
+          doUnlock();
+        } else {
+          ctx.resume().then(function(){ if (ctx.state === 'running') doUnlock(); }).catch(function(){});
+        }
       }
     }, 6000);
   }
