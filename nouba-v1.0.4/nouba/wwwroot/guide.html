@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nouba Pro — Guide d'utilisation</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;background:#f8fafc;color:#1a202c;line-height:1.7}
+.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;background:#0f172a;color:#e2e8f0;overflow-y:auto;padding:24px 0;z-index:100}
+.sidebar-logo{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:16px}
+.sidebar-logo h1{font-size:1.1rem;font-weight:800;color:#f3c969}
+.sidebar-logo p{font-size:.72rem;color:#64748b;margin-top:2px}
+.nav-section{padding:6px 20px;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#475569;margin-top:12px}
+.nav-link{display:block;padding:8px 20px;font-size:.82rem;color:#94a3b8;text-decoration:none;border-left:3px solid transparent;transition:all .15s}
+.nav-link:hover,.nav-link.active{color:#f1f5f9;background:rgba(255,255,255,.05);border-left-color:#0d9488}
+.main{margin-left:240px;padding:40px 48px;max-width:860px}
+h1.page-title{font-size:2rem;font-weight:800;color:#0f172a;margin-bottom:6px}
+.subtitle{color:#64748b;font-size:.95rem;margin-bottom:40px;padding-bottom:20px;border-bottom:2px solid #e2e8f0}
+h2{font-size:1.25rem;font-weight:700;color:#0f172a;margin:36px 0 14px;padding-top:8px;border-top:1px solid #e2e8f0}
+h3{font-size:1rem;font-weight:700;color:#1e3a5f;margin:20px 0 8px}
+p{margin-bottom:12px;color:#374151}
+.step-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin:16px 0 24px}
+.step{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;border-top:3px solid #0d9488}
+.step-num{font-size:1.5rem;font-weight:900;color:#0d9488;margin-bottom:6px}
+.step-title{font-size:.88rem;font-weight:700;color:#0f172a;margin-bottom:4px}
+.step-desc{font-size:.78rem;color:#64748b;line-height:1.5}
+.role-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin:16px 0}
+.role{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;text-align:center}
+.role-icon{font-size:2rem;margin-bottom:8px}
+.role-title{font-size:.9rem;font-weight:700;color:#0f172a}
+.role-url{font-family:monospace;font-size:.72rem;color:#0d9488;margin-top:4px}
+.role-desc{font-size:.75rem;color:#64748b;margin-top:6px;line-height:1.4}
+.alert{border-radius:10px;padding:14px 16px;margin:16px 0;font-size:.85rem;line-height:1.6}
+.alert-info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a5f}
+.alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#78350f}
+.alert-danger{background:#fef2f2;border:1px solid #fecaca;color:#9b1c1c}
+.alert-success{background:#f0fdf4;border:1px solid #bbf7d0;color:#065f46}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.85rem}
+th{background:#f1f5f9;font-weight:700;padding:10px 14px;text-align:left;border:1px solid #e2e8f0}
+td{padding:9px 14px;border:1px solid #e2e8f0;vertical-align:top}
+tr:nth-child(even) td{background:#fafafa}
+code{background:#f1f5f9;padding:2px 7px;border-radius:5px;font-family:monospace;font-size:.82rem;color:#0d9488}
+.kbd{display:inline-block;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:4px;padding:2px 8px;font-family:monospace;font-size:.78rem}
+.faq-item{background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;overflow:hidden}
+.faq-q{padding:14px 16px;font-weight:700;font-size:.88rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.faq-a{padding:0 16px 14px;font-size:.82rem;color:#374151;line-height:1.6}
+footer{margin-top:60px;padding:24px 0;border-top:1px solid #e2e8f0;text-align:center;font-size:.78rem;color:#94a3b8}
+@media print{.sidebar{display:none}.main{margin-left:0;padding:20px}}
+@media(max-width:700px){.sidebar{display:none}.main{margin-left:0;padding:20px 16px}}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h1>Nouba Pro</h1>
+    <p>Guide d'utilisation v2.1</p>
+  </div>
+  <div class="nav-section">Démarrage</div>
+  <a class="nav-link" href="#intro">Présentation</a>
+  <a class="nav-link" href="#install">Premier démarrage</a>
+  <a class="nav-link" href="#reseau">Configuration réseau</a>
+  <div class="nav-section">Interfaces</div>
+  <a class="nav-link" href="#admin">Administration</a>
+  <a class="nav-link" href="#borne">Borne kiosque</a>
+  <a class="nav-link" href="#agent">Poste agent</a>
+  <a class="nav-link" href="#display">Écran TV</a>
+  <div class="nav-section">Gestion</div>
+  <a class="nav-link" href="#services">Services &amp; Guichets</a>
+  <a class="nav-link" href="#agents">Agents</a>
+  <a class="nav-link" href="#rapports">Rapports &amp; Stats</a>
+  <a class="nav-link" href="#sauvegarde">Sauvegardes</a>
+  <div class="nav-section">Aide</div>
+  <a class="nav-link" href="#faq">FAQ</a>
+  <a class="nav-link" href="#contact">Support</a>
+</nav>
+
+<main class="main">
+  <h1 class="page-title">Guide d'utilisation</h1>
+  <p class="subtitle">Nouba Pro v2.1 — Système de gestion de file d'attente · Support : FR · AR · TZ · EN</p>
+
+  <!-- INTRO -->
+  <section id="intro">
+    <h2>🎯 Présentation du système</h2>
+    <p>Nouba Pro est un système complet de gestion de file d'attente conçu pour les structures d'accueil du public : cliniques, mairies, banques, agences, préfectures…</p>
+
+    <div class="role-grid">
+      <div class="role">
+        <div class="role-icon">🖥️</div>
+        <div class="role-title">Borne kiosque</div>
+        <div class="role-url">/Borne</div>
+        <div class="role-desc">Le client choisit son service et imprime son ticket</div>
+      </div>
+      <div class="role">
+        <div class="role-icon">👤</div>
+        <div class="role-title">Poste agent</div>
+        <div class="role-url">/Agent</div>
+        <div class="role-desc">L'agent appelle le prochain ticket et gère la file</div>
+      </div>
+      <div class="role">
+        <div class="role-icon">📺</div>
+        <div class="role-title">Écran TV</div>
+        <div class="role-url">/Display</div>
+        <div class="role-desc">Affiche les appels en cours dans la salle d'attente</div>
+      </div>
+      <div class="role">
+        <div class="role-icon">⚙️</div>
+        <div class="role-title">Administration</div>
+        <div class="role-url">/Admin</div>
+        <div class="role-desc">Configure tous les paramètres du système</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALLATION -->
+  <section id="install">
+    <h2>🚀 Premier démarrage</h2>
+    <div class="step-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Lancer l'application</div>
+        <div class="step-desc">Double-cliquez sur <code>Nouba.exe</code>. Une fenêtre console s'ouvre — ne la fermez pas.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Ouvrir l'admin</div>
+        <div class="step-desc">Dans votre navigateur, allez sur <code>http://127.0.0.1:5000/Admin</code></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Créer le compte admin</div>
+        <div class="step-desc">Au premier lancement, créez votre compte administrateur. Choisissez un mot de passe fort.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-title">Configurer les services</div>
+        <div class="step-desc">Ajoutez vos services (ex: Accueil, Consultation, Paiement) dans l'onglet Services.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-title">Créer les agents</div>
+        <div class="step-desc">Ajoutez un agent par guichet dans l'onglet Agents. Chaque agent a un login et mot de passe.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-title">Tester le circuit</div>
+        <div class="step-desc">Ouvrez la Borne, créez un ticket, puis connectez-vous en tant qu'agent pour l'appeler.</div>
+      </div>
+    </div>
+
+    <div class="alert alert-warn">
+      <strong>⚠️ Important :</strong> Ne fermez jamais la fenêtre console noire — c'est le serveur. Si vous la fermez, le système s'arrête.
+    </div>
+  </section>
+
+  <!-- RESEAU -->
+  <section id="reseau">
+    <h2>🌐 Configuration réseau</h2>
+    <p>Par défaut, Nouba écoute uniquement sur l'ordinateur local (<code>127.0.0.1:5000</code>). Pour que la borne, l'écran TV ou les postes agents soient sur d'autres machines, vous devez configurer l'accès réseau.</p>
+
+    <h3>Depuis l'interface admin</h3>
+    <p>Allez dans <strong>Admin → Système → Configuration réseau</strong> et changez l'URL :</p>
+    <table>
+      <tr><th>Cas d'usage</th><th>URL à saisir</th></tr>
+      <tr><td>Tout sur le même PC</td><td><code>http://127.0.0.1:5000</code></td></tr>
+      <tr><td>Accès depuis n'importe quelle machine du réseau</td><td><code>http://0.0.0.0:5000</code></td></tr>
+      <tr><td>IP fixe du serveur (ex: 192.168.1.10)</td><td><code>http://192.168.1.10:5000</code></td></tr>
+    </table>
+
+    <div class="alert alert-info">
+      <strong>💡 Comment connaître l'IP du serveur ?</strong><br/>
+      Sur Windows : ouvrez l'invite de commande (<kbd class="kbd">Win+R</kbd> → <code>cmd</code>) et tapez <code>ipconfig</code>. L'adresse IPv4 est votre IP locale.
+    </div>
+
+    <h3>Sur les autres postes (borne, TV, agent)</h3>
+    <p>Ouvrez le navigateur et tapez l'adresse du serveur. Exemples :</p>
+    <table>
+      <tr><th>Interface</th><th>URL depuis un autre poste</th></tr>
+      <tr><td>Borne kiosque</td><td><code>http://192.168.1.10:5000/Borne</code></td></tr>
+      <tr><td>Écran TV</td><td><code>http://192.168.1.10:5000/Display</code></td></tr>
+      <tr><td>Poste agent</td><td><code>http://192.168.1.10:5000/Agent</code></td></tr>
+    </table>
+
+    <div class="alert alert-warn">
+      <strong>⚠️ Redémarrage requis</strong> après chaque changement d'URL réseau.
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="admin">
+    <h2>⚙️ Interface d'administration</h2>
+    <p>URL : <code>/Admin/Login</code> — Accessible uniquement par l'administrateur.</p>
+    <table>
+      <tr><th>Onglet</th><th>Contenu</th></tr>
+      <tr><td><strong>Dashboard</strong></td><td>KPIs du jour, derniers appels, statistiques par service et par agent</td></tr>
+      <tr><td><strong>Services</strong></td><td>Ajouter/modifier/supprimer les services et leurs couleurs</td></tr>
+      <tr><td><strong>Guichets</strong></td><td>Gérer les guichets et leur service associé</td></tr>
+      <tr><td><strong>Agents</strong></td><td>Créer les comptes agents, les assigner aux guichets</td></tr>
+      <tr><td><strong>Affichage</strong></td><td>Personnaliser l'écran TV : couleurs, logo, fond, textes</td></tr>
+      <tr><td><strong>Borne</strong></td><td>Textes de la borne, fermeture des tickets, ticket prioritaire</td></tr>
+      <tr><td><strong>Textes &amp; Langues</strong></td><td>Langue par défaut (FR/AR/TZ/EN), textes multilingues</td></tr>
+      <tr><td><strong>Système</strong></td><td>Identifiants admin, réseau, sauvegardes, rapport journalier</td></tr>
+    </table>
+  </section>
+
+  <!-- BORNE -->
+  <section id="borne">
+    <h2>🖥️ Borne kiosque</h2>
+    <p>URL : <code>/Borne</code> — Page tactile pour les clients. Recommandé en mode plein écran (<kbd class="kbd">F11</kbd>).</p>
+    <h3>Fonctionnement</h3>
+    <ol style="padding-left:20px;margin-bottom:12px">
+      <li>Le client appuie sur le service souhaité.</li>
+      <li>Si les tickets prioritaires sont activés, une option apparaît pour les personnes prioritaires.</li>
+      <li>Le ticket s'affiche à l'écran avec numéro, service, heure et délai estimé.</li>
+      <li>L'impression démarre automatiquement si une imprimante est connectée.</li>
+      <li>La borne revient à l'accueil après quelques secondes (délai configurable).</li>
+    </ol>
+    <div class="alert alert-info">
+      <strong>🖨️ Impression :</strong> La borne utilise la boîte d'impression standard du navigateur. Pour une impression silencieuse (sans dialogue), configurez l'imprimante thermique comme imprimante par défaut dans Windows et activez "Impression silencieuse" dans les options avancées du navigateur ou utilisez un logiciel comme <strong>PrinterShare</strong> ou <strong>RawBT</strong>.
+    </div>
+    <h3>Fermer la prise de tickets</h3>
+    <p>Dans Admin → Système → Zone dangereuse → <strong>Fermer la prise de tickets</strong>. Un message s'affiche sur la borne.</p>
+  </section>
+
+  <!-- AGENT -->
+  <section id="agent">
+    <h2>👤 Poste agent</h2>
+    <p>URL : <code>/Agent/Login</code> — Chaque agent se connecte avec son identifiant et mot de passe.</p>
+    <table>
+      <tr><th>Action</th><th>Description</th></tr>
+      <tr><td><strong>Appeler le suivant</strong></td><td>Appelle le prochain ticket en attente (prioritaires d'abord). L'écran TV s'actualise instantanément.</td></tr>
+      <tr><td><strong>Rappeler</strong></td><td>Répète l'annonce d'un ticket déjà appelé sans en prendre un nouveau.</td></tr>
+      <tr><td><strong>Terminer</strong></td><td>Marque le ticket comme traité. Il disparaît de la file.</td></tr>
+      <tr><td><strong>Absent</strong></td><td>Marque le client comme absent. Le ticket est archivé.</td></tr>
+      <tr><td><strong>Transférer</strong></td><td>Envoie le ticket vers un autre service (ex: de l'Accueil vers la Consultation).</td></tr>
+    </table>
+    <div class="alert alert-info">
+      <strong>💡</strong> L'agent ne voit que les tickets de son service assigné. Il ne peut pas intervenir sur les tickets d'un autre service.
+    </div>
+  </section>
+
+  <!-- DISPLAY -->
+  <section id="display">
+    <h2>📺 Écran d'affichage TV</h2>
+    <p>URL : <code>/Display</code> — À afficher sur un écran dans la salle d'attente en plein écran (<kbd class="kbd">F11</kbd>).</p>
+    <h3>Ce qui s'affiche</h3>
+    <ul style="padding-left:20px;margin-bottom:12px">
+      <li>Le ou les numéros en cours d'appel (avec guichet et service)</li>
+      <li>L'historique des derniers appels</li>
+      <li>Une bannière de texte défilant configurable</li>
+      <li>L'heure en temps réel</li>
+      <li>Une annonce vocale à chaque appel (configurable)</li>
+    </ul>
+    <h3>Changer la langue de l'affichage TV</h3>
+    <p>Dans Admin → Textes &amp; Langues → changer la <strong>Langue par défaut</strong>. L'écran TV s'actualise automatiquement sans rechargement.</p>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="services">
+    <h2>🏷️ Gérer les services et guichets</h2>
+    <h3>Ajouter un service</h3>
+    <p>Admin → Services → <strong>Ajouter un service</strong>. Renseignez nom, code (2-3 lettres, ex: "A" pour Accueil), couleur et ordre d'affichage.</p>
+    <div class="alert alert-warn">Le <strong>code</strong> est utilisé dans la numérotation des tickets (ex: A001, C002). Ne le changez pas après avoir commencé à émettre des tickets.</div>
+    <h3>Ajouter un guichet</h3>
+    <p>Admin → Guichets → <strong>Ajouter un guichet</strong>. Associez chaque guichet à un service.</p>
+    <h3>Supprimer un service</h3>
+    <p>Les agents assignés sont automatiquement réaffectés ou désactivés. Les tickets et l'historique du service sont supprimés.</p>
+  </section>
+
+  <!-- AGENTS -->
+  <section id="agents">
+    <h2>👥 Gérer les agents</h2>
+    <table>
+      <tr><th>Champ</th><th>Description</th></tr>
+      <tr><td>Nom complet</td><td>Nom affiché dans les rapports et sur l'écran TV</td></tr>
+      <tr><td>Identifiant</td><td>Login de connexion (unique, sans espaces recommandé)</td></tr>
+      <tr><td>Mot de passe</td><td>Minimum 8 caractères recommandé. Stocké chiffré en base.</td></tr>
+      <tr><td>Guichet assigné</td><td>Détermine quel service l'agent peut traiter</td></tr>
+      <tr><td>Actif / Inactif</td><td>Un agent inactif ne peut plus se connecter</td></tr>
+    </table>
+    <div class="alert alert-info"><strong>💡</strong> Pour désactiver temporairement un agent (congé, absence), décochez "Agent actif" au lieu de le supprimer — son historique est conservé.</div>
+  </section>
+
+  <!-- RAPPORTS -->
+  <section id="rapports">
+    <h2>📊 Rapports et statistiques</h2>
+    <h3>Rapport journalier (PDF)</h3>
+    <p>Admin → Système → Liens rapides → <strong>Rapport PDF journalier</strong>. La page s'ouvre avec les KPIs, stats par service et détail complet. Cliquez <strong>Imprimer / Enregistrer en PDF</strong> dans votre navigateur.</p>
+    <h3>Export CSV</h3>
+    <p>Admin → Système → <strong>Export statistiques CSV</strong>. Télécharge un fichier CSV du jour avec tous les tickets, importable dans Excel.</p>
+    <h3>Dashboard en temps réel</h3>
+    <p>Le Dashboard Admin se met à jour automatiquement toutes les 10 secondes sans rechargement de page.</p>
+  </section>
+
+  <!-- SAUVEGARDE -->
+  <section id="sauvegarde">
+    <h2>💾 Sauvegardes</h2>
+    <p>Nouba sauvegarde automatiquement la base de données <strong>toutes les 6 heures</strong>. Les 20 dernières sauvegardes sont conservées.</p>
+    <h3>Où trouver les sauvegardes</h3>
+    <p>Admin → Système → <strong>Données &amp; Sauvegardes</strong> — le chemin exact est affiché.</p>
+    <p>Sur Windows, c'est généralement :<br/><code>C:\ProgramData\Nouba\backups\</code></p>
+    <div class="alert alert-danger">
+      <strong>⚠️ Recommandation forte :</strong> Copiez régulièrement le dossier <code>backups</code> sur une clé USB ou un disque externe. En cas de panne du PC, les données seront récupérables.
+    </div>
+    <h3>Restaurer une sauvegarde</h3>
+    <ol style="padding-left:20px">
+      <li>Arrêtez l'application (fermez la console).</li>
+      <li>Allez dans le dossier données (<code>C:\ProgramData\Nouba\</code>).</li>
+      <li>Renommez <code>nouba.db</code> en <code>nouba.db.old</code>.</li>
+      <li>Copiez le fichier de sauvegarde souhaité et renommez-le <code>nouba.db</code>.</li>
+      <li>Redémarrez l'application.</li>
+    </ol>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <h2>❓ Questions fréquentes</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">La borne n'imprime pas le ticket automatiquement ?</div>
+      <div class="faq-a">La boîte de dialogue d'impression doit s'ouvrir automatiquement. Si elle est bloquée, vérifiez que les popups ne sont pas bloqués dans le navigateur. Pour une impression 100% automatique (sans dialogue), configurez l'imprimante thermique comme imprimante par défaut et utilisez Chrome en mode kiosque : <code>chrome.exe --kiosk --kiosk-printing http://127.0.0.1:5000/Borne</code></div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">L'écran TV ne se met pas à jour en temps réel ?</div>
+      <div class="faq-a">Vérifiez que le serveur est toujours en marche (console ouverte). Vérifiez que l'ordinateur de l'écran TV est bien sur le même réseau que le serveur. Si le problème persiste, rechargez la page Display (<kbd class="kbd">F5</kbd>).</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">J'ai oublié le mot de passe administrateur ?</div>
+      <div class="faq-a">Arrêtez l'application. Supprimez le fichier <code>nouba.db</code> dans <code>C:\ProgramData\Nouba\</code>. Redémarrez — le système vous demandera de créer un nouveau compte admin. <strong>Attention : cela efface toutes les données.</strong> Faites d'abord une copie du fichier .db.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Peut-on utiliser Nouba sur plusieurs ordinateurs simultanément ?</div>
+      <div class="faq-a">Oui. Un seul PC fait office de serveur (celui où tourne l'application). Tous les autres postes (borne, TV, agents) accèdent au serveur via le navigateur en utilisant l'IP réseau du serveur.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Comment remettre les compteurs à zéro chaque matin ?</div>
+      <div class="faq-a">La numérotation repart automatiquement de 001 chaque jour. Vous n'avez rien à faire. Si vous souhaitez effacer les tickets du jour en cours, utilisez Admin → Système → Zone dangereuse → <strong>Réinitialiser la journée</strong>.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Les annonces vocales ne fonctionnent pas ?</div>
+      <div class="faq-a">Les annonces utilisent la synthèse vocale du navigateur (Web Speech API). Vérifiez que le son n'est pas coupé, que les annonces vocales sont activées dans Admin → Affichage, et que le navigateur supporte la TTS (Chrome et Edge recommandés). Sur certains systèmes, les voix en arabe ou tamazight peuvent nécessiter l'installation de packs de langue Windows.</div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact">
+    <h2>📞 Support technique</h2>
+    <div class="alert alert-success">
+      <strong>Nouba Software</strong><br/>
+      Email : <a href="mailto:support@nouba.dz" style="color:#065f46">support@nouba.dz</a><br/>
+      Pour tout problème technique, merci d'indiquer votre numéro de référence client.
+    </div>
+  </section>
+
+  <footer>
+    Nouba Pro v2.1 — © 2026 Nouba Software — Tous droits réservés — 🇩🇿 Made in Algeria
+  </footer>
+</main>
+
+<script>
+// Highlight active nav link on scroll
+var sections = document.querySelectorAll('section[id]');
+var links = document.querySelectorAll('.nav-link');
+window.addEventListener('scroll', function(){
+  var pos = window.scrollY + 80;
+  sections.forEach(function(s){
+    if(pos >= s.offsetTop && pos < s.offsetTop + s.offsetHeight){
+      links.forEach(function(l){ l.classList.remove('active'); });
+      var a = document.querySelector('.nav-link[href="#'+s.id+'"]');
+      if(a) a.classList.add('active');
+    }
+  });
+});
+</script>
+</body>
+</html>

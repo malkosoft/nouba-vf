@@ -1,0 +1,215 @@
+@{
+    Layout = null;
+    string machineId = ViewBag.MachineId as string ?? "——————————";
+    string primaryMac = ViewBag.PrimaryMac as string ?? "Non détectée";
+    string errorMsg  = ViewBag.Message  as string ?? string.Empty;
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nouba Pro — Activation de licence</title>
+<link rel="icon" type="image/png" href="~/images/favicon.png"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,"Noto Sans Arabic",Tahoma,sans-serif;background:#030712;color:#f8fafc;overflow:hidden}
+body{
+  display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% -10%, rgba(232,184,75,.18), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(16,185,129,.14), transparent),
+    #030712;
+}
+/* Grid bg */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(232,184,75,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(232,184,75,.06) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;
+}
+.shell{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  width:min(900px,95vw);border-radius:28px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 40px 120px rgba(0,0,0,.6);
+}
+/* LEFT PANEL */
+.left{
+  background:linear-gradient(145deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%);
+  padding:52px 44px;display:flex;flex-direction:column;justify-content:space-between;
+  position:relative;overflow:hidden;
+}
+.left::before{
+  content:'';position:absolute;top:-80px;right:-80px;
+  width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,184,75,.25),transparent 70%);
+  pointer-events:none;
+}
+.left::after{
+  content:'';position:absolute;bottom:-60px;left:-60px;
+  width:240px;height:240px;border-radius:50%;
+  background:radial-gradient(circle,rgba(16,185,129,.18),transparent 70%);
+  pointer-events:none;
+}
+.brand{display:flex;align-items:center;gap:16px;position:relative;z-index:1}
+.brand-mark{
+  width:64px;height:64px;border-radius:18px;
+  background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  padding:6px;
+  box-shadow:0 8px 32px rgba(232,184,75,.4),
+             0 0 0 1px rgba(255,255,255,.1) inset;
+}
+.brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
+.brand-text{font-size:1.6rem;font-weight:900;letter-spacing:-.02em}
+.brand-sub{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:#e8b84b;margin-top:2px;font-weight:600}
+.left-body{position:relative;z-index:1;margin-top:40px}
+.left-body h2{font-size:2rem;font-weight:900;letter-spacing:-.03em;line-height:1.15;margin-bottom:16px}
+.left-body h2 span{
+  background:linear-gradient(90deg,#f3d486,#34d399);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent
+}
+.left-body p{font-size:.9rem;color:#94a3b8;line-height:1.7;max-width:300px}
+.features{margin-top:32px;display:flex;flex-direction:column;gap:12px}
+.feat{display:flex;align-items:center;gap:12px;font-size:.85rem;color:#cbd5e1}
+.feat-dot{width:28px;height:28px;border-radius:8px;background:rgba(232,184,75,.18);
+  border:1px solid rgba(232,184,75,.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.left-footer{position:relative;z-index:1;margin-top:40px}
+.left-footer p{font-size:.72rem;color:#475569}
+/* RIGHT PANEL */
+.right{
+  background:rgba(15,23,42,.95);backdrop-filter:blur(20px);
+  padding:52px 44px;display:flex;flex-direction:column;justify-content:center;
+}
+.right h3{font-size:1.25rem;font-weight:800;margin-bottom:6px}
+.right .desc{font-size:.85rem;color:#64748b;margin-bottom:32px;line-height:1.6}
+.machine-box{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;padding:14px 18px;margin-bottom:24px;
+}
+.machine-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#e8b84b;font-weight:700;margin-bottom:6px}
+.machine-id{
+  font-family:'Courier New',monospace;font-size:1.15rem;font-weight:700;
+  letter-spacing:.15em;color:#e2e8f0;word-break:break-all;
+}
+.machine-copy{
+  display:inline-flex;align-items:center;gap:6px;margin-top:8px;
+  font-size:.72rem;color:#475569;cursor:pointer;background:none;border:none;
+  padding:0;transition:color .15s;
+}
+.machine-copy:hover{color:#f3d486}
+label.lbl{display:block;font-size:.78rem;font-weight:600;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+.key-input{
+  width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.12);
+  border-radius:14px;padding:14px 18px;font-family:'Courier New',monospace;
+  font-size:1rem;font-weight:700;letter-spacing:.12em;color:#f1f5f9;
+  text-transform:uppercase;transition:border-color .2s,box-shadow .2s;outline:none;
+}
+.key-input:focus{border-color:#e8b84b;box-shadow:0 0 0 3px rgba(232,184,75,.18)}
+.key-input::placeholder{color:#334155;font-weight:400;letter-spacing:.05em}
+.err{
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);
+  border-radius:10px;padding:10px 14px;font-size:.82rem;color:#fca5a5;margin:14px 0;
+}
+.btn-activate{
+  width:100%;margin-top:20px;padding:16px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,#f3d486,#e8b84b 45%,#b8862b);color:#1a1206;
+  font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:.02em;
+  box-shadow:0 8px 32px rgba(232,184,75,.35);
+  transition:transform .15s,box-shadow .15s;
+}
+.btn-activate:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(232,184,75,.45)}
+.btn-activate:active{transform:translateY(0)}
+.help{margin-top:20px;text-align:center;font-size:.78rem;color:#334155;line-height:1.6}
+.help strong{color:#475569}
+/* responsive */
+@@media(max-width:680px){
+  .shell{grid-template-columns:1fr;border-radius:20px}
+  .left{padding:36px 28px}
+  .right{padding:36px 28px}
+  .left-body h2{font-size:1.5rem}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- LEFT — Branding -->
+  <div class="left">
+    <div class="brand">
+      <div class="brand-mark"><img src="~/images/nouba-icon.png" alt="Nouba"/></div>
+      <div>
+        <div class="brand-text">Nouba Pro</div>
+        <div class="brand-sub">Queue Management</div>
+      </div>
+    </div>
+    <div class="left-body">
+      <h2>Activation<br/><span>de votre licence</span></h2>
+      <p>Nouba Pro est un système professionnel de gestion de file d'attente conçu pour les structures d'accueil du public.</p>
+      <div class="features">
+        <div class="feat"><div class="feat-dot">🖥️</div> Borne kiosque tactile multilingue</div>
+        <div class="feat"><div class="feat-dot">📺</div> Affichage TV temps réel</div>
+        <div class="feat"><div class="feat-dot">👤</div> Interface agent intuitive</div>
+        <div class="feat"><div class="feat-dot">⚙️</div> Administration complète</div>
+        <div class="feat"><div class="feat-dot">🌍</div> FR · AR · TZ · EN</div>
+      </div>
+    </div>
+    <div class="left-footer">
+      <p>© 2026 Nouba Software · Tous droits réservés</p>
+    </div>
+  </div>
+
+  <!-- RIGHT — Activation form -->
+  <div class="right">
+    <h3>Activer Nouba Pro</h3>
+    <p class="desc">Saisissez la clé de licence fournie par votre revendeur.<br/>La licence est signée et liée à l’adresse MAC principale de cet ordinateur.</p>
+
+    <div class="machine-box">
+      <div class="machine-label">🔑 Identifiant machine</div>
+      <div class="machine-id" id="mid">@machineId</div>
+      <div style="font-size:.68rem;color:#475569;margin-top:6px;font-family:'Courier New',monospace;letter-spacing:.04em">MAC source : @primaryMac</div>
+      <button class="machine-copy" onclick="copyMid()" title="Copier l'identifiant">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span id="copy-label">Copier et transmettre à votre revendeur</span>
+      </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMsg)) {
+      <div class="err">⚠️ @errorMsg</div>
+    }
+
+    <form asp-action="Activate" method="post">
+      @Html.AntiForgeryToken()
+      <label class="lbl" for="licenseKey">Clé de licence</label>
+      <input id="licenseKey" name="licenseKey" class="key-input"
+             placeholder="NOUBA2-... ou ONLINE:CODE"
+             maxlength="6000" autocomplete="off" spellcheck="false"
+             oninput="formatKey(this)"/>
+      <button type="submit" class="btn-activate">✓ Activer Nouba Pro</button>
+    </form>
+
+    <p class="help">
+      <strong>Besoin d'aide ?</strong><br/>
+      Transmettez uniquement l'identifiant machine ci-dessus à votre revendeur.<br/>
+      Il vous fournira la clé correspondante.
+    </p>
+  </div>
+</div>
+
+<script>
+function copyMid(){
+  navigator.clipboard.writeText(document.getElementById('mid').textContent.trim())
+    .then(function(){
+      var l = document.getElementById('copy-label');
+      l.textContent = '✓ Copié !';
+      setTimeout(function(){ l.textContent = 'Copier et transmettre à votre revendeur'; }, 2000);
+    });
+}
+function formatKey(el){
+  // Licence RSA v2 : on garde le rendu visuel, mais on n'altère plus le contenu.
+  el.value = el.value.trim().replace(/\s+/g,'');
+}
+</script>
+</body>
+</html>

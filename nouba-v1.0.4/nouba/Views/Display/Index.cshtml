@@ -1,0 +1,2612 @@
+@model Nouba.Models.DisplayPageViewModel
+@{
+    Layout = null;
+    var settings = Model.Settings;
+    var lang = Model.CurrentLanguage;
+    var rows = (Model.ActiveCalls ?? new List<Nouba.Models.DisplayActiveCallViewModel>()).Take(3).ToList();
+    int histRows = settings.DisplayHistoryRows > 0 ? settings.DisplayHistoryRows : 5;
+
+    string tTicket  = lang switch { "ar" => "التذكرة",  "en" => "TICKET",  _ => "TICKET"  };
+    string tCounter = lang switch { "ar" => "الشباك",   "en" => "COUNTER", _ => "GUICHET" };
+    string tInfo    = lang switch { "ar" => "معلومات",  "en" => "Info",    _ => "Info"    };
+    string tWaiting = Model.WaitingText;
+    string tNoMedia = lang switch { "ar" => "لا يوجد محتوى", "en" => "No media", _ => "Aucun média" };
+    string tFullscr = lang switch { "ar" => "ملء الشاشة", "en" => "Fullscreen", _ => "Plein écran" };
+    string tQrTitle = lang switch { "ar" => "تابع دورك من الهاتف", "en" => "Follow your queue on mobile", _ => "Suivez votre tour sur mobile" };
+    string tQrSub = lang switch { "ar" => "امسح الرمز", "en" => "Scan the QR code", _ => "Scannez le QR code" };
+    var allowedDisplayLayouts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "standard", "compact", "large", "tv-wall", "video-hero", "minimal" };
+    var displayLayout = Context.Request.Query.TryGetValue("layout", out var previewLayout) && allowedDisplayLayouts.Contains(previewLayout.ToString())
+        ? previewLayout.ToString()
+        : (string.IsNullOrWhiteSpace(settings.DisplayLayout) ? "standard" : settings.DisplayLayout);
+    // « compact » a été fusionné dans « standard » (rendus quasi identiques).
+    // Toute config existante en compact bascule proprement sur standard.
+    if (string.Equals(displayLayout, "compact", StringComparison.OrdinalIgnoreCase))
+        displayLayout = "standard";
+    bool showDisplayQr = settings.QrFollowEnabled && settings.QrFollowShowOnDisplay;
+    var explicitLang = Context.Request.Query.ContainsKey("lang") ? lang : "";
+    string headerCenterText = !string.IsNullOrWhiteSpace(Model.DisplayTitle)
+        ? Model.DisplayTitle
+        : (!string.IsNullOrWhiteSpace(settings.SiteName) ? settings.SiteName : (Model.HeaderText ?? string.Empty));
+    string bannerText = string.IsNullOrWhiteSpace(Model.BannerText)
+        ? (lang switch { "ar" => settings.DisplayBannerTextAr, "tz" => settings.DisplayBannerTextTz, "en" => settings.DisplayBannerTextEn, _ => settings.DisplayBannerTextFr } ?? "Bienvenue")
+        : Model.BannerText;
+}
+<!DOCTYPE html>
+<html lang="@lang" dir="@(lang=="ar"?"rtl":"ltr")">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>@settings.SiteName — Affichage</title>
+<link rel="icon" type="image/png" href="~/images/favicon.png"/>
+<link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css"/>
+<style>
+:root{
+  --brand:@(settings.DisplayCardColor ?? "#13315b");
+  --accent:@(settings.DisplayAccentColor ?? "#0f766e");
+  --footer-bg:@(settings.DisplayFooterColor ?? "#c21f4a");
+  --ticket-bg:@(settings.DisplayTicketBgColor ?? "#f0e2a3");
+  --text-main:@(settings.DisplayTextColor ?? "#ffffff");
+  --page-bg:#070d1c;--panel:#0d1830;--panel-soft:#111d36;
+  --line:rgba(255,255,255,.09);--text:#f6f8fc;--text-soft:#aab6ce;
+  --radius:24px;--shadow:0 18px 50px rgba(2,6,18,.55);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:"Segoe UI",Arial,sans-serif;background:var(--page-bg);color:var(--text);overflow:hidden}
+body{display:flex;flex-direction:column;height:100vh}
+
+/* ── HEADER PREMIUM RESPONSIVE ─────────────────────────────────────
+   Toutes les tailles utilisent clamp(min, vw-based, max) au lieu de
+   pixels figés → l'header s'adapte automatiquement à n'importe quel
+   écran : smartphone (320px), tablette (768px), PC (1366-1920px),
+   Smart TV 32" à 75" (1080p à 4K). Le min protège les petits écrans
+   contre les libellés illisibles, le max évite l'effet « tout
+   gigantesque » sur 4K.
+   La hauteur header s'adapte aussi pour laisser plus de place au
+   contenu sur petites tailles.                                       */
+.header{flex:0 0 clamp(80px, 10vh, 140px);display:grid;
+  grid-template-columns:minmax(300px,clamp(340px,36vw,700px)) minmax(220px,1fr) auto;
+  align-items:center;
+  gap:clamp(10px,1.5vw,22px);
+  background:linear-gradient(120deg,var(--brand) 0%,color-mix(in srgb,var(--brand) 65%,#1e3a8a 35%) 60%,color-mix(in srgb,var(--brand) 55%,#0c1e3a 45%) 100%);
+  color:var(--text-main);
+  padding:clamp(10px,1.4vh,18px) clamp(14px,2vw,28px);
+  border-bottom:clamp(2px,.4vh,5px) solid color-mix(in srgb,var(--accent) 70%,white 30%);
+  box-shadow:0 6px 24px rgba(0,0,0,.22), inset 0 -1px 0 rgba(255,255,255,.08);
+  position:relative;z-index:2}
+.header::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 20% 0%, rgba(255,255,255,.10), transparent 55%)}
+.brand{display:flex;align-items:center;gap:clamp(8px,1.2vw,18px);min-width:0;position:relative}
+/* Logo : taille proportionnelle à la hauteur du header.
+   Min 56×40 pour rester lisible sur petit téléphone, max 160×96 pour
+   ne pas écraser les TV.   Le ratio largeur/hauteur ≈ 1.66 reste constant. */
+.logo-box{
+  width:clamp(56px, 8vw, 160px);
+  height:clamp(40px, 6.5vh, 96px);
+  border-radius:clamp(10px,1.2vw,22px);
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  padding:clamp(4px,.5vw,10px);
+  box-shadow:0 8px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.6);
+  flex-shrink:0;
+}
+.logo-box img{width:100%;height:100%;object-fit:contain}
+.site-name{
+  font-size:clamp(13px, 1.35vw, 28px);
+  font-weight:900;line-height:1.08;letter-spacing:0;
+  text-shadow:0 1px 2px rgba(0,0,0,.25);
+  white-space:normal;overflow:visible;text-overflow:clip;min-width:0;max-width:100%;
+  overflow-wrap:anywhere;word-break:normal;flex:1 1 auto;
+}
+.header-center{
+  font-size:clamp(15px, 2vw, 40px);
+  font-weight:800;text-align:center;
+  /* Permet jusqu'à 2 lignes : Air Algérie, Mobilis Tizi-Ouzou etc. */
+  white-space:normal;line-height:1.18;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  overflow:hidden;text-overflow:ellipsis;word-break:break-word;
+  padding:0 clamp(6px,1vw,18px);
+  text-shadow:0 1px 4px rgba(0,0,0,.25);position:relative;
+}
+.header-right{display:flex;align-items:center;gap:clamp(8px,1vw,16px);position:relative}
+.sound-btn{
+  display:none;align-items:center;gap:8px;white-space:nowrap;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:12px;
+  background:linear-gradient(135deg,#16a34a,#15803d);
+  color:#fff;
+  padding:clamp(6px,.8vh,10px) clamp(9px,1vw,16px);
+  font-size:clamp(12px,1vw,17px);
+  font-weight:900;
+  box-shadow:0 8px 22px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.16);
+  cursor:pointer;
+}
+.sound-btn:focus{outline:3px solid rgba(255,255,255,.95);outline-offset:3px}
+/* Le bouton Son TV reste visible tant que Chrome/TV n'a pas autorise une
+   vraie lecture audio. Sans geste utilisateur, Chrome peut bloquer Web Speech
+   et <audio>, meme sur le meme PC. */
+.sound-btn{display:none !important}
+body.audio-locked .sound-btn{display:inline-flex !important}
+body.audio-ready .sound-btn{display:none !important}
+body.voice-disabled .sound-btn{
+  display:inline-flex !important;
+  background:linear-gradient(135deg,#dc2626,#991b1b);
+}
+.clock{
+  text-align:right;
+  padding:clamp(6px,.8vh,12px) clamp(10px,1.4vw,22px);
+  border-radius:clamp(10px,1.2vw,18px);
+  background:linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 4px 14px rgba(0,0,0,.18);
+}
+.clock-time{
+  font-size:clamp(18px, 2.2vw, 44px);
+  font-weight:900;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em;
+}
+.clock-date{
+  font-size:clamp(10px, .9vw, 18px);
+  opacity:.92;font-weight:600;margin-top:2px;text-transform:capitalize;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PAGE — layout piloté par classe page--xxx (cf settings.DisplayLayout)
+   Standard est la référence qui fonctionne ; les autres layouts sont des
+   ajustements MINIMAUX par rapport à Standard pour éviter de casser quoi
+   que ce soit.
+   ═══════════════════════════════════════════════════════════════════════ */
+.page{flex:1 1 auto;min-height:0;display:grid;gap:16px;padding:14px;overflow:hidden;
+  grid-template-columns:minmax(0,1.18fr) minmax(280px,.82fr)}                       /* défaut = standard */
+.page--standard   {grid-template-columns:minmax(0,1.18fr) minmax(280px,.82fr)}
+
+/* ── Compact : tickets dominants, panneau droit plus étroit MAIS lisible.
+   Avant : 1.4fr / 0.6fr → panneau droit écrasé (vidéo et historique
+   superposés sur les petits écrans). Maintenant : 1.3fr / 0.7fr. */
+.page--compact    {grid-template-columns:minmax(0,1.3fr) minmax(280px,.7fr)}
+
+/* ── Plein écran : pas de panneau droit, le ticket prend tout. */
+.page--large      {grid-template-columns:1fr}
+.page--large .right-col{display:none}
+
+/* ── TV Wall : ticket dominant + média visible.
+   Right-col simplifiée : juste 1 zone média (pas d'historique séparé,
+   qui prenait de la place en bas et faisait déborder la vidéo). */
+.page--tv-wall    {grid-template-columns:minmax(0,1.3fr) minmax(280px,.7fr)}
+.page--tv-wall .right-col{
+  grid-template-rows:1fr;     /* une seule zone : média en grand */
+}
+.page--tv-wall .right-col .calls-history-card{display:none !important}
+.page--tv-wall .row-cell.primary .ticket{font-size:clamp(80px,10vw,150px)}
+.page--tv-wall .row-cell.primary .counter{font-size:clamp(56px,6.5vw,100px)}
+
+/* ── Vidéo dominante : page en 2 LIGNES (vidéo haut, ticket bas).
+   La vidéo occupe la GRANDE majorité de l'écran (~72%), le ticket une
+   bande basse lisible (~28%). Avant : 1.15/0.85 → la vidéo ne dominait pas. */
+.page--video-hero {grid-template-columns:1fr;grid-template-rows:minmax(0,2.6fr) minmax(150px,1fr);height:100%}
+.page--video-hero .right-col{
+  grid-row:1;grid-column:1;
+  grid-template-rows:1fr;     /* override : une seule ligne média */
+  height:100%;min-height:0;
+}
+.page--video-hero .right-col .calls-history-card{display:none !important}
+.page--video-hero .right-col .media-card{height:100%}
+.page--video-hero .left-col{grid-row:2;grid-column:1;height:100%;min-height:0}
+.page--video-hero .left-col .card{height:100%}
+.page--video-hero .table-grid{grid-template-rows:1fr}
+.page--video-hero .head{display:none}
+.page--video-hero .row-cell:not(.primary){display:none}
+.page--video-hero .row-cell.primary{grid-row:1}
+.page--video-hero .row-cell.primary .ticket{font-size:clamp(48px, 6.5vw, 130px)}
+.page--video-hero .row-cell.primary .counter{font-size:clamp(34px, 4.4vw, 80px)}
+
+/* ── Minimal : un seul ticket, plein écran, rien d'autre.
+   IMPORTANT : on ne touche PAS au grid-template-rows de .table-grid (qui
+   est tg-rows-3 dans le HTML), on MASQUE simplement les lignes secondaires
+   pour ne laisser que la ligne primary. L'entête « TICKET / GUICHET »
+   est aussi masquée. */
+.page--minimal    {grid-template-columns:1fr;height:100%}
+.page--minimal .right-col{display:none}
+.page--minimal .left-col{height:100%;min-height:0}
+.page--minimal .card{height:100%}
+.page--minimal .table-grid{height:100%;grid-template-rows:1fr}
+.page--minimal .head{display:none}                              /* pas d'entête */
+.page--minimal .row-cell:not(.primary){display:none}            /* pas de lignes 2/3 */
+.page--minimal .row-cell.primary{padding:clamp(20px,3vh,60px)}
+.page--minimal .row-cell.primary .ticket{font-size:clamp(80px, 14vw, 320px)}
+.page--minimal .row-cell.primary .counter{font-size:clamp(60px, 9vw, 200px)}
+.page--minimal .row-cell.primary .service-tag{font-size:clamp(14px,1.4vw,28px);margin-top:clamp(8px,1.5vh,20px)}
+/* Pour Minimal : la table-grid HTML a `tg-rows-3` (4 lignes), mais on
+   masque 6 cells sur 8 → les 2 cells primary restantes doivent occuper
+   tout le grid via grid-row span. */
+.page--minimal .table-grid .row-cell.primary{grid-row:1}
+.left-col{min-height:0}
+.right-col{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) minmax(150px,240px);gap:16px}
+.card{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow), 0 1px 0 rgba(255,255,255,.6) inset;border:1px solid var(--line);overflow:hidden;height:100%;position:relative}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg, transparent, var(--accent), transparent);opacity:.6}
+
+/* TICKET TABLE PREMIUM */
+.table-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:100%}
+/* Hauteur de la ligne d'entête : adaptable. Avant 88px figé → écrasé sur TV. */
+.tg-rows-3{grid-template-rows:clamp(56px,8vh,120px) repeat(3,minmax(0,1fr))}
+.tg-rows-2{grid-template-rows:clamp(56px,8vh,120px) repeat(2,minmax(0,1fr))}
+.head{padding:clamp(8px,1.5vh,22px) clamp(8px,1.2vw,18px);text-align:center;font-size:clamp(15px, 1.9vw, 40px);font-weight:900;
+  background:linear-gradient(180deg, var(--panel-soft) 0%, color-mix(in srgb, var(--panel-soft) 92%, black 8%) 100%);
+  border-bottom:2px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  letter-spacing:.02em;
+  text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.head:nth-child(odd){border-right:1px solid var(--line)}
+.row-cell{padding:clamp(8px,1.4vh,18px);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--panel-soft);border-bottom:1px solid var(--line);min-height:0;min-width:0;position:relative;transition:background .3s;overflow:hidden}
+.row-cell:nth-child(odd){border-right:1px solid var(--line)}
+.row-cell.primary{
+  background:linear-gradient(135deg, var(--ticket-bg) 0%, color-mix(in srgb, var(--ticket-bg) 88%, white 12%) 100%);
+  box-shadow:inset 0 0 60px rgba(255,255,255,.25), inset 0 -2px 0 color-mix(in srgb, var(--ticket-bg) 75%, black 25%);
+}
+.row-cell.primary::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 0%, rgba(255,255,255,.3), transparent 60%)}
+.row-cell.primary .ticket{animation:tickPop .55s cubic-bezier(.25,1.8,.5,1) both}
+.row-cell.primary .counter{color:#13315b}
+.row-cell.primary .service-tag{color:#13315b;opacity:.78}
+@@keyframes tickPop{0%{transform:scale(.4) rotate(-2deg);opacity:0}60%{transform:scale(1.08) rotate(.5deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+/* Tailles réduites par rapport à v2.7.18 — les valeurs vw étaient trop
+   ambitieuses : un ticket type « C005 » à 7.2vw sur TV 1920px = 138px
+   et le compteur « Guichet 2 » sortait du cadre. Maintenant 5vw / 3.6vw,
+   plus le max abaissé. + max-width 100% pour forcer le wrap si nécessaire. */
+.ticket{font-size:clamp(40px, 5vw, 110px);font-weight:900;line-height:1;color:#10213f;letter-spacing:.02em;text-shadow:0 2px 0 rgba(0,0,0,.06);max-width:100%;min-width:0;text-align:center;word-break:break-all;overflow-wrap:anywhere}
+.counter{font-size:clamp(28px, 3.6vw, 78px);font-weight:900;line-height:1.05;color:var(--accent);text-shadow:0 1px 2px rgba(0,0,0,.08);max-width:100%;min-width:0;text-align:center;word-wrap:break-word;overflow-wrap:anywhere}
+.service-tag{font-size:clamp(11px, 1.1vw, 22px);font-weight:700;opacity:.72;margin-top:clamp(4px,.6vh,10px);text-align:center;text-transform:uppercase;letter-spacing:.08em;max-width:100%;min-width:0;word-wrap:break-word;overflow-wrap:anywhere}
+.small-ticket,.small-counter{font-size:clamp(18px, 2.4vw, 56px);font-weight:800;line-height:1.1;color:var(--text-soft);text-align:center;max-width:100%;min-width:0;word-wrap:break-word;overflow-wrap:anywhere}
+
+/* HISTORY panel (right col) */
+.history-card{display:flex;flex-direction:column;padding:clamp(10px,1.4vh,22px);min-height:0}
+.media-card{display:flex;flex-direction:column;gap:clamp(8px,1vh,14px);padding:clamp(10px,1.4vh,22px);min-height:0}
+.calls-history-card{min-height:0}
+.history-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:clamp(6px,1vh,14px)}
+.history-title{font-size:clamp(13px, 1.4vw, 28px);font-weight:900;text-transform:uppercase}
+.history-sub{font-size:clamp(10px, 1vw, 18px);color:var(--text-soft)}
+.history-list{flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column;gap:clamp(4px,.6vh,10px)}
+.history-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;padding:clamp(6px,1vh,14px) clamp(8px,1.2vw,16px);border-radius:clamp(10px,1.4vw,22px);background:var(--panel-soft);border:1px solid var(--line);transition:background .2s}
+.history-row>div{min-width:0}
+.history-row.latest{background:rgba(232,184,75,.16);border-color:rgba(232,184,75,.4)}
+.history-row.latest .history-ticket{color:#f3d486}
+.history-ticket{font-size:clamp(16px, 2vw, 36px);font-weight:900;color:var(--text);overflow-wrap:anywhere}
+.history-counter{font-size:clamp(12px, 1.4vw, 24px);font-weight:700;color:var(--accent);text-align:right;overflow-wrap:anywhere}
+.history-time{font-size:clamp(10px, .9vw, 16px);color:var(--text-soft);margin-top:2px}
+.media-body{flex:1 1 auto;min-height:0;border-radius:clamp(10px,1.5vw,22px);overflow:hidden;background:linear-gradient(135deg,#0f172a 0%, #1e293b 50%, #312e81 100%);display:flex;align-items:center;justify-content:center;position:relative}
+.media-body img,.media-body video{width:100%;height:100%;display:block;object-fit:cover}
+.media-placeholder{color:#fff;font-size:clamp(16px, 1.8vw, 32px);font-weight:700;text-align:center;padding:clamp(16px,2vw,32px);line-height:1.4;text-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1vw,16px)}
+.media-placeholder::before{content:"📺";font-size:clamp(48px,5vw,96px);display:block;opacity:.85;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4))}
+.display-qr-badge{position:static;z-index:3;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:clamp(9px,1vw,14px);width:100%;flex:0 0 auto;padding:clamp(8px,.9vw,12px);border-radius:clamp(12px,1.1vw,17px);background:linear-gradient(135deg,#ffffff 0%,#f4f7fb 100%);box-shadow:0 8px 22px rgba(0,0,0,.35);border:1px solid rgba(232,184,75,.5);color:#0f172a}
+.display-qr-text{font-weight:800;font-size:clamp(13px,1.3vw,20px);color:#0f172a;display:flex;flex-direction:column;gap:2px;line-height:1.2}
+.display-qr-text small{font-weight:600;font-size:clamp(11px,1vw,15px);color:#475569}
+.display-qr-badge[hidden]{display:none!important}
+.display-qr-badge img{width:clamp(58px,5.5vw,92px);height:clamp(58px,5.5vw,92px);object-fit:contain;display:block;flex:0 0 auto}
+.display-qr-text{min-width:0;font-size:clamp(11px,.95vw,16px);line-height:1.25;font-weight:900}
+.display-qr-text small{display:block;font-size:.78em;font-weight:700;color:#475569;margin-top:3px}
+
+/* FOOTER */
+.footer{
+  flex:0 0 clamp(92px,10vh,140px);height:clamp(92px,10vh,140px);
+  background:var(--footer-bg);display:grid;grid-template-columns:auto 1fr;align-items:center;
+  overflow:hidden;border-top:4px solid rgba(255,255,255,.18);
+  padding-bottom:clamp(8px,1.2vh,16px);
+  transform:translateZ(0);backface-visibility:hidden;
+}
+.footer-media{height:100%;display:flex;align-items:center;justify-content:center;padding:clamp(8px,1vh,14px) clamp(16px,1.8vw,28px)}
+.footer-media img{
+  max-width:clamp(140px, 14vw, 260px);
+  max-height:clamp(60px, 6.6vh, 96px);
+  object-fit:contain;
+  /* Pas de fond blanc par défaut : les logos PNG transparents s'affichent
+     directement sur le bandeau. Utiliser .footer-media img.on-dark pour
+     forcer le chip blanc si le logo est sombre (#5). */
+  border-radius:8px;
+}
+.footer-text-wrap{overflow:hidden;height:100%;display:flex;align-items:center;padding:0 clamp(18px,2vw,34px);transform:translateY(-4px)}
+.footer-track{display:flex;align-items:center;gap:clamp(46px,5vw,90px);width:max-content;animation:footerScroll 34s linear infinite;will-change:transform;transform:translate3d(0,0,0)}
+.marquee-item{display:inline-flex;align-items:center;height:clamp(70px,7.2vh,92px);white-space:nowrap;font-size:clamp(22px,2.1vw,34px);line-height:1;font-weight:900;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.2);transform:translateZ(0)}
+.marquee-item::after{content:"◆";margin-inline-start:30px;opacity:.7;font-size:.66em}
+@@keyframes footerScroll{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(calc(-33.333% - 20px),0,0)}}
+
+/* Animations */
+@@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.anim .history-row{animation:fadeInUp .4s ease both}
+
+/* Ne pas basculer les TV 1280px en colonne unique : sinon la partie médias
+   descend sous le ticket et devient invisible avec overflow:hidden. Le mode
+   téléphone est géré plus bas à 920px. */
+@@media (max-width:1300px) and (min-width:921px){
+  .header{grid-template-columns:minmax(300px,clamp(320px,34vw,440px)) minmax(180px,1fr) auto;flex-basis:96px}
+  .page--standard,.page--compact,.page--tv-wall{grid-template-columns:minmax(0,1.12fr) minmax(300px,.88fr)}
+  .right-col{grid-template-rows:minmax(0,1fr) minmax(120px,190px)}
+  .media-body{min-height:0}
+  .display-qr-badge{padding:7px;gap:8px}
+  .display-qr-badge img{width:clamp(52px,4.8vw,74px);height:clamp(52px,4.8vw,74px)}
+  .display-qr-text{font-size:clamp(10px,.86vw,13px)}
+}
+
+/* TV-safe landscape: 1280x720, 1366x768 and browser zoom on TVs.
+   Keep every panel inside one viewport instead of letting text collide. */
+@@media (min-width:921px) and (max-height:780px){
+  :root{--radius:18px;--shadow:0 6px 18px rgba(16,33,63,.10)}
+  .header{
+    flex-basis:clamp(62px,9vh,86px);
+    grid-template-columns:minmax(290px,clamp(300px,33vw,430px)) minmax(170px,1fr) auto;
+    gap:clamp(6px,1vw,12px);
+    padding:clamp(6px,1vh,10px) clamp(10px,1.4vw,18px);
+  }
+  .logo-box{width:clamp(50px,7vw,96px);height:clamp(34px,5.7vh,54px);border-radius:12px}
+  .site-name{font-size:clamp(11px,1.05vw,18px);line-height:1.05}
+  .header-center{font-size:clamp(13px,1.55vw,24px);line-height:1.12;-webkit-line-clamp:2}
+  .clock{padding:clamp(4px,.7vh,8px) clamp(8px,1vw,14px);border-radius:12px}
+  .clock-time{font-size:clamp(16px,2vw,30px)}
+  .clock-date{display:none}
+  .sound-btn{padding:6px 9px;font-size:clamp(11px,.9vw,14px)}
+  .page{gap:10px;padding:10px}
+  .right-col{gap:10px;grid-template-rows:minmax(0,1fr) minmax(92px,148px)}
+  .history-card,.media-card{padding:clamp(7px,1vh,12px)}
+  .history-head{margin-bottom:clamp(4px,.7vh,8px)}
+  .history-title{font-size:clamp(11px,1.05vw,18px)}
+  .history-sub{font-size:clamp(9px,.8vw,13px)}
+  .history-list{gap:4px}
+  .history-row{gap:4px;padding:clamp(4px,.7vh,8px) clamp(6px,.9vw,10px);border-radius:12px}
+  .history-ticket{font-size:clamp(13px,1.45vw,23px)}
+  .history-counter{font-size:clamp(10px,1.05vw,17px)}
+  .history-time{display:none}
+  .tg-rows-3{grid-template-rows:clamp(42px,7vh,54px) repeat(3,minmax(0,1fr))}
+  .tg-rows-2{grid-template-rows:clamp(42px,7vh,54px) repeat(2,minmax(0,1fr))}
+  .head{font-size:clamp(13px,1.45vw,24px);padding:clamp(5px,.8vh,9px) clamp(6px,.8vw,10px)}
+  .row-cell{padding:clamp(5px,.9vh,10px)}
+  .ticket{font-size:clamp(34px,4.4vw,76px);letter-spacing:0}
+  .counter{font-size:clamp(23px,3vw,52px);line-height:1.03}
+  .service-tag{font-size:clamp(9px,.9vw,14px);letter-spacing:.04em;margin-top:clamp(2px,.35vh,5px)}
+  .small-ticket,.small-counter{font-size:clamp(14px,1.7vw,28px)}
+  .page--tv-wall .row-cell.primary .ticket{font-size:clamp(42px,6.4vw,92px)}
+  .page--tv-wall .row-cell.primary .counter{font-size:clamp(30px,4.4vw,64px)}
+  .page--minimal .row-cell.primary .ticket{font-size:clamp(64px,12vw,180px)}
+  .page--minimal .row-cell.primary .counter{font-size:clamp(42px,7.5vw,112px)}
+  .footer{
+    flex-basis:clamp(54px,8.5vh,72px);
+    height:clamp(54px,8.5vh,72px);
+    padding-bottom:0;
+    border-top:2px solid rgba(255,255,255,.18);
+  }
+  .footer-media{padding:4px clamp(8px,1vw,14px)}
+  .footer-media img{max-width:clamp(96px,12vw,170px);max-height:clamp(38px,6vh,56px)}
+  .footer-text-wrap{transform:none;padding:0 clamp(10px,1.3vw,18px)}
+  .footer-track{gap:clamp(28px,3vw,52px)}
+  .marquee-item{height:auto;font-size:clamp(15px,1.7vw,24px);line-height:1.05}
+  .marquee-item::after{margin-inline-start:18px}
+}
+
+body.tv-density-tight .header{flex-basis:clamp(58px,8vh,82px);padding:6px 12px}
+body.tv-density-tight .page{gap:8px;padding:8px}
+body.tv-density-tight .right-col{gap:8px;grid-template-rows:minmax(0,1fr) minmax(86px,132px)}
+body.tv-density-tight .history-card,
+body.tv-density-tight .media-card{padding:8px}
+body.tv-density-tight .ticket{font-size:clamp(32px,4vw,72px)}
+body.tv-density-tight .counter{font-size:clamp(22px,2.8vw,48px)}
+body.tv-density-tight .small-ticket,
+body.tv-density-tight .small-counter{font-size:clamp(13px,1.6vw,24px)}
+body.tv-density-tight .footer{flex-basis:clamp(50px,7.5vh,66px);height:clamp(50px,7.5vh,66px);padding-bottom:0}
+body.tv-density-tight .marquee-item{font-size:clamp(14px,1.55vw,22px)}
+body.tv-density-ultra .clock-date,
+body.tv-density-ultra .history-time,
+body.tv-density-ultra .history-sub{display:none}
+body.tv-density-ultra .header{flex-basis:56px}
+body.tv-density-ultra .head{font-size:clamp(12px,1.2vw,18px)}
+body.tv-density-ultra .service-tag{display:none}
+body.tv-density-ultra .right-col{grid-template-rows:minmax(0,1fr) minmax(72px,104px)}
+body.tv-density-ultra .footer-media{display:none!important}
+body.tv-density-ultra .footer{grid-template-columns:1fr}
+
+
+/* ───────────────────────────────────────────────────────────────
+   Correctifs TV / téléphone v2.7.8
+   Objectif : affichage stable sur Smart TV, téléphone et tablettes.
+   ─────────────────────────────────────────────────────────────── */
+#audioUnlockBtn:focus,
+#audioUnlockOverlay:focus{
+  outline:4px solid rgba(34,197,94,.95);
+  outline-offset:6px;
+}
+#audioUnlockOverlay.is-bypassed{
+  display:none !important;
+}
+.sound-debug{
+  position:fixed;
+  left:14px;
+  bottom:14px;
+  max-width:min(560px, calc(100vw - 28px));
+  z-index:30;
+  border:1px solid rgba(239,68,68,.45);
+  border-radius:12px;
+  background:rgba(15,23,42,.92);
+  color:#fff;
+  padding:10px 12px;
+  box-shadow:0 12px 32px rgba(0,0,0,.35);
+  font-size:13px;
+  line-height:1.35;
+}
+.sound-debug strong{display:block;margin-bottom:4px;color:#fecaca}
+.sound-debug pre{margin:0;white-space:pre-wrap;font:inherit}
+
+@@media (max-width: 920px){
+  html,body{height:auto;min-height:100dvh;overflow:auto}
+  body{min-height:100dvh;display:block}
+}
+
+/* ── Media queries v2.7.14 : ajustements STRUCTURELS uniquement ──
+   Les tailles de police, logo, marges utilisent désormais clamp() avec
+   viewport units → elles s'adaptent automatiquement à TOUTES les tailles
+   d'écran sans qu'on ait besoin de les refixer. Les media queries
+   ci-dessous ne touchent qu'à la structure (grid columns, flex direction,
+   visibilité d'éléments secondaires).                                  */
+
+/* Petit écran (smartphone, tablette portrait) : empiler les colonnes,
+   masquer le logo footer, autoriser le scroll vertical. */
+@@media (max-width: 920px){
+  .page,.page--standard,.page--compact,.page--tv-wall,.page--video-hero{
+    grid-template-columns:1fr;height:auto;min-height:100dvh;overflow:visible;
+  }
+  .left-col{min-height:0}
+  .right-col{grid-template-rows:none;display:flex;flex-direction:column;gap:12px}
+  .card{height:auto;min-height:0}
+  .table-grid{min-height:520px;height:auto}
+  .media-body{min-height:180px}
+  .display-qr-badge{max-width:100%}
+  .history-list{max-height:260px;overflow:auto}
+  .footer{height:auto;min-height:62px;grid-template-columns:1fr;flex:0 0 auto}
+  .footer-media{display:none!important}
+  .footer-text-wrap{padding:0 10px;min-height:62px}
+  /* Sur petit écran, l'header peut prendre 2 lignes : empilé */
+  .header{grid-template-columns:1fr;gap:8px;text-align:center;flex-basis:auto;padding:10px}
+  .brand{justify-content:center}
+  .site-name{flex:0 1 auto;text-align:center}
+  .header-right{justify-content:center}
+}
+
+/* Tablette portrait / écrans hauts mais étroits */
+@@media (orientation:portrait) and (min-width: 700px){
+  html,body{height:auto;min-height:100dvh;overflow:auto}
+  body{display:block;min-height:100dvh}
+  .page,.page--standard,.page--compact,.page--tv-wall,.page--video-hero{display:flex;flex-direction:column;height:auto;min-height:auto;overflow:visible}
+  .left-col,.right-col{display:flex;flex-direction:column;gap:12px;min-height:auto}
+  .card{height:auto}
+  .table-grid{min-height:560px}
+  .media-body{min-height:260px}
+  .display-qr-badge{max-width:100%}
+  .history-list{max-height:300px;overflow:auto}
+}
+
+/* Écrans très bas (PC laptop 13-14") : colonnes 1.08/.92 pour donner plus d'air à droite */
+@@media (min-width: 921px) and (max-width: 1368px) and (min-height: 600px){
+  .page--standard,.page--compact,.page--tv-wall{
+    grid-template-columns:minmax(0,1.08fr) minmax(330px,.92fr);
+  }
+}
+
+/* Très grand écran (Smart TV ≥ 1500px) : forcer la colonne droite à
+   ne pas dépasser pour garder le ticket dominant.
+   Les tailles de police restent pilotées par clamp() global → pas
+   besoin de surcharger ici. */
+@@media (min-width: 1500px){
+  .right-col{grid-template-rows:minmax(0,1fr) minmax(180px,300px)}
+}
+
+/* Mode économie de mouvement (accessibilité) */
+@@media (prefers-reduced-motion: reduce){
+  .footer-track{animation-duration:60s}
+  .row-cell.primary .ticket{animation:none}
+  .call-burst,.call-burst *{animation:none !important}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ✨ EFFET « WOW » À L'APPEL D'UN TICKET (v2.7.27)
+   Overlay plein écran joué une seule fois quand un NOUVEAU ticket est
+   appelé. Conçu pour la démonstration commerciale : capte instantanément
+   l'œil, donne une impression de produit haut de gamme, puis s'efface en
+   ~2,2 s pour révéler l'écran normal. Aucune fausse donnée : se déclenche
+   uniquement sur de VRAIS appels de tickets.
+   ═══════════════════════════════════════════════════════════════════════ */
+.call-burst{
+  position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;opacity:0;
+}
+.call-burst.is-active{animation:burstFade var(--wow-duration,2.2s) ease forwards}
+@@keyframes burstFade{
+  0%{opacity:0}
+  6%{opacity:1}
+  78%{opacity:1}
+  100%{opacity:0}
+}
+/* Voile sombre + halo coloré radial derrière le numéro */
+.call-burst::before{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(circle at 50% 45%,
+      color-mix(in srgb, var(--accent) 75%, white 25%) 0%,
+      color-mix(in srgb, var(--accent) 60%, transparent) 18%,
+      color-mix(in srgb, var(--brand) 72%, transparent) 38%,
+      rgba(6,12,28,.90) 64%,
+      rgba(4,8,20,.96) 100%);
+  /* #2 — backdrop-filter:blur retiré : très coûteux sur GPU de TV à chaque effet
+     « wow ». Le dégradé radial ci-dessus couvre déjà l'écran (~90-96 %), l'effet
+     visuel est quasi identique mais le rendu est nettement plus fluide. */
+}
+/* Anneaux d'onde qui se propagent */
+.call-burst .burst-ring{
+  position:absolute;top:45%;left:50%;width:30vmin;height:30vmin;margin:-15vmin 0 0 -15vmin;
+  border-radius:50%;border:2px solid color-mix(in srgb, var(--accent) 80%, white 20%);
+  opacity:0;
+}
+.call-burst.is-active .burst-ring{animation:burstRing 1.6s cubic-bezier(.2,.7,.3,1) forwards}
+.call-burst.is-active .burst-ring.r2{animation-delay:.18s}
+.call-burst.is-active .burst-ring.r3{animation-delay:.36s}
+@@keyframes burstRing{
+  0%{transform:scale(.2);opacity:.9}
+  70%{opacity:.25}
+  100%{transform:scale(3.2);opacity:0}
+}
+/* Le grand contenu central */
+.burst-core{
+  position:relative;text-align:center;color:#fff;
+  transform:translateY(8px) scale(.7);opacity:0;
+  filter:drop-shadow(0 18px 50px rgba(0,0,0,.55));
+}
+.call-burst.is-active .burst-core{animation:burstCore var(--wow-duration,2.2s) cubic-bezier(.18,1.5,.4,1) forwards}
+@@keyframes burstCore{
+  0%{transform:translateY(8px) scale(.7);opacity:0}
+  14%{transform:translateY(0) scale(1.06);opacity:1}
+  24%{transform:scale(1)}
+  80%{transform:scale(1);opacity:1}
+  100%{transform:scale(1.02);opacity:0}
+}
+.burst-kicker{
+  font-size:clamp(16px,2.4vw,40px);font-weight:800;letter-spacing:.32em;text-transform:uppercase;
+  color:color-mix(in srgb, var(--accent) 30%, #ffffff 70%);
+  margin-bottom:clamp(6px,1.2vh,18px);opacity:.95;
+}
+.burst-number{
+  font-size:clamp(96px,20vw,360px);font-weight:900;line-height:.92;letter-spacing:.01em;
+  background:linear-gradient(180deg,#ffffff 0%, color-mix(in srgb, var(--ticket-bg) 60%, #ffffff 40%) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  position:relative;
+}
+/* Reflet lumineux qui balaie le numéro */
+.burst-number::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.85) 50%,transparent 65%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  mix-blend-mode:screen;transform:translateX(-120%);
+}
+.call-burst.is-active .burst-number::after{animation:burstShine 1.4s ease .25s forwards}
+@@keyframes burstShine{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.burst-counter{
+  margin-top:clamp(10px,2vh,28px);
+  font-size:clamp(26px,4.6vw,86px);font-weight:900;
+  color:color-mix(in srgb, var(--accent) 22%, #ffffff 78%);
+  text-shadow:0 2px 18px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.burst-service{
+  margin-top:clamp(4px,.8vh,12px);
+  font-size:clamp(14px,1.8vw,32px);font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.72);
+}
+/* Particules / étincelles */
+.burst-spark{
+  position:absolute;top:45%;left:50%;width:clamp(6px,.7vw,12px);height:clamp(6px,.7vw,12px);
+  border-radius:50%;background:radial-gradient(circle, #fff 0%, color-mix(in srgb,var(--accent) 70%, #fff 30%) 55%, transparent 70%);
+  opacity:0;
+}
+.call-burst.is-active .burst-spark{animation:burstSpark 1.5s ease-out forwards}
+@@keyframes burstSpark{
+  0%{transform:translate(0,0) scale(.3);opacity:0}
+  10%{opacity:1}
+  100%{transform:translate(var(--dx), var(--dy)) scale(1);opacity:0}
+}
+
+/* Glow persistant sur la cellule du ticket principal après le burst */
+.row-cell.primary.just-called{animation:cellGlow 2.6s ease forwards}
+@@keyframes cellGlow{
+  0%{box-shadow:inset 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent),0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent)}
+  18%{box-shadow:inset 0 0 60px rgba(255,255,255,.25),0 0 0 6px color-mix(in srgb, var(--accent) 55%, transparent),0 0 60px 8px color-mix(in srgb, var(--accent) 45%, transparent)}
+  100%{box-shadow:inset 0 0 60px rgba(255,255,255,.25),0 0 0 0 transparent,0 0 0 0 transparent}
+}
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- ══   OVERLAY « Activer le son »                                  ══ -->
+<!--                                                                       -->
+<!-- Les navigateurs (Chrome/Edge/Safari) bloquent toute lecture audio    -->
+<!-- avant un geste utilisateur. On affiche cet overlay au démarrage      -->
+<!-- tant qu'aucun clic n'a eu lieu. Au premier clic, on déverrouille     -->
+<!-- + on entre en plein écran + on rejoue les annonces en attente.       -->
+<!-- L'état est mémorisé dans sessionStorage pour ne pas redemander       -->
+<!-- après un rafraîchissement intentionnel de la page.                   -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- v2.7.21 : overlay « Activer le son » SUPPRIMÉ — gérait mal le cas Smart TV
+     et constituait une rupture UX pour usage commercial. Stratégie revue :
+     Web Speech API en priorité (pas besoin de geste utilisateur sur la
+     plupart des navigateurs Smart TV), Piper en bonus quand disponible. -->
+
+<!-- v2.7.21 : panneau diagnostic son SUPPRIMÉ pour usage commercial.
+     Les logs son sont toujours envoyés à console.warn pour debug F12 si besoin. -->
+
+<div id="noubaSoundDebug" class="sound-debug" role="status" aria-live="polite" style="display:none">
+  <strong>Diagnostic son</strong>
+  <pre id="noubaSoundDebugText"></pre>
+</div>
+
+<audio id="ttsAudioPlayer" preload="auto" playsinline style="position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:.01;pointer-events:none;z-index:-1"></audio>
+
+<!-- ✨ Overlay « effet wow » joué à chaque appel d'un vrai ticket. -->
+<div id="callBurst" class="call-burst" aria-hidden="true">
+  <span class="burst-ring r1"></span><span class="burst-ring r2"></span><span class="burst-ring r3"></span>
+  <div class="burst-core">
+    <div class="burst-kicker" id="burstKicker">@tTicket</div>
+    <div class="burst-number" id="burstNumber" data-text="">—</div>
+    <div class="burst-counter" id="burstCounter"></div>
+    <div class="burst-service" id="burstService"></div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="brand">
+    <div class="logo-box" id="headerLogoBox">
+      @if (!string.IsNullOrWhiteSpace(settings.HeaderImageUrl))
+      { <img src="@settings.HeaderImageUrl" alt="Logo" id="headerLogo" /> }
+      else
+      { <span style="color:#0f172a;font-weight:900;font-size:16px">@settings.SiteName</span> }
+    </div>
+    <div class="site-name" id="siteName">@settings.SiteName</div>
+  </div>
+  <div class="header-center" id="headerCenter">@headerCenterText</div>
+  <div class="header-right">
+    <button type="button" class="sound-btn" id="headerSoundBtn" aria-label="Activer le son TV" title="Activer le son TV"><span aria-hidden="true">&#128266;</span><span class="sound-btn-label">Son TV</span></button>
+    @if (settings.ShowClockOnDisplay)
+    { <div class="clock"><div class="clock-time" id="clockTime"></div><div class="clock-date" id="clockDate"></div></div> }
+  </div>
+</header>
+
+<main class="page page--@displayLayout @(settings.EnableAnimations?"anim":"")" id="displayApp"
+  data-state-url="@Url.Action("State")"
+  data-default-banner="@bannerText"
+  data-no-media="@tNoMedia"
+  data-counter-label="@tCounter"
+  data-waiting="@tWaiting"
+  data-voice-enabled="@(settings.EnableVoiceAnnouncements ? "1" : "0")"
+  data-voice-gender="@settings.VoiceGender"
+  data-voice-rate="@settings.VoiceRate.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+  data-voice-pitch="@settings.VoicePitch.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+  data-voice-volume="@settings.VoiceVolume.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+  data-voice-repeat="@settings.VoiceRepeatCount"
+  data-lang="@explicitLang"
+  data-current-lang="@lang"
+  data-layout="@displayLayout"
+  data-forced-layout="@(Context.Request.Query.ContainsKey("layout") ? "1" : "0")"
+  data-show-service="@(settings.ShowServiceNameOnDisplay ? "1" : "0")"
+  data-show-time="@(settings.ShowCallTimeOnDisplay ? "1" : "0")"
+  data-history-rows="@histRows"
+  data-wow-duration-ms="@settings.WowDurationMs"
+  data-wow-sound="@settings.WowSoundChoice">
+
+  <section class="left-col">
+    <article class="card">
+      <div class="table-grid tg-rows-3">
+        <div class="head" id="ticketHead">@tTicket</div>
+        <div class="head" id="counterHead">@tCounter</div>
+        @for (var i = 0; i < 3; i++)
+        {
+          var call = rows.ElementAtOrDefault(i);
+          var primary = i == 0;
+          <div class="row-cell @(primary?"primary":"")">
+            <div class="@(primary?"ticket":"small-ticket")" data-role="ticket-@i">@(call?.TicketNumber ?? "—")</div>
+          </div>
+          <div class="row-cell @(primary?"primary":"")">
+            <div class="@(primary?"counter":"small-counter")" data-role="counter-@i">@(string.IsNullOrWhiteSpace(call?.CounterName) ? tWaiting : call?.CounterName)</div>
+            @if (settings.ShowServiceNameOnDisplay && !string.IsNullOrWhiteSpace(call?.ServiceName))
+            { <div class="service-tag" data-role="service-@i">@call.ServiceName</div> }
+          </div>
+        }
+      </div>
+    </article>
+  </section>
+
+  <aside class="right-col">
+    <article class="card media-card @(showDisplayQr ? "media-card--with-qr" : "")">
+      <div class="history-head">
+        <div class="history-title" id="infoTitle">@tInfo</div>
+        <div class="history-sub" id="mediaSub">@settings.SiteName</div>
+      </div>
+      <div class="media-body" id="mediaBody">
+        @if (!string.IsNullOrWhiteSpace(settings.DisplayBackgroundVideoUrl))
+        { <video autoplay muted playsinline webkit-playsinline loop preload="auto" disablepictureinpicture controlslist="nodownload noplaybackrate nofullscreen" id="infoVideo" data-src="@settings.DisplayBackgroundVideoUrl"><source src="@settings.DisplayBackgroundVideoUrl" type="video/mp4"/></video> }
+        else if (!string.IsNullOrWhiteSpace(settings.DisplayBackgroundImageUrl))
+        { <img src="@settings.DisplayBackgroundImageUrl" alt="Communication" id="infoImage" data-src="@settings.DisplayBackgroundImageUrl"/> }
+        else
+        { <div class="media-placeholder" id="mediaPlaceholder">@tNoMedia</div> }
+      </div>
+      <div class="display-qr-badge" id="displayQrBadge" @(showDisplayQr ? "" : "hidden")>
+        <img src="/suivi/qr-general.png?size=8" alt="QR suivi mobile" id="displayQrImg" />
+        <div class="display-qr-text" id="displayQrText">@tQrTitle<small id="displayQrSub">@tQrSub</small></div>
+      </div>
+    </article>
+
+    <article class="card history-card calls-history-card">
+      <div class="history-head">
+        <div class="history-title" id="recentTitle">@Model.RecentText</div>
+        <div class="history-sub" id="historySub">@histRows derniers appels</div>
+      </div>
+      <div class="history-list" id="historyList">
+        @if (Model.History != null && Model.History.Any())
+        {
+          @foreach (var h in Model.History.Take(histRows))
+          {
+            <div class="history-row @(h == Model.History.First() ? "latest" : "")">
+              <div>
+                <div class="history-ticket">@h.TicketNumber</div>
+                @if (settings.ShowCallTimeOnDisplay){<div class="history-time">@h.CalledAt.ToString("HH:mm")</div>}
+              </div>
+              <div style="text-align:right">
+                <div class="history-counter">@h.CounterName</div>
+                @if (settings.ShowServiceNameOnDisplay && !string.IsNullOrWhiteSpace(h.ServiceName)){<div style="font-size:12px;color:#94a3b8">@h.ServiceName</div>}
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </article>
+  </aside>
+</main>
+
+<footer class="footer">
+  <div class="footer-media" id="footerMedia" @(string.IsNullOrWhiteSpace(settings.DisplayBannerImageUrl) ? "style='display:none'" : "")>
+    @if (!string.IsNullOrWhiteSpace(settings.DisplayBannerImageUrl))
+    { <img src="@settings.DisplayBannerImageUrl" alt="Bannière" id="footerMediaImg" /> }
+  </div>
+  <div class="footer-text-wrap">
+    <div class="footer-track" id="bannerTrack">
+      <span class="marquee-item" id="bannerTextA">@bannerText</span>
+      <span class="marquee-item" id="bannerTextB">@bannerText</span>
+      <span class="marquee-item" id="bannerTextC">@bannerText</span>
+    </div>
+  </div>
+</footer>
+
+<script src="/lib/signalr/signalr.min.js"></script>
+<script>
+(function(){
+  // v2.7.26 — Mode debug : activer en ajoutant ?debug=1 à l'URL.
+  // En prod (sans ?debug=1) les logs [Nouba DIAG] sont silencieux.
+  // Pratique pour démos et utilisation commerciale : la console reste propre.
+  window.NOUBA_DEBUG = /[?&]debug=1/.test(location.search) || (typeof localStorage !== 'undefined' && localStorage.getItem('NOUBA_DEBUG') === '1');
+  const root = document.getElementById('displayApp');
+  const stateUrl = root.dataset.stateUrl;
+  let voiceEnabled = root.dataset.voiceEnabled === '1';
+  let voiceGender = root.dataset.voiceGender || 'female';
+  let voiceRate = parseFloat(root.dataset.voiceRate) || 0.9;
+  let voicePitch = parseFloat(root.dataset.voicePitch) || 1.0;
+  let voiceVolume = parseFloat(root.dataset.voiceVolume) || 1.0;
+  let voiceRepeat = parseInt(root.dataset.voiceRepeat) || 2;
+  // data-lang est vide quand /Display est ouvert sans ?lang=... : dans ce cas,
+  // l'écran suit automatiquement la langue choisie depuis l'admin.
+  // Si /Display?lang=ar est utilisé, l'écran reste volontairement fixé en arabe.
+  const explicitLang = (root.dataset.lang || '').trim();
+  let uiLang = explicitLang || root.dataset.currentLang || 'fr';
+  const showService = root.dataset.showService === '1';
+  const showTime = root.dataset.showTime === '1';
+  // ✨ Forçage de l'effet wow pour les démonstrations commerciales :
+  // /Display?wow=1 garantit l'animation d'appel même si « animations » est
+  // décoché en admin. /Display?wow=0 la désactive explicitement.
+  const wowParam = (new URLSearchParams(window.location.search)).get('wow');
+  const wowForced = wowParam === '1' || wowParam === 'true';
+  const wowDisabled = wowParam === '0' || wowParam === 'false';
+  let historyRows = parseInt(root.dataset.historyRows) || 5;
+  let wowDurationMs = parseInt(root.dataset.wowDurationMs);
+  if (isNaN(wowDurationMs) || wowDurationMs < 0) wowDurationMs = 2200;
+  let wowSoundChoice = (root.dataset.wowSound || 'chime').toLowerCase();
+  // v2.7.23 : détection Smart TV plus stricte. Avant, le `TV` simple
+  // matchait des User-Agents PC légitimes (ex: certaines extensions
+  // Chrome, ou UA Linux mentionnant « TV »). Maintenant on requiert au
+  // moins un terme précis : Tizen, WebOS, VIDAA, etc., ou le suffixe
+  // « SmartTV » / « AndroidTV » qui est sans ambiguïté.
+  const isLikelyTvBrowser = /Tizen|Web0S|WebOS|VIDAA|HISENSE|SmartTV|Smart-TV|NetCast|HbbTV|GoogleTV|AndroidTV|AFTM|AFTB|BRAVIA|CrKey/i.test(navigator.userAgent || '');
+
+  function fitHeaderBrandText(){
+    var site = document.getElementById('siteName');
+    var brand = document.querySelector('.brand');
+    if (!site || !brand) return;
+    site.style.fontSize = '';
+    var size = parseFloat(getComputedStyle(site).fontSize) || 16;
+    var minSize = window.innerWidth >= 921 ? 10 : 12;
+    for (var i = 0; i < 24 && size > minSize; i++) {
+      var sr = site.getBoundingClientRect();
+      var br = brand.getBoundingClientRect();
+      var fitsWidth = site.scrollWidth <= site.clientWidth + 2 && sr.right <= br.right + 2;
+      var fitsHeight = site.scrollHeight <= Math.max(site.clientHeight, br.height) + 2 && sr.bottom <= br.bottom + 2;
+      if (fitsWidth && fitsHeight) break;
+      size = size - 0.75;
+      site.style.fontSize = size + 'px';
+    }
+  }
+  window.addEventListener('resize', fitHeaderBrandText);
+  setTimeout(fitHeaderBrandText, 0);
+  setTimeout(fitHeaderBrandText, 300);
+
+  let lastTicket = '';
+  let announcedTickets = [];
+  let voiceQueue = [];
+  let voiceBusy = false;
+  let allVoices = [];
+  let currentMediaUrl = '';
+  let mediaKeepAliveTimer = null;
+  // Initialise currentMediaUrl à partir de la vidéo (ou image) rendue
+  // côté serveur, pour que le 1er appel JS à updateMedia() ne remplace
+  // PAS le DOM si l'URL est identique → la vidéo continue sans coupure
+  // au premier ticket appelé.
+  (function initMediaUrl(){
+    var b = document.getElementById('mediaBody');
+    if (!b) return;
+    var v = b.querySelector('video');
+    if (v) {
+      var src = v.querySelector('source');
+      if (src && src.src) { currentMediaUrl = src.src; b.dataset.mediaReady = '1'; return; }
+      if (v.dataset && v.dataset.src) { currentMediaUrl = v.dataset.src; b.dataset.mediaReady = '1'; return; }
+    }
+    var img = b.querySelector('img');
+    if (img && img.src) { currentMediaUrl = img.src; b.dataset.mediaReady = '1'; }
+  })();
+  // ── Piper TTS state (déclaré tôt pour éviter TDZ : unlockAudio l'utilise) ──
+  let piperAudioPlayer = null;       // instance unique Audio() réutilisée
+  let piperFailCount = { fr:0, en:0, ar:0, tz:0 }; // compteurs d'échecs par langue
+
+  // ─── Clock ───────────────────────────────────────────────────────
+  // Le format de date suit la langue active. Sur certaines Smart TV
+  // (Samsung Tizen, LG WebOS), Intl.DateTimeFormat tombe parfois sur
+  // en-US par défaut → on impose un fallback manuel pour le français.
+  function noubaLocale(){
+    switch(uiLang){
+      case 'ar': return 'ar-DZ';
+      case 'en': return 'en-US';
+      case 'tz': return 'fr-FR';
+      default:   return 'fr-FR';
+    }
+  }
+  // Dictionnaire FR codé en dur (indépendant du runtime navigateur).
+  const FR_DAYS   = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const FR_MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const EN_DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const AR_DAYS   = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const AR_MONTHS = ['جانفي','فيفري','مارس','أفريل','ماي','جوان','جويلية','أوت','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  function formatLongDate(now){
+    const dow = now.getDay();
+    const dom = now.getDate();
+    const m   = now.getMonth();
+    const y   = now.getFullYear();
+    if (uiLang === 'ar') return `${AR_DAYS[dow]} ${dom} ${AR_MONTHS[m]} ${y}`;
+    if (uiLang === 'en') return `${EN_DAYS[dow]}, ${EN_MONTHS[m]} ${dom}, ${y}`;
+    // FR + TZ par défaut
+    return `${FR_DAYS[dow]} ${dom} ${FR_MONTHS[m]} ${y}`;
+  }
+  function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+  function updateClock(){
+    const now = new Date();
+    const t = document.getElementById('clockTime');
+    const d = document.getElementById('clockDate');
+    if(t) t.textContent = pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds());
+    if(d) d.textContent = formatLongDate(now);
+  }
+  setInterval(updateClock, 1000); updateClock();
+
+  // ─── Audio unlock + Fullscreen ──────────────────────────────────────
+  // Les navigateurs exigent un geste utilisateur avant toute lecture audio.
+  // Cas où il n'y a JAMAIS de clic (page ouverte automatiquement, kiosque
+  // qui démarre tout seul) : on affiche un overlay « Activer le son » qui
+  // disparaît au premier clic. Tant qu'il est affiché, les annonces sont
+  // mises en attente — elles seront rejouées dès que l'audio sera débloqué.
+  let audioUnlocked = false;
+  let audioUnlockAttempt = null;
+  // File d'annonces qui n'ont pas pu être jouées car audio bloqué.
+  // Format : [{ ticketNumber, counterName, serviceName, lang }]
+  let pendingAnnouncements = [];
+  const overlay = document.getElementById('audioUnlockOverlay');
+  const headerSoundBtn = document.getElementById('headerSoundBtn');
+  const silentAudioDataUrl = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+  const unlockBeepUrl = '/Tts/UnlockBeep';
+  const unlockBeepDataUrl = 'data:audio/wav;base64,UklGRqQHAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YYAHAAAAAAYAFQAlACsAIAACANj/rf+S/5P/tv/3/0YAjgC4ALIAeAAVAKD/Of8A/wj/Vv/b/3YA/ABIAUAB3wA6AHn/0f5x/nf+6f6t/5MAXgHVAdMBUwFxAGX/dv7m/eH9bv5t/58AsgFcAmsC1AG5AGL/Kf5j/Uj96P0c/5gA+AHcAgQDXwITAXL/6/3n/K78V/26/n4ALQJTA54D9QJ9AZX/vv11/BX8vvxJ/lIAUgLAAzcEkgP2Acv/ov0O/H77HfzI/RMAZQIhBM0ENgR+AhQAmP20++r6dvs5/cH/ZgJ0BF0F3wQTA28Aof1o+1z6y/qd/F7/SgKbBLcFUgWIA9AA4f2B+1D6nfpU/AL/8wFhBKgFcwXPAysBOP69+2H6f/oP/Kj+mwEjBJQFjgUTBIUBkf7++3j6ZvrN+07+QgHgA3oFpAVSBN4B7P5C/JX6U/qQ+/f95wCaA1sFtAWNBDQCR/+L/Lf6RvpX+6H9iwBQAzYFvgXEBIkCo//W/N76P/oj+079LgACAwwFwgX1BNsCAAAl/Qv7Pvr0+v780v+yAt0EwQUiBSoDXQB3/Tz7QvrK+rD8df9fAqkEugVJBXUDuQDM/XP7TPql+mb8Gf8JAnAErQVrBb4DFAEi/q77XPqG+iD8vv6yATMEmgWIBQIEbwF7/u37cvps+t37Zf5YAfEDgQWfBUMEyAHV/jH8jfpY+p/7Df7+AKwDYwWwBX8EHwIw/3j8rvpJ+mX7tv2iAGMDQAW8BbYEdAKM/8P81PpA+jD7Y/1FABYDFwXCBekExgLp/xH9//o9+v/6Ef3p/8YC6QTCBRcFFgNFAGP9MPtA+tT6w/yM/3QCtgS8BUAFYwOiALb9ZftJ+q76ePww/x8CfwSwBWMFrAP+AA3+n/tY+o36MfzV/sgBQwSfBYEF8QNYAWX+3fts+nL67ft7/m8BAgSIBZoFMwSyAb7+IPyG+lz6rvsi/hQBvgNrBa0FcAQJAhn/Zvyl+kz6c/vM/bkAdQNJBboFqQRfAnX/sPzK+kL6PPt3/V0AKgMiBcEF3QSyAtL//vz0+j76C/sl/QAA2wL1BMIFDAUCAy4ATv0j+z/63vrW/KP/iQLEBL4FNgVQA4sAof1X+0b6t/qL/Ef/NAKNBLQFWwWaA+cA9/2Q+1P6lfpC/Oz+3gFSBKQFegXgA0IBTv7N+2b6ePr++5H+hQETBI4FlAUjBJsBqP4P/H/6Yfq9+zj+KwHPA3MFqAVhBPMBAv9U/J36UPqB++H90ACIA1IFtwWbBEoCXv+d/MD6RPpK+4z9dAA9AywFwAXQBJ0Cu//q/On6PvoX+zr9FwDvAgEFwwUBBe8CFwA6/Rf7Pvrp+ur8u/+dAtAEwAUsBT0DdACM/Ur7RPrA+p38Xv9KApsEtwVSBYgD0ADh/YH7UPqd+lT8Av/zAWEEqAVzBc8DKwE4/r37Yfp/+g/8qP6bASMElAWOBRMEhQGR/v77ePpm+s37Tv5CAeADegWkBVIE3gHs/kL8lfpT+pD79/3nAJoDWwW0BY0ENAJH/4v8t/pG+lf7of2LAFADNgW+BcQEiQKj/9b83vo/+iP7Tv0uAAIDDAXCBfUE2wIAACX9C/s++vT6/vzS/7IC3QTBBSIFKgNdAHf9PPtC+sr6sPx1/18CqQS6BUkFdQO5AMz9c/tM+qX6ZvwZ/wkCcAStBWsFvgMUASL+rvtc+ob6IPy+/rIBMwSaBYgFAgRvAXv+7fty+mz63ftl/lgB8QOBBZ8FQTIAdX+MfyN+lj6n/sN/v4ArANjBbAFfwQfAjD/ePyu+kn6Zfu2/aIAYwNABbwFtgR0Aoz/w/zU+kD6MPtj/UUAFgMXBcIF6QTGAun/Ef3/+j36//oR/en/xgLpBMIFFwUWA0UAY/0w+0D61PrD/Iz/dAK2BLwFQAVjA6EAu/10+2H6yvqP/Db/DQJUBHQFJAV9A/AAKv7l+7j68Pp6/O3+ogHjAxsF+gSMAzQBkf5U/BL7Hvtw/K3+PgF1A78EyQSSA28B8f7B/G/7U/tw/Hj+4gAKA2EEkASNA58BSf8q/c77j/t5/E3+jgCjAgIEUQR/A8UBmf+P/S780PuM/Cz+QgBBAqMDDQRnA+AB4P/u/Y38F/yn/Bb+AADkAUQDxANIA/IBHgBI/uz8YfzL/An+x/+NAeYCeAMhA/kBUgCc/kj9r/z2/Af+l/89AYsCKQPyAvcBfQDo/qL9//wo/Q3+cf/1ADIC2AK9AuwBngAt//j9Uf1f/R3+Vf+0AN4BhgKDAtgBtgBp/0v+o/2c/TX+Qv97AI4BNAJDArwBxACe/5j+9f3e/VX+Of9LAEQB4gEAApgByADJ/9/+Rv4j/n3+Of8kAAABkwG5AW0BwwDs/yD/lP5r/qz+Q/8GAMIARgFxATsBtQAGAFr/4P60/uD+Vf/x/4sA/AAmAQMBnwAWAI3/KP///hr/cP/m/10AtgDbAMcAgAAdALj/a/9K/1n/kv/j/zYAdQCRAIYAWQAaANr/qv+U/5z/vf/q/xgAOQBHAEEAKwAPAPT/4v/d/+L/7v/7/wMABAA=';
+
+  function setAudioUiState(ready){
+    var canSpeak = !!voiceEnabled;
+    document.body.classList.toggle('voice-disabled', !canSpeak);
+    document.body.classList.toggle('audio-ready', canSpeak && !!ready);
+    document.body.classList.toggle('audio-locked', canSpeak && !ready);
+    var msg = document.getElementById('audioUnlockMessage');
+    if (msg) msg.textContent = ready
+      ? 'Son actif. Les annonces seront lues une par une.'
+      : "Appuyez sur OK, Entrée, Espace, ou touchez l'écran si la TV bloque le son.";
+    if (headerSoundBtn) {
+      var label = headerSoundBtn.querySelector('.sound-btn-label');
+      if (label) label.textContent = canSpeak ? 'Son TV' : 'Voix OFF';
+      headerSoundBtn.setAttribute('aria-pressed', canSpeak && ready ? 'true' : 'false');
+      headerSoundBtn.title = canSpeak
+        ? (ready ? 'Son TV active' : 'Activer le son TV')
+        : 'Annonces vocales desactivees dans les reglages';
+    }
+  }
+  function replayPendingAnnouncements(){
+    if (!pendingAnnouncements.length) return;
+    var queued = pendingAnnouncements.slice();
+    pendingAnnouncements = [];
+    queued.forEach(function(item){
+      if (item.signature) {
+        announcedTickets = announcedTickets.filter(function(s){ return s !== item.signature; });
+      }
+      announceTicket(item.ticketNumber, item.counterName, item.serviceName, item.lang, item.signature);
+    });
+  }
+  function addPendingAnnouncement(item){
+    if (!item || !item.signature) return;
+    var exists = pendingAnnouncements.some(function(p){ return p.signature === item.signature; });
+    if (exists) return;
+    pendingAnnouncements.push({
+      ticketNumber: item.ticketNumber,
+      counterName: item.counterName,
+      serviceName: item.serviceName || '',
+      lang: item.lang || uiLang,
+      signature: item.signature
+    });
+    if (pendingAnnouncements.length > 6) pendingAnnouncements = pendingAnnouncements.slice(-6);
+  }
+  function removePendingAnnouncement(signature){
+    if (!signature) return;
+    pendingAnnouncements = pendingAnnouncements.filter(function(p){ return p.signature !== signature; });
+  }
+  function markAudioUnlocked(replayQueued){
+    audioUnlocked = true;
+    try { sessionStorage.setItem('nouba.audioUnlocked', '1'); } catch(_) {}
+    setAudioUiState(true);
+    hideAudioOverlay();
+    hideFloatingSoundButton();
+    warmUpPiperOnce();
+    if (replayQueued !== false) replayPendingAnnouncements();
+  }
+  // Pré-chauffe Piper : dès que l'audio est débloqué, on demande au serveur
+  // une mini-synthèse pour la langue courante. Le modèle ONNX est alors déjà
+  // chargé côté serveur ET le WAV mis en cache quand le 1er vrai ticket
+  // arrive → plus de raté sur la première annonce.
+  var piperWarmedClient = false;
+  function warmUpPiperOnce(){
+    if (piperWarmedClient) return;
+    piperWarmedClient = true;
+    var langsToWarm = [uiLang === 'tz' ? 'fr' : uiLang];
+    // On pré-chauffe aussi l'arabe si c'est la langue par défaut probable.
+    if (uiLang !== 'ar') langsToWarm.push('ar');
+    langsToWarm.forEach(function(l){
+      try {
+        var probe = l === 'ar' ? 'اختبار' : 'Test';
+        var u = '/Tts/Speak?lang=' + encodeURIComponent(l)
+              + '&gender=' + encodeURIComponent(voiceGender || 'female')
+              + '&text=' + encodeURIComponent(probe);
+        fetch(u, { credentials: 'same-origin', cache: 'no-store' }).catch(function(){});
+      } catch(_) {}
+    });
+  }
+  function markAudioLocked(showControls){
+    audioUnlocked = false;
+    try { sessionStorage.removeItem('nouba.audioUnlocked'); } catch(_) {}
+    setAudioUiState(false);
+    if (showControls) {
+      showAudioOverlay();
+      showFloatingSoundButton();
+    }
+  }
+  setAudioUiState(false);
+
+  function showAudioOverlay(){
+    // v2.7.21 : overlay supprimé pour UX commerciale. Ne fait plus rien.
+    // Le déverrouillage audio se fait silencieusement au 1er geste utilisateur
+    // (incluant un simple mousemove sur PC) ou immédiatement sur Smart TV via
+    // Web Speech API qui ne nécessite pas de geste utilisateur.
+    return;
+  }
+  function hideAudioOverlay(){
+    // overlay supprimé — fonction conservée pour compat appels.
+    return;
+  }
+  function showFloatingSoundButton(){
+    // bouton flottant supprimé pour UX commerciale.
+    return;
+  }
+  function hideFloatingSoundButton(){
+    return;
+  }
+
+  function playBeepFrom(src, volume){
+    return new Promise(function(resolve){
+      var audio = getPiperPlayer();
+      var settled = false;
+      function done(ok, reason){
+        if (settled) return;
+        settled = true;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.onplaying = null;
+        try {
+          audio.pause();
+          audio.removeAttribute('src');
+          audio.load();
+        } catch(_) {}
+        resolve({ ok: ok, reason: reason || '' });
+      }
+      try {
+        audio.preload = 'auto';
+        audio.src = src;
+        audio.muted = false;
+        audio.volume = Math.max(0.08, Math.min(0.65, volume || 0.45));
+        audio.playbackRate = 1;
+        audio.setAttribute('playsinline','');
+        audio.setAttribute('webkit-playsinline','');
+        audio.onended = function(){ done(true, 'ended'); };
+        audio.onerror = function(){ done(false, 'audio element error'); };
+        audio.onplaying = function(){ setTimeout(function(){ done(true, 'playing'); }, 220); };
+        try { audio.load(); } catch(_) {}
+        var playPromise = audio.play();
+        if (playPromise && playPromise.then) {
+          playPromise.catch(function(err){ done(false, err && (err.name || err.message) ? (err.name || err.message) : 'play rejected'); });
+        } else {
+          setTimeout(function(){ done(true, 'legacy play'); }, 220);
+        }
+        setTimeout(function(){ done(!audio.paused, audio.paused ? 'timeout' : 'timeout playing'); }, 1000);
+      } catch(e) {
+        done(false, e && e.message ? e.message : 'exception');
+      }
+    });
+  }
+
+  function playUnlockBeep(volume){
+    var netSrc = unlockBeepUrl + '?v=' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    return playBeepFrom(netSrc, volume).then(function(r){
+      if (r && r.ok) return r;
+      // Repli SANS réseau : bip embarqué en base64 (navigateurs TV capricieux).
+      return playBeepFrom(unlockBeepDataUrl, volume).then(function(r2){
+        return (r2 && r2.ok) ? r2 : { ok:false, reason:(r && r.reason ? r.reason : 'net') + ' / data:' + (r2 && r2.reason ? r2.reason : 'ko') };
+      });
+    });
+  }
+
+  function warmSpeechSynthesisUnlock(){
+    return new Promise(function(resolve){
+      if(!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        resolve(false);
+        return;
+      }
+      var settled = false;
+      function done(ok){
+        if (settled) return;
+        settled = true;
+        resolve(!!ok);
+      }
+      try {
+        var u = new SpeechSynthesisUtterance(' ');
+        u.volume = 0;
+        u.rate = 10;
+        u.onstart = function(){ done(true); };
+        u.onend = function(){ done(true); };
+        u.onerror = function(){ done(false); };
+        speechSynthesis.speak(u);
+        speechSynthesis.resume();
+        setTimeout(function(){ done(false); }, 900);
+      } catch(_) {
+        done(false);
+      }
+    });
+  }
+
+  // #4 — Certaines TV (ex. Hisense/VIDAA) débloquent l'audio uniquement quand
+  // l'AudioContext (Web Audio) est REPRIS sur un geste. Sans ça, le carillon
+  // « bi-bong » (Web Audio) restait muet même après « Activer le son ». On
+  // réveille donc explicitement l'AudioContext et on amorce sa sortie.
+  function warmAudioContextUnlock(){
+    return new Promise(function(resolve){
+      try {
+        var ctx = (typeof getAudioCtx === 'function') ? getAudioCtx() : null;
+        if (!ctx) { resolve({ ok:false, state:'no-audiocontext' }); return; }
+        var settled = false;
+        function done(){ if (settled) return; settled = true; resolve({ ok: ctx.state === 'running', state: ctx.state }); }
+        var p = (ctx.state === 'suspended' && ctx.resume) ? ctx.resume() : Promise.resolve();
+        Promise.resolve(p).then(function(){
+          try {
+            var buf = ctx.createBuffer(1, 1, ctx.sampleRate || 22050);
+            var src = ctx.createBufferSource();
+            src.buffer = buf; src.connect(ctx.destination); src.start(0);
+          } catch(_) {}
+          done();
+        }).catch(done);
+        setTimeout(done, 800);
+      } catch(_) { resolve({ ok:false, state:'exception' }); }
+    });
+  }
+
+  function unlockAudio(){
+    if (!voiceEnabled) {
+      setAudioUiState(true);
+      return Promise.resolve(true);
+    }
+    if (audioUnlocked) {
+      setAudioUiState(true);
+      return Promise.resolve(true);
+    }
+    if (audioUnlockAttempt) return audioUnlockAttempt;
+
+    setAudioUiState(false);
+    audioUnlockAttempt = new Promise(function(resolve){
+      var settled = false;
+      function finish(ok, err){
+        if (settled) return;
+        settled = true;
+        audioUnlockAttempt = null;
+        if (ok) {
+          var msg = document.getElementById('audioUnlockMessage');
+          if (msg) msg.textContent = 'Son TV activé. Le bip doux confirme que les annonces peuvent jouer.';
+          noubaSoundDebugHide();
+          markAudioUnlocked();
+          resolve(true);
+        } else {
+          if (err) console.warn('[Nouba TTS] Deverrouillage audio refuse:', err && (err.name || err.message || err));
+          noubaSoundLog('Le navigateur TV bloque encore le son. Appuyez sur OK directement sur le bouton Son TV, puis lancez Tester bip doux.', true);
+          markAudioLocked(true);
+          resolve(false);
+        }
+      }
+      try{
+        Promise.all([playUnlockBeep(0.55), warmSpeechSynthesisUnlock(), warmAudioContextUnlock()]).then(function(results){
+          var beepResult = results && results[0];
+          var speechOk = !!(results && results[1]);
+          var acResult = results && results[2];
+          if ((beepResult && beepResult.ok) || speechOk || (acResult && acResult.ok)) finish(true);
+          else {
+            var reason = 'TV bloque le son'
+              + ' — lecteur: ' + (beepResult && beepResult.reason ? beepResult.reason : 'refusé')
+              + ' · voix navigateur: ' + (speechOk ? 'ok' : 'non')
+              + ' · AudioContext: ' + (acResult && acResult.state ? acResult.state : 'n/a');
+            finish(false, reason);
+          }
+        });
+      }catch(e){
+        finish(false, e);
+      }
+    });
+    return audioUnlockAttempt;
+  }
+
+  function playSoftBeep(){
+    return unlockAudio().then(function(ok){
+      if (!ok) return false;
+      return playUnlockBeep(0.65).then(function(result){
+        if (result && result.ok) {
+          noubaSoundDebugHide();
+          return true;
+        }
+        noubaSoundLog('Test bip refusé par la TV. Appuyez sur OK directement sur le bouton Son TV.', true);
+        return false;
+      });
+    });
+  }
+
+  function testDisplayVoice(){
+    return unlockAudio().then(function(ok){
+      if (!ok) return false;
+      announceTicket('TEST', 'Guichet 1', '', uiLang, 'manual-test-' + Date.now());
+      return true;
+    });
+  }
+
+  // Smart TV : certaines télécommandes ne déclenchent pas click, mais keyup / keyCode 13.
+  // On écoute largement, sans syntaxe JS trop récente, pour rester compatible TV.
+  function unlockFromUserGesture(e){
+    window.noubaUserGestured = true;
+    try {
+      if (e && overlay && overlay.style.display !== 'none') {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+      }
+    } catch(_) {}
+    unlockAudio();
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        var fp = document.documentElement.requestFullscreen();
+        if (fp && fp.catch) fp.catch(function(){});
+      }
+    } catch(_) {}
+  }
+
+  var unlockEvents = ['click','mousedown','mouseup','pointerdown','pointerup','touchstart','touchend'];
+  for (var ue = 0; ue < unlockEvents.length; ue++) {
+    var evt = unlockEvents[ue];
+    if (overlay) overlay.addEventListener(evt, unlockFromUserGesture, { passive:false });
+    var btn = document.getElementById('audioUnlockBtn');
+    if (btn) btn.addEventListener(evt, unlockFromUserGesture, { passive:false });
+    if (headerSoundBtn) headerSoundBtn.addEventListener(evt, unlockFromUserGesture, { passive:false });
+  }
+  var audioBeepBtn = document.getElementById('audioBeepBtn');
+  if (audioBeepBtn) {
+    audioBeepBtn.addEventListener('click', function(e){ if(e.preventDefault) e.preventDefault(); playSoftBeep(); }, false);
+    audioBeepBtn.addEventListener('touchend', function(e){ if(e.preventDefault) e.preventDefault(); playSoftBeep(); }, false);
+  }
+  var audioVoiceTestBtn = document.getElementById('audioVoiceTestBtn');
+  if (audioVoiceTestBtn) {
+    audioVoiceTestBtn.addEventListener('click', function(e){ if(e.preventDefault) e.preventDefault(); testDisplayVoice(); }, false);
+    audioVoiceTestBtn.addEventListener('touchend', function(e){ if(e.preventDefault) e.preventDefault(); testDisplayVoice(); }, false);
+  }
+  if (headerSoundBtn) {
+    headerSoundBtn.addEventListener('click', function(e){
+      if(e.preventDefault) e.preventDefault();
+      if (!voiceEnabled) {
+        noubaSoundLog('Annonces vocales desactivees : ouvrez Admin > Affichage / Audio et cochez Activer les annonces vocales.', true);
+        return;
+      }
+      unlockAudio().then(function(ok){
+        if (!ok) return;
+        playWithSpeechSynthesis(uiLang === 'en' ? 'TV sound active' : 'Son TV actif', uiLang)
+          .then(function(spoken){
+            if (spoken) noubaSoundDebugHide();
+          });
+      });
+    }, false);
+  }
+  function isTvOkKey(e){
+    var k = e && (e.key || e.code || '');
+    var kc = e && (e.keyCode || e.which || 0);
+    return k === 'Enter' || k === ' ' || k === 'Spacebar' || k === 'OK' || k === 'Select' || kc === 13 || kc === 32 || kc === 23;
+  }
+  // ── Capture ULTRA-large des gestes utilisateur pour débloquer l'audio TV ──
+  // Sur Smart TV, l'utilisateur n'a souvent qu'une télécommande. Les boutons
+  // OK/Enter sont parfois remappés ou n'envoient aucun event clavier (Tizen,
+  // WebOS, Android TV diffèrent). On capture donc N'IMPORTE QUEL event qui
+  // témoigne d'une activité humaine : touche, clic, tap, scroll, gyroscope.
+  // Le navigateur considère tout ça comme un « user gesture » → play() autorisé.
+  function anyUserGesture(e){
+    if (audioUnlocked) return;
+    unlockFromUserGesture(e);
+  }
+  document.addEventListener('keydown',   anyUserGesture, true);
+  document.addEventListener('keyup',     anyUserGesture, true);
+  document.addEventListener('keypress',  anyUserGesture, true);
+  document.addEventListener('click',     anyUserGesture, true);
+  document.addEventListener('touchstart',anyUserGesture, true);
+  document.addEventListener('touchend',  anyUserGesture, true);
+  document.addEventListener('pointerdown',anyUserGesture, true);
+  document.addEventListener('mousedown', anyUserGesture, true);
+
+  (function initAudioGate(){
+    if (!voiceEnabled) {
+      setAudioUiState(true);
+      return;
+    }
+    var remembered = false;
+    try { remembered = sessionStorage.getItem('nouba.audioUnlocked') === '1'; } catch(_) {}
+    if (remembered) {
+      audioUnlocked = true;
+      setAudioUiState(true);
+      playUnlockBeep(0.25).then(function(result){
+        if (result && result.ok) {
+          noubaSoundDebugHide();
+          console.info('[Nouba TTS] Audio TV confirme par bip de controle.');
+        } else {
+          markAudioLocked(true);
+          noubaSoundLog('Son a reautoriser : cliquez sur le bouton Son TV.', true);
+        }
+      });
+      return;
+    }
+    markAudioLocked(true);
+    console.info('[Nouba TTS] En attente du clic Son TV pour autoriser Chrome.');
+  })();
+
+  var fullscreenBtn = document.getElementById('fullscreenBtn');
+  if (fullscreenBtn) fullscreenBtn.addEventListener('click', function(){
+    unlockAudio();
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        var fp = document.documentElement.requestFullscreen();
+        if (fp && fp.catch) fp.catch(function(){});
+      } else if (document.exitFullscreen) {
+        var ep = document.exitFullscreen();
+        if (ep && ep.catch) ep.catch(function(){});
+      }
+    } catch(e) { console.debug(e); }
+  });
+
+  // ─── Média TV robuste ──────────────────────────────────────────────
+  // Certaines Smart TV mettent en pause la vidéo muette quand une annonce audio
+  // démarre. On relance immédiatement la vidéo si le navigateur l'a suspendue,
+  // sans reconstruire le DOM et sans réinitialiser le média.
+  function getDisplayVideo(){
+    try { return document.querySelector('#mediaBody video'); } catch(_) { return null; }
+  }
+  function ensureMediaPlayback(reason){
+    var v = getDisplayVideo();
+    if (!v) return;
+    try {
+      // FIX bug "vidéo qui redémarre à chaque appel ticket" :
+      // si la vidéo est déjà en lecture, on NE TOUCHE À RIEN — pas de
+      // load(), pas de play(), pas de réaffectation d'attributs. Tout
+      // changement déclenche un reset de currentTime sur certains
+      // navigateurs / Smart TV.
+      if (!v.paused && !v.ended && v.readyState >= 2) return;
+
+      v.muted = true;
+      v.loop = true;
+      v.playsInline = true;
+      v.setAttribute('muted','');
+      v.setAttribute('playsinline','');
+      v.setAttribute('webkit-playsinline','');
+      // load() seulement si la vidéo n'a vraiment jamais démarré
+      // (readyState < 2 ET pas de currentTime > 0).
+      if (v.readyState < 2 && (!v.currentTime || v.currentTime < 0.05)) {
+        try { v.load(); } catch(_) {}
+      }
+      if (v.paused || v.ended) {
+        var p = v.play();
+        if (p && p.catch) p.catch(function(e){ console.debug('[Nouba Media] reprise vidéo refusée', reason, e && e.name); });
+      }
+    } catch(e){ console.debug('[Nouba Media] ensureMediaPlayback', reason, e); }
+  }
+  function startMediaKeepAlive(){
+    if (mediaKeepAliveTimer) return;
+    mediaKeepAliveTimer = setInterval(function(){ ensureMediaPlayback('keepalive'); }, 1800);
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden) setTimeout(function(){ ensureMediaPlayback('visible'); }, 120); });
+    window.addEventListener('focus', function(){ setTimeout(function(){ ensureMediaPlayback('focus'); }, 120); });
+    document.addEventListener('touchend', function(){ setTimeout(function(){ ensureMediaPlayback('touch'); }, 120); }, true);
+    document.addEventListener('click', function(){ setTimeout(function(){ ensureMediaPlayback('click'); }, 120); }, true);
+  }
+  startMediaKeepAlive();
+
+  // ─── VIDAA / Hisense : retry audio automatique (#4) ──────────────
+  // Sur les TV Hisense (navigateur VIDAA), le navigateur peut refuser le
+  // premier unlock même après un geste. On rétente toutes les 6 s pendant
+  // 3 minutes, puis on arrête pour ne pas saturer le CPU TV.
+  if (isLikelyTvBrowser && voiceEnabled) {
+    var vidaaRetryCount = 0;
+    var vidaaRetryMax = 30; // 30 × 6 s = 3 min
+    var vidaaRetryTimer = setInterval(function(){
+      if (audioUnlocked || vidaaRetryCount >= vidaaRetryMax) {
+        clearInterval(vidaaRetryTimer);
+        return;
+      }
+      vidaaRetryCount++;
+      // Tenter un unlock silencieux via AudioContext seulement (pas de popup).
+      var ctx = getAudioCtx();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().then(function(){
+          if (ctx.state === 'running' && !audioUnlocked) {
+            try { markAudioUnlocked(false); } catch(_) {}
+            clearInterval(vidaaRetryTimer);
+          }
+        }).catch(function(){});
+      }
+    }, 6000);
+  }
+
+  // ─── Voice engine ─────────────────────────────────────────────────
+  function loadVoices(){
+    allVoices = ('speechSynthesis' in window) ? speechSynthesis.getVoices() : [];
+  }
+  if('speechSynthesis' in window){
+    loadVoices();
+    if(speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+    // v2.7.23 : warm-up Web Speech UNIQUEMENT sur Smart TV (VIDAA, Tizen, WebOS).
+    // Sur PC moderne, ce warm-up jouait silencieusement une utterance vide qui
+    // pouvait s'enfiler dans la queue speechSynthesis et perturber les annonces
+    // suivantes — résultat : tu entendais Web Speech au lieu de Piper sur PC.
+    if (isLikelyTvBrowser) {
+      try {
+        var warm = new SpeechSynthesisUtterance(' ');
+        warm.volume = 0;
+        warm.rate = 10;
+        speechSynthesis.speak(warm);
+        setTimeout(function(){
+          try { allVoices = speechSynthesis.getVoices() || allVoices; } catch(_){}
+          console.info('[Nouba TTS] Warm-up Web Speech effectué (TV) — ' + allVoices.length + ' voix.');
+        }, 400);
+      } catch(_) {}
+    }
+  }
+
+  // Vrai si le navigateur dispose d'au moins une voix arabe installée.
+  // Sur la plupart des PC Windows, AUCUNE voix arabe n'est présente : il faut
+  // alors basculer sur une annonce de secours (français) car une voix latine
+  // ne sait pas prononcer du texte arabe (→ silence ou erreur du moteur).
+  function browserHasArabicVoice(){
+    try {
+      if (!allVoices || !allVoices.length) {
+        try { allVoices = ('speechSynthesis' in window ? speechSynthesis.getVoices() : []) || []; } catch(_){}
+      }
+      return (allVoices || []).some(function(v){ return ((v.lang || '').toLowerCase().indexOf('ar') === 0); });
+    } catch(_) { return false; }
+  }
+
+  function pickVoice(lang){
+    const langMap = {
+      fr: ['fr-FR','fr-BE','fr-CH','fr-CA','fr'],
+      ar: ['ar-SA','ar-EG','ar-DZ','ar-MA','ar-TN','ar'],
+      tz: ['fr-FR','fr','ar-MA','ar'],
+      en: ['en-US','en-GB','en-AU','en']
+    };
+    const codes = langMap[lang] || langMap['fr'];
+
+    // Hints PAR LANGUE : on évite le mélange qui faisait matcher des noms
+    // français sur des voix arabes (et inversement).
+    // Sources : Microsoft Speech Platform, Apple voices, Google TTS.
+    const hintsByLang = {
+      fr: {
+        male:   ['paul','henri','claude','thomas','jacques','nicolas','sebastien','sébastien','antoine','remy','rémy','french male'],
+        female: ['hortense','julie','denise','amelie','amélie','audrey','marie','aurelie','aurélie','virginie','celine','céline','french female']
+      },
+      ar: {
+        // ATTENTION : Naayf, Hamed, Tarik, Tarek, Maged, Shakir sont des voix MASCULINES.
+        // Hoda, Salma, Laila, Leila sont des voix FÉMININES.
+        // L'erreur précédente classait Naayf en féminin, ce qui empêchait la voix d'homme arabe.
+        male:   ['naayf','hamed','tarik','tarek','maged','shakir','arabic male','majed','khaled','ali'],
+        female: ['hoda','salma','laila','leila','zariya','arabic female','fatima','aisha','noura']
+      },
+      en: {
+        male:   ['david','mark','george','james','daniel','alex','aaron','fred','arthur','oliver','english male'],
+        female: ['zira','susan','linda','samantha','victoria','karen','allison','ava','english female']
+      }
+    };
+    // Tamazight n'a pas de voix dédiée : on retombe sur fr puis ar.
+    const langKey = (lang === 'tz') ? 'fr' : (hintsByLang[lang] ? lang : 'fr');
+    const hintBundle = hintsByLang[langKey];
+
+    // Hints génériques toujours valables (parlent d'eux-mêmes dans le nom de la voix).
+    const genericMale   = ['male','homme','man','masculine','m1','m2','m3','homme'];
+    const genericFemale = ['female','femme','woman','feminine','f1','f2','f3','femme'];
+
+    const wantedHints = voiceGender === 'male'
+      ? [...hintBundle.male, ...genericMale]
+      : [...hintBundle.female, ...genericFemale];
+    const otherHints  = voiceGender === 'male'
+      ? [...hintBundle.female, ...genericFemale]
+      : [...hintBundle.male, ...genericMale];
+
+    // Voix dans la bonne langue.
+    const sameLang = allVoices.filter(v => {
+      const vl = (v.lang || '').toLowerCase();
+      return codes.some(code => vl.startsWith(code.split('-')[0].toLowerCase()));
+    });
+
+    if (sameLang.length === 0) {
+      // Aucune voix dans la langue cible. Pour l'arabe sur des systèmes minimaux,
+      // on prend n'importe quelle voix anglaise plutôt que rien — la prononciation
+      // sera approximative mais le ticket sera quand même annoncé.
+      console.warn('[Nouba] Aucune voix installée pour la langue', lang, '— repli sur la voix par défaut.');
+      return allVoices[0] || null;
+    }
+
+    // 1) Match strict : nom contient un hint "voulu".
+    for (const hint of wantedHints) {
+      const v = sameLang.find(v => (v.name || '').toLowerCase().includes(hint.toLowerCase()));
+      if (v) {
+        console.debug('[Nouba] Voix sélectionnée:', v.name, '(', v.lang, ') — hint:', hint, ', genre:', voiceGender);
+        return v;
+      }
+    }
+    // 2) Repli intelligent : si aucun nom du genre voulu n'est trouvé, on évite
+    //    au moins explicitement les noms du genre opposé.
+    const neutral = sameLang.find(v => {
+      const n = (v.name || '').toLowerCase();
+      return !otherHints.some(h => n.includes(h.toLowerCase()));
+    });
+    if (neutral) {
+      console.warn('[Nouba] Aucune voix', voiceGender, 'identifiée pour', lang, '— repli neutre:', neutral.name);
+      return neutral;
+    }
+    // 3) Dernier recours : première voix de la langue.
+    console.warn('[Nouba] Aucune voix correspondant au genre', voiceGender, 'pour', lang, '— repli sur', (sameLang[0] ? sameLang[0].name : ''));
+    return sameLang[0] || allVoices[0] || null;
+  }
+
+  function numberToFrench(n){
+    const units=['zéro','un','deux','trois','quatre','cinq','six','sept','huit','neuf'];
+    const teens=['dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
+    const tens=['','','vingt','trente','quarante','cinquante','soixante'];
+    n=parseInt(n,10); if(isNaN(n)) return '';
+    if(n<10) return units[n];
+    if(n<20) return teens[n-10];
+    if(n<70){ const t=Math.floor(n/10), u=n%10; return u===0?tens[t]:u===1?tens[t]+' et un':tens[t]+'-'+units[u]; }
+    if(n<80) return n===71?'soixante et onze':'soixante-'+numberToFrench(n-60);
+    if(n<100) return n===80?'quatre-vingts':'quatre-vingt-'+numberToFrench(n-80);
+    if(n<1000){ const h=Math.floor(n/100), r=n%100; return (h===1?'cent':numberToFrench(h)+' cent')+(r?' '+numberToFrench(r):''); }
+    return n.toString();
+  }
+  function numberToEnglish(n){
+    const units=['zero','one','two','three','four','five','six','seven','eight','nine'];
+    const teens=['ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+    const tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+    n=parseInt(n,10); if(isNaN(n)) return '';
+    if(n<10) return units[n]; if(n<20) return teens[n-10];
+    if(n<100){ const t=Math.floor(n/10), u=n%10; return u===0?tens[t]:tens[t]+'-'+units[u]; }
+    if(n<1000){ const h=Math.floor(n/100), r=n%100; return units[h]+' hundred'+(r?' '+numberToEnglish(r):''); }
+    return n.toString();
+  }
+  function numberToArabic(n){
+    const ones={0:'صِفر',1:'واحِد',2:'اِثنان',3:'ثلاثة',4:'أربعة',5:'خمسة',6:'سِتّة',7:'سبعة',8:'ثمانية',9:'تسعة',10:'عَشَرة',11:'أحَدَ عَشَر',12:'اِثنا عَشَر',13:'ثلاثةَ عَشَر',14:'أربعةَ عَشَر',15:'خمسةَ عَشَر',16:'سِتّةَ عَشَر',17:'سبعةَ عَشَر',18:'ثمانيةَ عَشَر',19:'تسعةَ عَشَر',20:'عِشرون',30:'ثلاثون',40:'أربعون',50:'خمسون',60:'سِتّون',70:'سبعون',80:'ثمانون',90:'تسعون'};
+    const hundreds={1:'مِئة',2:'مِئتان',3:'ثلاثُمِئة',4:'أربعُمِئة',5:'خمسُمِئة',6:'سِتُّمِئة',7:'سبعُمِئة',8:'ثمانِمِئة',9:'تسعُمِئة'};
+    n=parseInt(n,10); if(isNaN(n)) return '';
+    if(n<0) return n.toString();
+    if(ones[n]!==undefined) return ones[n];
+    if(n<100){ const u=n%10, t=Math.floor(n/10)*10; return u===0?ones[t]:ones[u]+' و'+ones[t]; }
+    if(n<1000){
+      const h=Math.floor(n/100), r=n%100;
+      const head=hundreds[h]||'';
+      return r===0 ? head : head+' و'+numberToArabic(r);
+    }
+    // Au-delà de 999 (rare pour un ticket) : on épelle chiffre par chiffre
+    // en arabe plutôt que de retomber sur des chiffres latins mal prononcés.
+    return String(n).split('').map(d=>ones[parseInt(d,10)]||'').join(' ').trim();
+  }
+  // Nom prononçable en arabe des lettres latines courantes de préfixe ticket.
+  // Évite que Piper bute sur un « A » / « B » latin (souvent ignoré ou lu en anglais).
+  function latinLetterToArabic(letter){
+    const map={A:'أ',B:'بي',C:'سي',D:'دي',E:'إي',F:'إف',G:'جي',H:'إتش',I:'آي',J:'جي',K:'كي',L:'إل',M:'إم',N:'إن',O:'أو',P:'بي',Q:'كيو',R:'آر',S:'إس',T:'تي',U:'يو',V:'في',W:'دبليو',X:'إكس',Y:'واي',Z:'زد'};
+    return (letter||'').split('').map(ch=>map[ch]||ch).join(' ');
+  }
+  function speakTicket(ticketNumber, lang){
+    const value=(ticketNumber||'').toUpperCase().trim();
+    const m=value.match(/^([A-Z]+)(\d+)$/); if(!m) return value;
+    const prefix=m[1], digits=m[2], n=parseInt(digits,10);
+    const leading=(digits.match(/^0+/)||[''])[0].length;
+    let number = lang==='ar' ? numberToArabic(n) : lang==='en' ? numberToEnglish(n) : numberToFrench(n);
+    if(leading>0 && n>0){ const z=lang==='ar'?'صِفر':lang==='en'?'zero':'zéro'; number = Array(leading).fill(z).join(' ')+' '+number; }
+    const spokenPrefix = lang==='ar' ? latinLetterToArabic(prefix) : prefix;
+    return (spokenPrefix+' '+number).trim();
+  }
+
+  function buildAnnouncement(ticketNumber, counterName, serviceName, lang){
+    const counterText = formatCounterForSpeech(counterName, lang);
+    const ticketText = speakTicket(ticketNumber, lang);
+    const cleanService = (serviceName || '').trim();
+    // Arabe : on amorce par un mot d'appel 100% arabe (« نداء » = appel) suivi
+    // d'une courte pause. Cela force le moteur espeak à démarrer clairement en
+    // arabe ; sans ça, l'attaque de phrase pouvait sonner « anglaise » (la
+    // voix hésitait sur le tout premier mot). Le numéro suit ensuite.
+    if(lang === 'ar') return [`نِداءٌ، التذكرةُ رقم ${ticketText}` + (cleanService ? `، خدمةُ ${cleanService}` : '') + `، الرجاءُ التوجهُ إلى ${counterText}`];
+    if(lang === 'en') return [`Ticket ${ticketText}` + (cleanService ? `, ${cleanService} service` : '') + `, please proceed to ${counterText}`];
+    if(lang === 'tz') return [`Ticket ${speakTicket(ticketNumber, 'fr')}` + (cleanService ? `, ${cleanService}` : '') + `, ${counterText}`];
+    return [`Ticket ${ticketText}` + (cleanService ? `, service ${cleanService}` : '') + `, veuillez vous présenter au ${counterText}`];
+  }
+
+  // ── Piper TTS (offline, voix réaliste) avec fallback Web Speech API ──
+  // STRATÉGIE v2.7.4 — résoudre « voix navigateur en exploitation alors que le
+  // statut Piper dit prêt » :
+  //   1) On RÉUTILISE l'instance Audio créée pendant unlockAudio() au lieu
+  //      d'en créer une nouvelle à chaque appel. Une nouvelle instance n'est
+  //      pas garantie débloquée par la politique autoplay du navigateur, même
+  //      après un geste utilisateur global.
+  //   2) On distingue les 4 raisons d'échec et on les loggue. Ouvre la console
+  //      F12 sur la page Display pour voir précisément ce qui bloque.
+  //   3) Compteur d'échecs par langue : 3 KO d'affilée → on désactive Piper
+  //      pour cette langue jusqu'au F5. Évite de re-tenter en vain à chaque
+  //      ticket et d'imposer 1 s de latence avant la voix navigateur.
+  //   4) Cache-buster dans l'URL pour ne jamais réutiliser un WAV d'une autre
+  //      langue. Le serveur force aussi no-store.
+  // (piperAudioPlayer et piperFailCount sont déclarés plus haut pour TDZ.)
+  // v2.7.27 — On NE désactive plus une langue après N échecs. C'était la
+  // cause directe du « son une fois sur deux » : 3 timeouts (souvent dus à
+  // une simple latence de démarrage) coupaient la voix Piper jusqu'au F5.
+  // On garde le compteur uniquement pour le diagnostic, sans jamais bloquer.
+  function getPiperPlayer(){
+    // L'instance est créée la première fois et persiste. Le déverrouillage
+    // audio (unlockAudio) la pré-active pour que .play() ne soit pas refusé.
+    if (!piperAudioPlayer) piperAudioPlayer = document.getElementById('ttsAudioPlayer') || new Audio();
+    return piperAudioPlayer;
+  }
+  function stopPiperAudio(){
+    try {
+      if (piperAudioPlayer) {
+        piperAudioPlayer.onended = null;
+        piperAudioPlayer.onerror = null;
+        piperAudioPlayer.pause();
+        if (piperAudioPlayer.src && piperAudioPlayer.src.startsWith('blob:')) {
+          try { URL.revokeObjectURL(piperAudioPlayer.src); } catch(_) {}
+        }
+        try { piperAudioPlayer.removeAttribute('src'); piperAudioPlayer.load(); } catch(_) {}
+      }
+    } catch(_) {}
+  }
+  let piperGen = 0; // token de génération : invalide les callbacks d'un cycle écrasé par un nouveau
+
+  // ─── Diagnostic son visible sur TV (sans F12) ─────────────────────────
+  // Affiche les erreurs TTS dans un panneau en bas-gauche de l'écran TV.
+  // S'affiche automatiquement à la première erreur, se cache à la
+  // 1ère lecture audio réussie. Utile pour comprendre pourquoi le son
+  // ne marche pas quand on n'a pas accès à la console.
+  let soundDebugShown = false;
+  function noubaSoundLog(msg, isError){
+    if (isError) console.warn('[Nouba TTS]', msg);
+    else console.info('[Nouba TTS]', msg);
+    if (!isError) return;
+    // Le panneau « Diagnostic son » s'affiche en mode debug (?debug=1) OU dès que
+    // l'utilisateur a fait un geste (ex. bouton « Son TV » sur la Hisense) : il
+    // voit alors à l'écran la cause exacte du blocage, au lieu du seul console F12.
+    // Au repos (aucun geste), rien ne s'affiche → propreté commerciale.
+    if (!window.NOUBA_DEBUG && !window.noubaUserGestured) return;
+    var box = document.getElementById('noubaSoundDebug');
+    var txt = document.getElementById('noubaSoundDebugText');
+    if (box && txt) {
+      box.style.display = 'block';
+      // Garder seulement les 3 dernières erreurs pour la lisibilité
+      var prev = txt.textContent || '';
+      var lines = prev ? prev.split('\n').slice(0, 2) : [];
+      lines.unshift(new Date().toLocaleTimeString() + ' · ' + msg);
+      txt.textContent = lines.join('\n');
+      soundDebugShown = true;
+      // Auto-masquage (sauf debug) pour ne pas laisser le panneau en permanence.
+      if (!window.NOUBA_DEBUG) {
+        clearTimeout(window._noubaSoundDiagTimer);
+        window._noubaSoundDiagTimer = setTimeout(noubaSoundDebugHide, 12000);
+      }
+    }
+  }
+  function noubaSoundDebugHide(){
+    var box = document.getElementById('noubaSoundDebug');
+    if (box) box.style.display = 'none';
+    soundDebugShown = false;
+  }
+  function playWithPiper(text, lang){
+    const myGen = ++piperGen;
+    const piperKey = lang + ':' + (voiceGender || 'female');
+    return new Promise((resolve) => {
+      try {
+        const bust = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        const url = '/Tts/Speak?lang=' + encodeURIComponent(lang)
+                  + '&gender=' + encodeURIComponent(voiceGender || 'female')
+                  + '&text=' + encodeURIComponent(text)
+                  + '&v=' + bust;
+
+        // ── Pré-fetch pour DIAGNOSTIQUER précisément le retour serveur ──
+        // Si 204 : Piper ne peut pas générer (modèle absent, ou genre/lang
+        //          incompatible). On le dit clairement dans le panneau.
+        // Si 500 : Piper a planté. On capture le message serveur.
+        // Si 200 mais bytes vides : WAV vide → audio.onerror sur la TV.
+        // Si 200 + bytes valides : on lance la lecture comme avant.
+        fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then(r => {
+          if (r.status === 204) {
+            // Piper indispo pour cette langue/genre côté serveur.
+            piperFailCount[piperKey] = (piperFailCount[piperKey] || 0) + 1;
+            noubaSoundLog('Voix locale indisponible pour le moment. Nouba utilise la voix du navigateur.', true);
+            resolve(false); return;
+          }
+          if (!r.ok) {
+            piperFailCount[piperKey] = (piperFailCount[piperKey] || 0) + 1;
+            noubaSoundLog('La voix locale ne répond pas. Nouba essaie la voix du navigateur.', true);
+            resolve(false); return;
+          }
+          return r.blob().then(rawBlob => {
+            if (!rawBlob || rawBlob.size < 200) {
+              // WAV vide ou trop petit : Piper a renvoyé un fichier corrompu.
+              piperFailCount[piperKey] = (piperFailCount[piperKey] || 0) + 1;
+              noubaSoundLog('Le fichier vocal reçu est illisible. Nouba essaie la voix du navigateur.', true);
+              resolve(false); return;
+            }
+            const blob = (rawBlob.type === 'audio/wav' || rawBlob.type === 'audio/wave')
+              ? rawBlob
+              : new Blob([rawBlob], { type: 'audio/wav' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            stopPiperAudio();
+            ensureMediaPlayback('before-tts');
+            const audio = getPiperPlayer();
+            audio.preload = 'auto';
+            audio.src = blobUrl;
+            audio.muted = false;
+            audio.volume = voiceVolume;
+            try {
+              audio.playbackRate = isLikelyTvBrowser ? 1 : Math.max(0.5, Math.min(2.0, voiceRate));
+            } catch(_) {
+              audio.playbackRate = 1;
+            }
+
+            let settled = false;
+            let startedPlaying = false;
+            const done = (ok, reason) => {
+              if (myGen !== piperGen) return;
+              if (settled) return;
+              settled = true;
+              audio.onended = null;
+              audio.onerror = null;
+              audio.onplaying = null;
+              audio.oncanplaythrough = null;
+              try { URL.revokeObjectURL(blobUrl); } catch(_) {}
+              ensureMediaPlayback(ok ? 'tts-done-ok' : 'tts-done-ko');
+              if (ok) piperFailCount[piperKey] = 0;
+              else {
+                piperFailCount[piperKey] = (piperFailCount[piperKey] || 0) + 1;
+                if (reason) noubaSoundLog('La TV a refusé cette lecture audio. Nouba essaie une autre voix.', true);
+              }
+              resolve(ok);
+            };
+
+            audio.onplay = () => { if (myGen === piperGen) setTimeout(function(){ ensureMediaPlayback('tts-play'); }, 120); };
+            audio.onpause = () => { if (myGen === piperGen) setTimeout(function(){ ensureMediaPlayback('tts-pause'); }, 120); };
+            audio.onended = () => { if (myGen === piperGen) { ensureMediaPlayback('tts-ended'); done(true, 'ended'); } };
+            audio.onerror = () => {
+              if (myGen === piperGen) {
+                // À ce stade, le blob est OK côté taille — l'erreur vient
+                // du décodeur du navigateur TV qui ne supporte pas le format.
+                var code = (audio.error && audio.error.code) || 'inconnu';
+                ensureMediaPlayback('tts-error');
+                done(false, 'format audio refusé par la TV');
+              }
+            };
+
+            const playPromise = audio.play();
+            if (playPromise && playPromise.then) {
+              playPromise.then(() => {
+                if (myGen !== piperGen) return;
+                if (!audioUnlocked) {
+                  pendingAnnouncements = [];
+                  markAudioUnlocked(false);
+                  noubaSoundLog('Audio débloqué via play() réussi.', false);
+                }
+                noubaSoundDebugHide();
+                ensureMediaPlayback('tts-started');
+                setTimeout(function(){ if (myGen === piperGen) ensureMediaPlayback('tts-started-500'); }, 500);
+              }).catch((err) => {
+                if (myGen !== piperGen) return;
+                if (!audioUnlocked) markAudioLocked(true);
+                done(false, 'lecture bloquée par le navigateur TV');
+              });
+            }
+            // Garde-fou : on ne déclare un échec QUE si la lecture n'a jamais
+            // démarré du tout. Avant, un timeout fixe de 2,5 s coupait des
+            // annonces longues (phrase arabe complète) alors qu'elles jouaient
+            // correctement → « une fois sur deux ». Maintenant on s'appuie sur
+            // les évènements réels (onplaying / onended) et on ne coupe que
+            // si rien n'a démarré après un délai large.
+            audio.onplaying = () => {
+              if (myGen === piperGen) { startedPlaying = true; noubaSoundDebugHide(); }
+            };
+            // Délai de SÉCURITÉ uniquement pour le démarrage (pas pour la durée).
+            // 9 s couvre le chargement à froid d'un modèle ONNX côté serveur.
+            setTimeout(() => {
+              if (!settled && !startedPlaying && audio.paused) {
+                done(false, 'aucune lecture après délai');
+              }
+            }, 9000);
+          });
+        }).catch((err) => {
+          piperFailCount[piperKey] = (piperFailCount[piperKey] || 0) + 1;
+          noubaSoundLog('Voix locale momentanément indisponible. Nouba essaie la voix du navigateur.', true);
+          resolve(false);
+        });
+      } catch(e) {
+        noubaSoundLog('Lecture vocale locale impossible. Nouba essaie la voix du navigateur.', true);
+        resolve(false);
+      }
+    });
+  }
+
+  // Helper : lecture via Web Speech API du navigateur.
+  // Retourne Promise<bool> (true si la voix s'est lancée).
+  function playWithSpeechSynthesis(text, lang){
+    return new Promise(function(resolve){
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        console.warn('[Nouba TTS] Web Speech API absente du navigateur (VIDAA ancien ?)');
+        resolve(false);
+        return;
+      }
+      try {
+        // v2.7.22 — Fix VIDAA Hisense / vieux Chromium : recharger les voix
+        // explicitement et SANS canceler avant d'avoir parlé.
+        // Sur VIDAA, speechSynthesis.cancel() en cascade tue l'utterance suivante.
+        if (!allVoices || allVoices.length === 0) {
+          try { allVoices = speechSynthesis.getVoices() || []; } catch(_){}
+        }
+        const utt = new SpeechSynthesisUtterance(text);
+        const v = pickVoice(lang);
+        if (v) {
+          utt.voice = v;
+          utt.lang = v.lang;
+        } else {
+          // Pas de voix matchant la langue : on ne force PAS un code lang
+          // exotique car VIDAA peut alors refuser de parler. On utilise un
+          // code générique large supporté.
+          utt.lang = { fr:'fr-FR', ar:'ar', tz:'fr-FR', en:'en-US' }[lang] || 'fr-FR';
+        }
+        utt.rate = isLikelyTvBrowser ? 1 : voiceRate;
+        utt.pitch = voicePitch;
+        utt.volume = Math.max(0.8, voiceVolume); // VIDAA ignore parfois les volumes < 0.8
+
+        var settled = false;
+        var started = false;
+        function done(ok){ if (!settled) { settled = true; resolve(ok); } }
+
+        utt.onstart = function(){
+          started = true;
+          if (!audioUnlocked) { try { markAudioUnlocked(false); } catch(_){} }
+          console.info('[Nouba TTS] Web Speech démarre (' + (utt.voice ? utt.voice.name : 'voix par défaut') + ', lang=' + utt.lang + ')');
+        };
+        utt.onend = function(){
+          console.info('[Nouba TTS] Web Speech terminé OK.');
+          done(true);
+        };
+        utt.onerror = function(e){
+          console.warn('[Nouba TTS] Web Speech erreur:', (e && e.error) ? e.error : 'inconnue');
+          done(false);
+        };
+
+        // GARDE-FOU CORRIGÉ : on vérifie SEULEMENT que onstart est appelé
+        // en 2 s. Si oui, on laisse parler aussi longtemps que nécessaire
+        // (3 s, 5 s, peu importe — pas de timeout sur onend).
+        // Si onstart n'arrive jamais, c'est que VIDAA ne supporte pas Web Speech.
+        setTimeout(function(){
+          if (!started && !settled) {
+            console.warn('[Nouba TTS] Web Speech : onstart jamais déclenché en 2s → moteur indisponible (VIDAA ?)');
+            done(false);
+          }
+        }, 2000);
+        setTimeout(function(){
+          if (started && !settled) {
+            console.info('[Nouba TTS] Web Speech toujours en cours, liberation de la file.');
+            done(true);
+          }
+        }, Math.max(4500, Math.min(12000, String(text || '').length * 120)));
+
+        // PAS de cancel() avant speak() — ça tue l'utterance sur VIDAA.
+        speechSynthesis.speak(utt);
+        try { speechSynthesis.resume(); } catch(_) {}
+        setTimeout(function(){ try { speechSynthesis.resume(); } catch(_) {} }, 250);
+        console.info('[Nouba TTS] speechSynthesis.speak() appelé, en attente de onstart…');
+      } catch(e) {
+        console.warn('[Nouba TTS] Exception playWithSpeechSynthesis:', e);
+        resolve(false);
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔔 CARILLON DOUX avant l'annonce — attire l'attention sans déranger.
+  // Généré en Web Audio (oscillateurs), indépendant de l'élément <audio>
+  // utilisé par la voix, donc aucun conflit. Deux notes douces qui montent,
+  // attaque/extinction progressives (pas de « clic »). Respecte le volume
+  // voix réglé en admin, et le réglage chimeEnabled (?chime=0 pour couper).
+  // ═══════════════════════════════════════════════════════════════════
+  var noubaAudioCtx = null;
+  var chimeEnabled = true;
+  try {
+    var chimeParam = (new URLSearchParams(window.location.search)).get('chime');
+    if (chimeParam === '0' || chimeParam === 'false') chimeEnabled = false;
+  } catch(_) {}
+  function getAudioCtx(){
+    if (noubaAudioCtx) return noubaAudioCtx;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      noubaAudioCtx = new AC();
+    } catch(_) { noubaAudioCtx = null; }
+    return noubaAudioCtx;
+  }
+  function playChime(){
+    return new Promise(function(resolve){
+      // Respect du réglage admin : "none" = aucun son avant l'annonce (#3).
+      if (!chimeEnabled || wowSoundChoice === 'none') { resolve(false); return; }
+      var ctx = getAudioCtx();
+      if (!ctx) { resolve(false); return; }
+      try {
+        if (ctx.state === 'suspended') { try { ctx.resume(); } catch(_) {} }
+        var now = ctx.currentTime;
+        var peak = Math.max(0.05, Math.min(0.22, (voiceVolume || 1) * 0.22));
+
+        var notes;
+        var totalDur;
+        if (wowSoundChoice === 'ding') {
+          // Note unique courte (ré5).
+          notes = [{ freq: 587.3, start: 0.0, dur: 0.5, type: 'sine' }];
+          totalDur = 420;
+        } else if (wowSoundChoice === 'gong') {
+          // Résonance longue type gong oriental (sol3 + harmonique).
+          notes = [
+            { freq: 196.0, start: 0.0,  dur: 1.2, type: 'sine'     },
+            { freq: 392.0, start: 0.02, dur: 0.9, type: 'triangle' }
+          ];
+          totalDur = 950;
+        } else {
+          // "chime" — bi-bong doux aéroport : sol5 puis do6.
+          notes = [
+            { freq: 784.0,  start: 0.0,  dur: 0.42, type: 'sine' },
+            { freq: 1046.5, start: 0.20, dur: 0.55, type: 'sine' }
+          ];
+          totalDur = 650;
+        }
+
+        notes.forEach(function(n){
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = n.type || 'sine';
+          osc.frequency.value = n.freq;
+          var t0 = now + n.start;
+          gain.gain.setValueAtTime(0.0001, t0);
+          gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + n.dur);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t0);
+          osc.stop(t0 + n.dur + 0.02);
+        });
+        setTimeout(function(){ resolve(true); }, totalDur);
+      } catch(_) {
+        resolve(false);
+      }
+    });
+  }
+
+  async function speakNext(){
+    window.NOUBA_DEBUG && console.info('[Nouba DIAG] speakNext appelé. voiceBusy=' + voiceBusy + ' queue.length=' + voiceQueue.length);
+    if(voiceBusy || voiceQueue.length === 0) { window.NOUBA_DEBUG && console.info('[Nouba DIAG] speakNext SORT immédiatement (busy ou queue vide)'); return; }
+    const item = voiceQueue.shift();
+    if (item && item.pause) {
+      window.NOUBA_DEBUG && console.info('[Nouba DIAG] speakNext pause ' + item.ms + 'ms');
+      setTimeout(speakNext, item.ms || 350);
+      return;
+    }
+    const { text, lang, signature, ticketNumber, counterName, serviceName } = item;
+    window.NOUBA_DEBUG && console.info('[Nouba DIAG] speakNext va dire « ' + text + ' » en ' + lang);
+    voiceBusy = true;
+
+    // FILET DE SÉCURITÉ ABSOLU : quoi qu'il arrive (exception, promesse jamais
+    // résolue, navigateur capricieux), voiceBusy DOIT repasser à false sinon
+    // toutes les annonces suivantes restent muettes jusqu'au F5. C'était l'un
+    // des bugs « une fois sur deux » les plus pernicieux.
+    var released = false;
+    function releaseAndContinue(){
+      if (released) return;
+      released = true;
+      voiceBusy = false;
+      setTimeout(speakNext, 350);
+    }
+    // Si toute la chaîne dépasse 20 s, on libère de force.
+    var hardTimeout = setTimeout(function(){
+      console.warn('[Nouba TTS] Délai global dépassé sur une annonce → libération forcée de la file.');
+      releaseAndContinue();
+    }, 20000);
+
+    try {
+      // 🔔 Carillon doux d'abord (attire l'attention), puis la voix.
+      await playChime();
+      // Voix IA Piper en priorité quand les modèles .onnx sont présents.
+      // La voix navigateur ne sert que de secours si Piper est absent ou refuse.
+      console.info('[Nouba TTS] Piper IA d abord, voix navigateur en secours.');
+      var firstOk = await playWithPiper(text, lang);
+      if (firstOk) {
+        console.info('[Nouba TTS] ✓ Piper IA a parle.');
+      } else {
+        // Un seul retry rapide de Piper : couvre les ratés ponctuels
+        // (latence réseau, modèle qui vient juste de finir de charger).
+        console.info('[Nouba TTS] Piper KO → nouvel essai Piper avant fallback.');
+        firstOk = await playWithPiper(text, lang);
+        if (firstOk) {
+          console.info('[Nouba TTS] ✓ Piper IA a parle au 2e essai.');
+        } else {
+          console.info('[Nouba TTS] Piper KO ×2 → fallback voix navigateur.');
+          // Cas Air Algérie : écran en arabe, mais Piper absent ET aucune voix
+          // arabe installée sur le poste → une voix latine ne peut pas dire le
+          // texte arabe (silence). On annonce alors en français (compris en
+          // Algérie) plutôt que de rester muet. Pour une VRAIE voix arabe,
+          // installer les modèles Piper .onnx (voix locale offline).
+          var browserText = text, browserLang = lang;
+          if ((lang === 'ar') && !browserHasArabicVoice()) {
+            try {
+              var frParts = buildAnnouncement(ticketNumber, counterName, serviceName, 'fr');
+              if (frParts && frParts.length) { browserText = frParts[0]; browserLang = 'fr'; }
+            } catch(_){}
+            console.warn('[Nouba TTS] Aucune voix arabe navigateur → annonce de secours en français.');
+          }
+          firstOk = await playWithSpeechSynthesis(browserText, browserLang);
+          if (firstOk) console.info('[Nouba TTS] ✓ Web Speech a parle en secours.');
+        }
+      }
+
+      if (!firstOk) {
+        // Aucun moteur n'a fonctionné. On remet l'annonce en attente pour
+        // rejeu dès qu'un moteur redevient disponible.
+        console.warn('[Nouba TTS] Aucun moteur audio disponible pour cette annonce.');
+        addPendingAnnouncement({ ticketNumber, counterName, serviceName, lang, signature });
+      } else {
+        removePendingAnnouncement(signature);
+      }
+    } catch(e) {
+      console.warn('[Nouba TTS] Exception pendant la lecture de l annonce:', e && (e.message || e));
+      addPendingAnnouncement({ ticketNumber, counterName, serviceName, lang, signature });
+    } finally {
+      clearTimeout(hardTimeout);
+      releaseAndContinue();
+    }
+  }
+
+  function hasAnnouncedSignature(signature){
+    return !!signature && announcedTickets.indexOf(signature) >= 0;
+  }
+  function rememberAnnouncement(signature){
+    if(!signature) return;
+    announcedTickets.push(signature);
+    if(announcedTickets.length > 120) announcedTickets = announcedTickets.slice(-80);
+  }
+  // ═══════════════════════════════════════════════════════════════════
+  // ✨ EFFET WOW À L'APPEL — animation plein écran sur vrai ticket appelé
+  // ═══════════════════════════════════════════════════════════════════
+  let burstSignatures = [];
+  let burstTimer = null;
+  let burstSparksBuilt = false;
+  function hasBurstSignature(sig){ return !!sig && burstSignatures.indexOf(sig) >= 0; }
+  function rememberBurst(sig){
+    if(!sig) return;
+    burstSignatures.push(sig);
+    if(burstSignatures.length > 120) burstSignatures = burstSignatures.slice(-80);
+  }
+  function buildBurstSparks(){
+    if(burstSparksBuilt) return;
+    var burst = document.getElementById('callBurst');
+    if(!burst) return;
+    var core = burst.querySelector('.burst-core');
+    // 14 étincelles projetées en cercle autour du numéro.
+    for(var i = 0; i < 14; i++){
+      var s = document.createElement('span');
+      s.className = 'burst-spark';
+      var ang = (Math.PI * 2 * i) / 14 + (Math.random() * 0.4);
+      var dist = 26 + Math.random() * 22; // en vmin
+      s.style.setProperty('--dx', (Math.cos(ang) * dist).toFixed(1) + 'vmin');
+      s.style.setProperty('--dy', (Math.sin(ang) * dist).toFixed(1) + 'vmin');
+      s.style.animationDelay = (Math.random() * 0.18).toFixed(2) + 's';
+      burst.insertBefore(s, core);
+    }
+    burstSparksBuilt = true;
+  }
+  function playCallBurst(ticketNumber, counterName, serviceName, lang, force){
+    var burst = document.getElementById('callBurst');
+    if(!burst) return;
+    // Désactivation explicite via ?wow=0.
+    if(!force && wowDisabled) return;
+    // Respecte le réglage « animations » de l'admin et l'accessibilité,
+    // SAUF si l'effet est explicitement forcé pour une démo (?wow=1) ou
+    // pour un aperçu manuel (NoubaWow / previewWow).
+    if(!force && !wowForced && !root.classList.contains('anim')) return;
+    try {
+      if(!force && !wowForced && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    } catch(_) {}
+
+    buildBurstSparks();
+    var numEl = document.getElementById('burstNumber');
+    var ctEl = document.getElementById('burstCounter');
+    var svEl = document.getElementById('burstService');
+    var kickEl = document.getElementById('burstKicker');
+    if(kickEl) kickEl.textContent = (lang === 'ar') ? 'التذكرة' : (lang === 'en' ? 'NOW SERVING' : 'TICKET APPELÉ');
+    if(numEl) numEl.textContent = ticketNumber || '—';
+    if(ctEl) ctEl.textContent = formatCounterForLang(counterName, lang) || '';
+    if(svEl) svEl.textContent = (showService && serviceName) ? serviceName : '';
+
+    // Glow persistant sur la cellule principale.
+    var primaryCell = document.querySelector('.row-cell.primary');
+    if(primaryCell){
+      primaryCell.classList.remove('just-called');
+      void primaryCell.offsetWidth; // reflow pour rejouer l'animation
+      primaryCell.classList.add('just-called');
+    }
+
+    // Applique la durée configurable depuis admin (#1).
+    var dur = (wowDurationMs > 0) ? wowDurationMs : 2200;
+    document.documentElement.style.setProperty('--wow-duration', (dur / 1000).toFixed(2) + 's');
+    // Relance propre de l'overlay même si un appel précédent est en cours.
+    burst.classList.remove('is-active');
+    void burst.offsetWidth;
+    burst.classList.add('is-active');
+    if(burstTimer) clearTimeout(burstTimer);
+    burstTimer = setTimeout(function(){ burst.classList.remove('is-active'); }, dur + 100);
+  }
+
+  function announceTicket(ticketNumber, counterName, serviceName, lang, signature){
+    window.NOUBA_DEBUG && console.info('[Nouba DIAG] announceTicket ENTRÉE ticket=' + ticketNumber + ' lang=' + lang + ' voiceEnabled=' + voiceEnabled);
+    const callSignature = signature || ((ticketNumber || '') + '|' + (counterName || '') + '|' + (serviceName || '') + '|' + Date.now());
+
+    // ✨ Effet wow VISUEL : indépendant du son. Joué une seule fois par appel,
+    // même si les annonces vocales sont désactivées en admin. C'est l'effet
+    // qui capte le client en démonstration.
+    if(!hasBurstSignature(callSignature)){
+      rememberBurst(callSignature);
+      playCallBurst(ticketNumber, counterName, serviceName, lang);
+    }
+
+    if(!voiceEnabled) {
+      window.NOUBA_DEBUG && console.warn('[Nouba DIAG] Son désactivé en admin — effet visuel seul.');
+      return;
+    }
+    if(hasAnnouncedSignature(callSignature)) { window.NOUBA_DEBUG && console.info('[Nouba DIAG] SORTIE : déjà annoncée'); return; }
+
+    try {
+      const parts = buildAnnouncement(ticketNumber, counterName, serviceName, lang);
+      if (!parts || !parts.length) {
+        console.warn('[Nouba TTS] Texte annonce vide, ticket ignore:', ticketNumber, counterName);
+        return;
+      }
+      if (!audioUnlocked) {
+        addPendingAnnouncement({ ticketNumber, counterName, serviceName, lang, signature: callSignature });
+      }
+      rememberAnnouncement(callSignature);
+      window.NOUBA_DEBUG && console.info('[Nouba DIAG] Parts à dire (voiceRepeat=' + voiceRepeat + '):', parts);
+      for(let rep = 0; rep < voiceRepeat; rep++){
+        parts.forEach(p => voiceQueue.push({ text: p, lang, signature: callSignature, ticketNumber, counterName, serviceName }));
+        if(rep < voiceRepeat - 1) voiceQueue.push({ pause: true, ms: 450, signature: callSignature, ticketNumber, counterName, serviceName });
+      }
+      window.NOUBA_DEBUG && console.info('[Nouba DIAG] voiceQueue après push:', voiceQueue.length, 'items. voiceBusy=' + voiceBusy);
+      setTimeout(speakNext, 80);
+    } catch(e) {
+      console.warn('[Nouba TTS] Impossible de preparer l annonce:', e && (e.message || e));
+      noubaSoundLog('Erreur preparation annonce vocale. Voir console F12.', true);
+    }
+  }
+
+  function extractCounterNumber(name){
+    const m = (name || '').match(/(\d+)/);
+    return m ? m[1] : (name || '');
+  }
+  function formatCounterForLang(name, lang){
+    const n = extractCounterNumber(name);
+    if(!n) return '';
+    // AFFICHAGE écran : on garde le chiffre, comme « الشباك 2 » / « Guichet 2 ».
+    if(lang === 'ar') return 'الشباك ' + n;
+    if(lang === 'en') return 'Counter ' + n;
+    return 'Guichet ' + n;
+  }
+  // Version VOIX : le nombre est épelé en lettres (le chiffre latin « 2 » est
+  // mal prononcé par la voix arabe/anglaise). Pas de mot « numéro ».
+  function formatCounterForSpeech(name, lang){
+    const n = extractCounterNumber(name);
+    if(!n) return '';
+    if(lang === 'ar') return 'الشباك ' + numberToArabic(n);
+    if(lang === 'en') return 'counter ' + numberToEnglish(n);
+    return 'Guichet ' + numberToFrench(n);
+  }
+
+  // ─── Row update ───────────────────────────────────────────────────
+  const waitText = root.dataset.waiting || 'En attente';
+  function updateRows(calls, waitingText){
+    const wait = (waitingText && waitingText.trim()) || waitText;
+    for(let i = 0; i < 3; i++){
+      const c = (calls || [])[i];
+      const tEl = document.querySelector(`[data-role="ticket-${i}"]`);
+      const cEl = document.querySelector(`[data-role="counter-${i}"]`);
+      const sEl = document.querySelector(`[data-role="service-${i}"]`);
+      if(tEl) tEl.textContent = c ? c.ticketNumber : '—';
+      if(cEl) cEl.textContent = c ? (formatCounterForLang(c.counterName, uiLang) || wait) : wait;
+      if(sEl && c) sEl.textContent = showService ? (c.serviceName || '') : '';
+    }
+  }
+
+  // ─── History update ───────────────────────────────────────────────
+  function updateHistory(history){
+    const list = document.getElementById('historyList');
+    if(!list) return;
+    const rows = (history || []).slice(0, historyRows);
+    const nodes = rows.map((h, i) => {
+      const row = document.createElement('div');
+      row.className = 'history-row' + (i === 0 ? ' latest' : '');
+
+      const left = document.createElement('div');
+      const ticket = document.createElement('div');
+      ticket.className = 'history-ticket';
+      ticket.textContent = h.ticketNumber || '';
+      left.appendChild(ticket);
+      if(showTime){
+        const time = document.createElement('div');
+        time.className = 'history-time';
+        time.textContent = h.calledAt || '';
+        left.appendChild(time);
+      }
+
+      const right = document.createElement('div');
+      right.style.textAlign = 'right';
+      const counter = document.createElement('div');
+      counter.className = 'history-counter';
+      counter.textContent = formatCounterForLang(h.counterName, uiLang) || '';
+      right.appendChild(counter);
+      if(showService && h.serviceName){
+        const service = document.createElement('div');
+        service.style.fontSize = '12px';
+        service.style.color = '#94a3b8';
+        service.textContent = h.serviceName;
+        right.appendChild(service);
+      }
+
+      row.append(left, right);
+      return row;
+    });
+    list.replaceChildren(...nodes);
+  }
+
+  // ─── Media update ─────────────────────────────────────────────────
+  function updateMedia(s){
+    s = s || {};
+    const body = document.getElementById('mediaBody');
+    const sub = document.getElementById('mediaSub');
+    if(sub) sub.textContent = s.siteName || '';
+
+    // Titre dynamique : on synchronise #siteName (visible) ET document.title
+    // (onglet du navigateur) quand l'admin change le SiteName. Plus besoin
+    // de F5 pour voir le nouveau libellé.
+    const siteNameEl = document.getElementById('siteName');
+    if(siteNameEl && s.siteName && siteNameEl.textContent !== s.siteName){
+      siteNameEl.textContent = s.siteName;
+    }
+    if(s.siteName){
+      const want = s.siteName + ' — Affichage';
+      if(document.title !== want) document.title = want;
+    }
+    if(!body) return;
+
+    const videoUrl = (s.displayBackgroundVideoUrl || '').trim();
+    const imageUrl = (s.displayBackgroundImageUrl || '').trim();
+    const newUrl = videoUrl || imageUrl || '';
+    // Normalisation : URL absolue côté DOM vs URL relative côté JSON.
+    // On compare le pathname (« /uploads/video.mp4 ») pour être robuste.
+    function normUrl(u){
+      if(!u) return '';
+      try { return new URL(u, location.origin).pathname; }
+      catch(_) { return u; }
+    }
+    if(normUrl(newUrl) === normUrl(currentMediaUrl) && body.dataset.mediaReady === '1') return;
+    currentMediaUrl = newUrl;
+    body.dataset.mediaReady = '1';
+
+    if(videoUrl){
+      const v = document.createElement('video');
+      v.autoplay = true;
+      v.muted = true;
+      v.loop = true;
+      v.playsInline = true;
+      v.preload = 'auto';
+      v.disablePictureInPicture = true;
+      v.setAttribute('muted','');
+      v.setAttribute('playsinline','');
+      v.setAttribute('webkit-playsinline','');
+      v.setAttribute('controlslist','nodownload noplaybackrate nofullscreen');
+      v.style.width = '100%';
+      v.style.height = '100%';
+      v.style.objectFit = 'cover';
+      v.style.display = 'block';
+      const source = document.createElement('source');
+      source.src = videoUrl;
+      source.type = 'video/mp4';
+      v.appendChild(source);
+      body.replaceChildren(v);
+      ensureMediaPlayback('new-media');
+    } else if(imageUrl){
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.alt = 'Communication';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      img.style.display = 'block';
+      body.replaceChildren(img);
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'media-placeholder';
+      placeholder.textContent = root.dataset.noMedia || 'Aucun média';
+      body.replaceChildren(placeholder);
+    }
+  }
+
+  // ─── Banner update ────────────────────────────────────────────────
+  function updateBanner(text, imgUrl){
+    const t = (text && text.trim()) || root.dataset.defaultBanner || '';
+    ['A','B','C'].forEach(id => {
+      const el = document.getElementById(`bannerText${id}`);
+      if(el) el.textContent = t;
+    });
+    const fm = document.getElementById('footerMedia');
+    const fi = document.getElementById('footerMediaImg');
+    if(fm && fi){
+      if(imgUrl){ fi.src = imgUrl; fm.style.display='flex'; }
+      else { fm.style.display='none'; }
+    }
+  }
+
+  function updateQrBadge(settings){
+    const badge = document.getElementById('displayQrBadge');
+    if(!badge) return;
+    const enabled = !!(settings && settings.qrFollowEnabled && settings.qrFollowShowOnDisplay);
+    badge.hidden = !enabled;
+    const title = document.getElementById('displayQrText');
+    const sub = document.getElementById('displayQrSub');
+    if(title){
+      const txt = uiLang === 'ar' ? 'تابع دورك من الهاتف' : (uiLang === 'en' ? 'Follow your queue on mobile' : 'Suivez votre tour sur mobile');
+      title.childNodes[0].nodeValue = txt;
+    }
+    if(sub) sub.textContent = uiLang === 'ar' ? 'امسح الرمز' : (uiLang === 'en' ? 'Scan the QR code' : 'Scannez le QR code');
+    const img = document.getElementById('displayQrImg');
+    if(img && enabled){
+      const src = '/suivi/qr-general.png?size=8';
+      if(!img.getAttribute('src') || img.getAttribute('src').indexOf('/suivi/qr-general.png') < 0) img.src = src;
+    }
+  }
+
+  let densityTimer = null;
+  function applyTvDensity(){
+    if(densityTimer) cancelAnimationFrame(densityTimer);
+    densityTimer = requestAnimationFrame(function(){
+      document.body.classList.remove('tv-density-tight','tv-density-ultra');
+      if(window.innerWidth < 921) return;
+      const core = ['.header','.page','.footer'].map(function(sel){ return document.querySelector(sel); }).filter(Boolean);
+      const coreOverflow = core.some(function(el){
+        const r = el.getBoundingClientRect();
+        return r.top < -2 || r.left < -2 || r.right > window.innerWidth + 2 || r.bottom > window.innerHeight + 2;
+      });
+      const overflowY = document.body.scrollHeight - window.innerHeight;
+      if(overflowY > 2 || coreOverflow){
+        document.body.classList.add('tv-density-tight');
+        const y2 = document.body.scrollHeight - window.innerHeight;
+        const stillCoreOverflow = core.some(function(el){
+          const r = el.getBoundingClientRect();
+          return r.top < -2 || r.left < -2 || r.right > window.innerWidth + 2 || r.bottom > window.innerHeight + 2;
+        });
+        if(y2 > 2 || stillCoreOverflow) document.body.classList.add('tv-density-ultra');
+      }
+      fitHeaderBrandText();
+    });
+  }
+  window.addEventListener('resize', applyTvDensity);
+  window.addEventListener('load', function(){ setTimeout(applyTvDensity, 80); });
+
+  function updateStaticLabels(data){
+    if(!data) return;
+    const ticketHead = document.getElementById('ticketHead');
+    const counterHead = document.getElementById('counterHead');
+    const infoTitle = document.getElementById('infoTitle');
+    const recentTitle = document.getElementById('recentTitle');
+    const historySub = document.getElementById('historySub');
+    const headerCenter = document.getElementById('headerCenter');
+    const siteName = document.getElementById('siteName');
+    if(ticketHead) ticketHead.textContent = uiLang === 'ar' ? 'التذكرة' : 'TICKET';
+    if(counterHead) counterHead.textContent = data.counterText || (uiLang === 'en' ? 'COUNTER' : 'GUICHET');
+    if(infoTitle) infoTitle.textContent = uiLang === 'ar' ? 'معلومات' : (uiLang === 'en' ? 'Info' : 'Info');
+    if(recentTitle && data.recentText) recentTitle.textContent = data.recentText;
+    if(historySub){
+      const n = parseInt(root.dataset.historyRows || '5') || 5;
+      historySub.textContent = uiLang === 'ar' ? `آخر ${n} نداءات` : (uiLang === 'en' ? `Last ${n} calls` : `${n} derniers appels`);
+    }
+    if(headerCenter) {
+      // Le titre visible au centre de l'écran TV est DisplayTitle.
+      // Si ce champ est vide, on retombe sur SiteName, pas sur un ancien
+      // HeaderText stocké en base qui pouvait rester bloque.
+      const fallbackSite = (data.settings && data.settings.siteName) || '';
+      headerCenter.textContent = data.displayTitle || fallbackSite || data.headerText || '';
+    }
+    if(siteName && data.settings && data.settings.siteName && siteName.textContent !== data.settings.siteName) {
+      siteName.textContent = data.settings.siteName;
+    }
+    fitHeaderBrandText();
+    updateQrBadge(data.settings);
+    root.dataset.noMedia = uiLang === 'ar' ? 'لا يوجد محتوى' : (uiLang === 'en' ? 'No media' : 'Aucun média');
+    root.dataset.waiting = data.waitingText || root.dataset.waiting || '';
+    root.dataset.counterLabel = data.counterText || root.dataset.counterLabel || '';
+  }
+
+  function applyLiveDisplaySettings(settings){
+    if(!settings) return;
+    const style = document.documentElement.style;
+    if(settings.displayCardColor) style.setProperty('--brand', settings.displayCardColor);
+    if(settings.displayAccentColor) style.setProperty('--accent', settings.displayAccentColor);
+    if(settings.displayFooterColor) style.setProperty('--footer-bg', settings.displayFooterColor);
+    if(settings.displayTicketBgColor) style.setProperty('--ticket-bg', settings.displayTicketBgColor);
+    if(settings.displayTextColor) style.setProperty('--text-main', settings.displayTextColor);
+    if(settings.displayLayout && root.dataset.forcedLayout !== '1'){
+      let nextLayout = String(settings.displayLayout || 'standard').trim() || 'standard';
+      // « compact » fusionné dans « standard ».
+      if(nextLayout === 'compact') nextLayout = 'standard';
+      root.className = root.className
+        .split(/\s+/)
+        .filter(function(cls){ return cls && cls.indexOf('page--') !== 0; })
+        .concat('page--' + nextLayout)
+        .join(' ');
+      root.dataset.layout = nextLayout;
+    }
+    root.classList.toggle('anim', !!settings.enableAnimations);
+  }
+
+  // ─── State polling avec ETag ───────────────────────────────────────
+  let lastEtag = '';
+  async function fetchState(){
+    try{
+      const headers = { };
+      if (lastEtag) headers['If-None-Match'] = lastEtag;
+      const url = explicitLang ? (stateUrl + '?lang=' + encodeURIComponent(explicitLang)) : (stateUrl + '?_=' + Date.now());
+      const res = await fetch(url, { cache: 'no-store', headers });
+      if (res.status === 304) return; // rien n'a changé : on économise CPU + bande.
+      if(!res.ok) return;
+      const newEtag = res.headers.get('ETag');
+      if (newEtag) lastEtag = newEtag;
+      const data = await res.json();
+
+      if(data.settings && data.settings.displayHistoryRows){
+        const nextRows = parseInt(data.settings.displayHistoryRows, 10);
+        if(!isNaN(nextRows)){
+          historyRows = Math.max(1, Math.min(20, nextRows));
+          root.dataset.historyRows = String(historyRows);
+        }
+      }
+      if(data.currentLanguage && data.currentLanguage !== uiLang){
+        uiLang = data.currentLanguage;
+        document.documentElement.lang = uiLang;
+        document.documentElement.dir = uiLang === 'ar' ? 'rtl' : 'ltr';
+        root.dataset.currentLang = uiLang;
+      }
+      updateStaticLabels(data);
+
+      if(data.settings){
+        applyLiveDisplaySettings(data.settings);
+        var wasVoiceEnabled = voiceEnabled;
+        voiceEnabled = !!data.settings.enableVoiceAnnouncements;
+        if (data.settings.wowDurationMs !== undefined && data.settings.wowDurationMs !== null) {
+          var newWow = parseInt(data.settings.wowDurationMs);
+          if (!isNaN(newWow) && newWow >= 0) wowDurationMs = newWow;
+        }
+        if (data.settings.wowSoundChoice) wowSoundChoice = data.settings.wowSoundChoice;
+        voiceGender = data.settings.voiceGender || voiceGender;
+        voiceRate = parseFloat(data.settings.voiceRate) || voiceRate;
+        voicePitch = parseFloat(data.settings.voicePitch) || voicePitch;
+        voiceVolume = parseFloat(data.settings.voiceVolume) || voiceVolume;
+        voiceRepeat = parseInt(data.settings.voiceRepeatCount) || voiceRepeat;
+        if (!voiceEnabled) {
+          hideAudioOverlay();
+          hideFloatingSoundButton();
+          setAudioUiState(true);
+        } else if (!wasVoiceEnabled && !audioUnlocked) {
+          markAudioLocked(false);
+        } else {
+          setAudioUiState(audioUnlocked);
+        }
+      }
+      updateRows(data.activeCalls, data.waitingText);
+      updateHistory(data.history);
+      if(data.settings) updateMedia(data.settings);
+      ensureMediaPlayback('state-refresh');
+      updateBanner(data.bannerText, data.settings ? data.settings.displayBannerImageUrl : '');
+      if(data.settings) updateQrBadge(data.settings);
+      applyTvDensity();
+
+      const allCalls = (data.activeCalls || []);
+      const freshCalls = allCalls
+        .filter(c => c && c.ticketNumber && c.ticketNumber !== '—' && c.counterName && c.isFresh)
+        .sort(function(a, b){
+          const at = parseInt(a.calledAtTicks || '0', 10) || 0;
+          const bt = parseInt(b.calledAtTicks || '0', 10) || 0;
+          if(at !== bt) return at - bt;
+          return String(a.ticketNumber || '').localeCompare(String(b.ticketNumber || ''));
+        });
+      // v2.7.24 — Log diagnostic : on voit exactement ce que renvoie le serveur.
+      // À supprimer une fois le bug audio résolu.
+      if (allCalls.length > 0) {
+        window.NOUBA_DEBUG && console.info('[Nouba DIAG] activeCalls reçus du serveur:', allCalls.length, '— frais:', freshCalls.length);
+        allCalls.forEach(function(c, i){
+          window.NOUBA_DEBUG && console.info('[Nouba DIAG]   ['+i+'] ticket=' + c.ticketNumber + ' counter=' + c.counterName + ' isFresh=' + c.isFresh + ' calledAt=' + c.calledAt);
+        });
+      }
+      if(freshCalls.length){
+        freshCalls.forEach(function(call){
+          const callSignature = (call.ticketNumber || '') + '|' + (call.counterName || '') + '|' + (call.calledAtTicks || call.calledAt || '');
+          window.NOUBA_DEBUG && console.info('[Nouba DIAG] Tentative announceTicket pour signature:', callSignature, '— déjà dite ?', hasAnnouncedSignature(callSignature));
+          lastTicket = callSignature;
+          announceTicket(call.ticketNumber, call.counterName, call.serviceName, uiLang, callSignature);
+        });
+      } else {
+        lastTicket = '';
+        if('speechSynthesis' in window && !voiceBusy && voiceQueue.length === 0) speechSynthesis.cancel();
+      }
+    } catch(e){
+      console.warn('[Nouba Display] Erreur pendant le rafraichissement TV:', e && (e.message || e));
+    }
+  }
+
+  // ─── SignalR push (zéro latence) + polling adaptatif en fallback ───
+  // SignalR est essayé en premier. S'il fonctionne, on espace le polling à 10 s
+  // (sécurité au cas où un message est perdu). Sinon on garde 3 s.
+  let pollMs = 1200;
+  function startSignalR(){
+    if (typeof signalR === 'undefined') return false;
+    try {
+      const conn = new signalR.HubConnectionBuilder()
+        .withUrl('/queueHub')
+        .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
+        .build();
+      // TicketCalled : données du ticket directement dans SignalR → zéro latence
+      // Le son et l'effet wow démarrent IMMÉDIATEMENT sans attendre le HTTP fetch.
+      conn.on('TicketCalled', (ticketNumber, counterName, serviceName, lang, calledAtTicksStr) => {
+        const callLang = lang || uiLang;
+        const sig = (ticketNumber || '') + '|' + (counterName || '') + '|' + (calledAtTicksStr || '');
+        lastTicket = sig;
+        announceTicket(ticketNumber, counterName, serviceName, callLang, sig);
+        // Refresh du tableau avec un léger délai pour laisser la DB se stabiliser.
+        setTimeout(() => { lastEtag = ''; fetchState(); }, 180);
+      });
+      conn.on('RefreshQueue', () => { lastEtag = ''; fetchState(); });
+      conn.on('SettingsChanged', () => {
+        lastEtag = '';
+        fetchState();
+        setTimeout(fetchState, 400);
+      });
+      // #10 — création/modif/suppression de service côté admin : on rafraîchit
+      // l'état SANS recharger la page (préserve le déblocage audio de la TV).
+      conn.on('ServicesChanged', () => { lastEtag = ''; fetchState(); setTimeout(fetchState, 400); });
+      // Filet de sécurité : withAutomaticReconnect() abandonne définitivement
+      // après ses 5 tentatives intégrées (≈19 s). Sans ce onclose, une simple
+      // coupure réseau/redémarrage serveur un peu longue désactivait le push
+      // temps réel JUSQU'AU RECHARGEMENT MANUEL de la page — le polling de
+      // secours continuait (annonces toujours dites, mais avec jusqu'à
+      // pollMs de retard). On retente alors une nouvelle connexion toutes les
+      // 15 s, indéfiniment, jusqu'à ce que le réseau/serveur revienne.
+      conn.onclose(() => {
+        pollMs = 1200;
+        console.debug('[Nouba] SignalR Display deconnecte definitivement, nouvelle tentative dans 15s.');
+        setTimeout(startSignalR, 15000);
+      });
+      conn.start()
+        .then(() => { pollMs = 3000; })
+        .catch(err => console.debug('[Nouba] SignalR connect:', err));
+      return true;
+    } catch(e) { return false; }
+  }
+  if ((window.location.search || '').indexOf('qa') >= 0) {
+    window.NoubaDisplayQA = {
+      getState: function(){
+        const video = getDisplayVideo();
+        return {
+          audioUnlocked: audioUnlocked,
+          voiceBusy: voiceBusy,
+          voiceQueueLength: voiceQueue.length,
+          pendingAnnouncements: pendingAnnouncements.length,
+          announcedTickets: announcedTickets.slice(-30),
+          currentMediaUrl: currentMediaUrl || '',
+          videoTime: video ? video.currentTime : 0,
+          videoPaused: video ? video.paused : null,
+          historyRows: historyRows
+        };
+      },
+      unlockForTest: function(){
+        audioUnlocked = true;
+        setAudioUiState(true);
+        hideAudioOverlay();
+        hideFloatingSoundButton();
+        return this.getState();
+      },
+      enqueueTestCalls: function(calls){
+        (calls || []).forEach(function(call, index){
+          const signature = call.signature || ((call.ticketNumber || ('QA' + index)) + '|' + (call.counterName || '') + '|' + index);
+          announceTicket(call.ticketNumber, call.counterName, call.serviceName || '', call.lang || uiLang, signature);
+        });
+        return this.getState();
+      },
+      playSoftBeep: playSoftBeep,
+      testDisplayVoice: testDisplayVoice,
+      previewWow: function(n, c){ playCallBurst(n || 'A-128', c || 'Guichet 3', '', uiLang, true); }
+    };
+  }
+  // Aperçu rapide de l'effet wow, accessible partout en console :
+  //   NoubaWow()            → aperçu avec un ticket d'exemple
+  //   NoubaWow('B-42','Guichet 2')
+  window.NoubaWow = function(n, c){ playCallBurst(n || 'A-128', c || 'Guichet 3', '', uiLang, true); };
+  startSignalR();
+
+  fetchState();
+  // Boucle de polling : récupère pollMs à chaque tick (pas de variable figée).
+  (function loop(){
+    setTimeout(function(){ fetchState().then(loop).catch(loop); }, pollMs);
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+@{
+    ViewData["Title"] = "Erreur système";
+    Layout = null;
+    var code = Context.Response.StatusCode;
+    bool is404 = code == 404;
+    bool is503 = code == 503;
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta http-equiv="refresh" content="15;url=/">
+<title>Nouba — @(is404 ? "Page introuvable" : is503 ? "Service indisponible" : "Erreur système")</title>
+<link rel="icon" type="image/png" href="~/images/favicon.png"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  background:linear-gradient(135deg,#020617 0%,#0b1224 55%,#101a33 100%);color:#f8fafc}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.box{max-width:480px;width:100%;text-align:center;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  border-radius:24px;padding:48px 36px;box-shadow:0 30px 80px rgba(0,0,0,.45);backdrop-filter:blur(16px)}
+.icon{font-size:3.5rem;margin-bottom:20px}
+.code{font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8;margin-bottom:8px}
+h1{font-size:1.6rem;font-weight:800;color:#f1f5f9;margin-bottom:12px}
+p{color:#94a3b8;font-size:.9rem;line-height:1.6;margin-bottom:28px}
+.btn{display:inline-block;padding:14px 32px;border-radius:14px;
+  background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;
+  font-weight:700;font-size:.95rem;text-decoration:none;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.notice{margin-top:20px;font-size:.75rem;color:#475569}
+.bar{height:3px;background:rgba(255,255,255,.08);border-radius:99px;margin-top:24px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,#0f766e,#38bdf8);border-radius:99px;
+  animation:progress 15s linear forwards}
+@@keyframes progress{from{width:0}to{width:100%}}
+</style>
+</head>
+<body>
+<div class="box">
+  @if (is404) {
+    <div class="icon">🔍</div>
+    <div class="code">Erreur 404</div>
+    <h1>Page introuvable</h1>
+    <p>La page demandée n'existe pas ou a été déplacée.<br/>Vérifiez l'URL ou retournez à l'accueil.</p>
+  } else if (is503) {
+    <div class="icon">🔧</div>
+    <div class="code">Erreur 503</div>
+    <h1>Service temporairement indisponible</h1>
+    <p>Le système est momentanément inaccessible. Une tentative de reconnexion est en cours.<br/>Veuillez patienter quelques instants.</p>
+  } else {
+    <div class="icon">⚠️</div>
+    <div class="code">Erreur @code</div>
+    <h1>Une erreur s'est produite</h1>
+    <p>Le système a rencontré un problème inattendu.<br/>La page sera rechargée automatiquement.</p>
+  }
+  <a href="/" class="btn">⬅ Retour à l'accueil</a>
+  <p class="notice">Rechargement automatique dans 15 secondes…</p>
+  <div class="bar"><div class="bar-fill"></div></div>
+</div>
+</body>
+</html>

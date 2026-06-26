@@ -1,0 +1,333 @@
+@using Nouba.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext _borneDb
+@{
+    ViewData["Title"] = "Ticket imprimé";
+    var borneSettings = await _borneDb.UiSettings.AsNoTracking().FirstAsync();
+    var ticketNumber = TempData["TicketNumber"] as string ?? "---";
+    var serviceName  = TempData["ServiceName"]  as string ?? string.Empty;
+    var siteName     = TempData["SiteName"]     as string ?? "Nouba";
+    var createdAt    = TempData["CreatedAt"]    as string ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+    var waitingCount        = TempData["WaitingCount"]          as string ?? "0";
+    var estimatedWaitMinutes = TempData["EstimatedWaitMinutes"] as string ?? "4";
+    var priorityTicket = TempData["PriorityTicket"] as string == "true";
+    var priorityReason = TempData["PriorityReason"] as string ?? string.Empty;
+    var lang = TempData["Lang"] as string ?? "fr";
+    var printMode = (TempData["PrintMode"] as string ?? "all").ToLowerInvariant();
+    var escposOk  = TempData["EscPosOk"] as string ?? "skipped"; // ok | error | skipped
+    var escposErr = TempData["EscPosError"] as string ?? string.Empty;
+
+    // QR de suivi mobile : on lit DIRECTEMENT depuis la DB (par numéro de
+    // ticket + jour) plutôt que de dépendre de TempData. Plus robuste face
+    // au cycle TempData (consommé au 1er rendu) et aux problèmes éventuels
+    // de cache UiSettings. L'utilisateur veut voir le QR : on le sert.
+    string publicId = TempData["PublicId"] as string ?? string.Empty;
+    bool qrFollowEnabled = borneSettings.QrFollowEnabled;
+    if (string.IsNullOrEmpty(publicId) && !string.IsNullOrEmpty(ticketNumber) && ticketNumber != "---")
+    {
+        // Fallback : on retrouve le PublicId depuis le numéro de ticket du jour.
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var fallbackPid = await _borneDb.Tickets
+            .AsNoTracking()
+            .Where(t => t.Number == ticketNumber && t.TicketDay == today)
+            .OrderByDescending(t => t.CreatedAt)
+            .Select(t => t.PublicId)
+            .FirstOrDefaultAsync();
+        if (!string.IsNullOrEmpty(fallbackPid)) publicId = fallbackPid;
+    }
+    bool isRtl = lang == "ar";
+
+    string scanLabel = lang switch
+    {
+        "ar" => "امسحوا رمز QR لمتابعة دوركم على هاتفكم",
+        "en" => "Scan this QR code to track your turn on your phone",
+        "tz" => "Scan QR code i tmuɣli n tnumi-ik",
+        _    => "Scannez ce QR code pour suivre votre tour sur votre téléphone"
+    };
+    string codeLabel = lang switch
+    {
+        "ar" => "رمزكم",
+        "en" => "Your code",
+        _    => "Votre code"
+    };
+
+    string title         = lang switch { "ar" => "تم إنشاء التذكرة",    "tz" => "Tikect tettwarnu",           "en" => "Ticket created",              _ => "Ticket créé" };
+    string serviceLabel  = lang switch { "ar" => "الخدمة",              "tz" => "Ameẓluḍ",                    "en" => "Service",                     _ => "Service" };
+    string dateLabel     = lang switch { "ar" => "التاريخ / الساعة",    "tz" => "Azemz / Asrag",               "en" => "Date / Time",                 _ => "Date / Heure" };
+    string waitLabel     = lang switch { "ar" => "في الانتظار",          "tz" => "Yettraǧun",                  "en" => "Waiting",                     _ => "En attente" };
+    string estimateLabel = lang switch { "ar" => "انتظار تقديري",       "tz" => "Uṛaǧu yettwasesnen",        "en" => "Est. wait",                   _ => "Délai estimé" };
+    string estimateValue = lang switch { "ar" => $"{estimatedWaitMinutes} دقيقة",   _ => $"{estimatedWaitMinutes} min" };
+    string instruction   = lang switch { "ar" => "يرجى انتظار نداء رقمكم",          "tz" => "Ttxil-k arǧu asiwel-ik",  "en" => "Please wait for your number", _ => "Veuillez attendre votre appel" };
+    string autoBack      = lang switch { "ar" => "العودة التلقائية خلال ثوانٍ…",    "tz" => "Tuɣalin tawurmant deg kra n tasinin…", "en" => "Returning to kiosk in a few seconds…", _ => "Retour automatique dans quelques secondes…" };
+    string printBtn      = lang switch { "ar" => "طباعة التذكرة",        "tz" => "Siggez tikect",               "en" => "Print ticket",                _ => "Imprimer le ticket" };
+}
+<!DOCTYPE html>
+<html lang="@lang" dir="@(isRtl?"rtl":"ltr")">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>@siteName — @title</title>
+<link rel="icon" type="image/png" href="~/images/favicon.png"/>
+<style>
+/* ── ÉCRAN ──────────────────────────────────────────────────── */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;min-height:100%;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  background:linear-gradient(135deg,#020617 0%,#0b1224 55%,#101a33 100%);color:#f8fafc}
+.screen-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:24px;
+  padding:clamp(20px,4vw,40px) clamp(18px,3.5vw,36px);
+  max-width:min(620px, 92vw); width:100%;
+  box-shadow:0 30px 80px rgba(0,0,0,.45); backdrop-filter:blur(16px);
+}
+.kicker{font-size:clamp(.68rem,1.4vw,.85rem);text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:6px;text-align:center}
+.site-name{font-size:clamp(1rem,2.2vw,1.4rem);font-weight:700;color:#f3c969;text-align:center;margin-bottom:4px}
+.ticket-num{font-size:clamp(3.5rem,12vw,6.5rem);font-weight:900;text-align:center;color:#fff;letter-spacing:-.02em;line-height:1;margin:8px 0 4px}
+.priority-badge{display:inline-block;background:#f59e0b;color:#111;font-size:.75rem;font-weight:700;
+  padding:4px 14px;border-radius:20px;text-align:center}
+.rows{display:flex;flex-direction:column;gap:10px;margin:22px 0}
+.row{display:flex;justify-content:space-between;gap:16px;align-items:center;
+  padding:12px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px}
+.row-label{font-size:.8rem;color:#94a3b8;font-weight:600}
+.row-value{font-size:.85rem;color:#f1f5f9;font-weight:700;text-align:right}
+.instruction{text-align:center;padding:14px 16px;border-radius:14px;
+  background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#6ee7b7;font-weight:600;font-size:.9rem;margin-top:6px}
+.print-btn{width:100%;margin-top:18px;padding:16px;border-radius:16px;border:none;
+  background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;font-size:1rem;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s}
+.print-btn:active{opacity:.8}
+.auto-back{text-align:center;color:#64748b;font-size:.78rem;margin-top:14px}
+
+/* ── ✨ RÉVÉLATION PREMIUM (écran uniquement, jamais à l'impression) ── */
+.card{position:relative;overflow:hidden;animation:cardRise .7s cubic-bezier(.2,1,.3,1) both}
+@@keyframes cardRise{0%{transform:translateY(26px) scale(.97);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+/* Voile doré qui balaie la carte à l'arrivée */
+.card::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 38%,rgba(243,201,105,.30) 50%,transparent 62%);
+  transform:translateX(-130%);animation:cardSheen 1.5s ease .25s both}
+@@keyframes cardSheen{0%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+/* Anneau de validation qui se dessine autour du numéro */
+.ticket-wrap{position:relative;display:flex;align-items:center;justify-content:center;margin:8px 0 4px}
+.ticket-ring{position:absolute;width:clamp(150px,42vw,250px);height:clamp(150px,42vw,250px);border-radius:50%;
+  border:3px solid rgba(243,201,105,.0);pointer-events:none;animation:ringPulse 1.6s ease .3s both}
+@@keyframes ringPulse{
+  0%{transform:scale(.5);border-color:rgba(243,201,105,.0);box-shadow:0 0 0 0 rgba(243,201,105,.0)}
+  35%{border-color:rgba(243,201,105,.55);box-shadow:0 0 40px 6px rgba(243,201,105,.30)}
+  100%{transform:scale(1.25);border-color:rgba(243,201,105,0);box-shadow:0 0 0 0 rgba(243,201,105,0)}}
+.ticket-num{animation:numPop .8s cubic-bezier(.18,1.6,.4,1) .12s both}
+@@keyframes numPop{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+/* Petites étincelles autour du numéro */
+.ticket-wrap .conf-spark{position:absolute;width:9px;height:9px;border-radius:50%;
+  background:radial-gradient(circle,#fff 0%, #f3c969 55%, transparent 70%);opacity:0;
+  animation:confSpark 1.3s ease-out .35s forwards}
+@@keyframes confSpark{0%{transform:translate(0,0) scale(.3);opacity:0}15%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+/* Lignes (service/date/attente) qui montent en cascade */
+.rows .row{animation:rowIn .5s ease both}
+.rows .row:nth-child(1){animation-delay:.45s}
+.rows .row:nth-child(2){animation-delay:.55s}
+.rows .row:nth-child(3){animation-delay:.65s}
+.rows .row:nth-child(4){animation-delay:.75s}
+@@keyframes rowIn{0%{transform:translateY(10px);opacity:0}100%{transform:translateY(0);opacity:1}}
+.instruction{animation:rowIn .5s ease .85s both}
+.qr-follow{animation:rowIn .6s ease .95s both}
+
+@@media (prefers-reduced-motion: reduce){
+  .card,.card::after,.ticket-ring,.ticket-num,.rows .row,.instruction,.qr-follow,.conf-spark{animation:none!important}
+  .card::after{display:none}
+}
+
+/* ── IMPRESSION : ticket thermique 58–80 mm — ÉCONOMIE D'ENCRE ──
+   Aucun fond coloré ou gris : tout en noir sur blanc. Sur thermique, un
+   aplat gris/coloré = beaucoup de points chauffés = gaspillage. On n'imprime
+   que du texte et des traits fins. */
+/* v2.7.45 — Taille de page explicite : sans cette règle, le navigateur
+   utilise le papier par défaut du pilote d'imprimante (souvent A4/Lettre
+   pour une imprimante bureau ou « Microsoft Print to PDF »), ce qui donnait
+   une grande page presque vide avec le ticket réduit dans un coin au lieu
+   d'un vrai rouleau thermique continu. */
+@@page { size: 72mm auto; margin: 0; }
+@@media print {
+  *{-webkit-print-color-adjust:economy!important;print-color-adjust:economy!important;
+    background:transparent!important;background-color:transparent!important;
+    box-shadow:none!important;text-shadow:none!important;filter:none!important}
+  html,body{margin:0;padding:0;background:#fff!important;color:#000!important}
+  .screen-wrap{display:block;min-height:auto;padding:0}
+  /* v2.7.47 — Le commentaire plus bas dit "écran uniquement, jamais à
+     l'impression" pour les animations d'entrée (numéro qui grossit, lignes
+     qui montent une à une avec un délai échelonné...), mais ça n'était en
+     fait JAMAIS appliqué pour @@media print — seulement pour les visiteurs
+     ayant activé "réduire les animations" dans leur système. Résultat :
+     window.print() pouvait capturer la page EN PLEIN MILIEU de
+     l'animation, à un moment où certaines lignes n'avaient pas encore
+     commencé à apparaître (opacity:0 au départ) — c'est ce qui causait les
+     infos manquantes (service, date, attente, instruction) et le texte qui
+     semblait tronqué sur le ticket. On force donc ici l'état final (visible,
+     sans transformation) pour tout, quel que soit le moment exact où
+     l'impression se déclenche. */
+  .card,.card::after,.ticket-ring,.ticket-num,.rows .row,.instruction,.qr-follow,.conf-spark{
+    animation:none!important;opacity:1!important;transform:none!important}
+  .card::after,.ticket-ring,.conf-spark{display:none!important}
+  .card{background:#fff!important;border:none!important;border-radius:0!important;
+    box-shadow:none!important;padding:4mm 3mm!important;max-width:72mm;margin:0 auto;backdrop-filter:none;
+    /* v2.7.45 — Mise en page TOUJOURS de gauche à droite à l'impression,
+       même pour un ticket en arabe. Le texte arabe lui-même reste lisible
+       (l'algorithme bidi Unicode gère ça indépendamment), mais sans cette
+       ligne, un ticket créé en arabe imprimait le bloc entier en RTL : tout
+       contenu plus large que le papier réel était alors rogné du CÔTÉ
+       GAUCHE (donc on perdait le DÉBUT de chaque ligne — date, nom de site,
+       service — au lieu de la fin). C'est le bug du ticket qui affichait
+       « ...uzou » et « ...26 15:28 » au lieu du texte complet. */
+    direction:ltr!important}
+  .kicker{color:#000!important;font-size:8pt}
+  .site-name{color:#000!important;font-size:11pt;font-weight:700}
+  .ticket-num{color:#000!important;font-size:42pt;font-weight:900;margin:2mm 0}
+  /* Mention prioritaire : encadré fin, sans aplat de couleur */
+  .priority-badge{background:transparent!important;color:#000!important;font-size:8pt;
+    padding:0.5mm 0!important;font-weight:700;border:none!important}
+  .rows{gap:1mm;margin:2mm 0}
+  /* Lignes d'info : pas de fond ni de bordure pleine, juste un filet bas léger */
+  .row{background:transparent!important;border:none!important;border-bottom:1px dotted #999!important;
+    border-radius:0!important;padding:0.8mm 0!important;flex-direction:row!important}
+  .row-label{color:#000!important;font-size:7pt;text-align:left!important}
+  .row-value{color:#000!important;font-size:8pt;font-weight:700;text-align:right!important}
+  /* Instruction : texte simple, pas d'encadré coloré */
+  .instruction{background:transparent!important;border:none!important;
+    color:#000!important;font-size:8pt;padding:1mm 0!important}
+  .print-btn,.auto-back{display:none!important}
+  /* QR de suivi : doit rester VISIBLE et net à l'impression */
+  .qr-follow{display:block!important;text-align:center;margin:3mm 0 0!important;
+    background:transparent!important;border:none!important;padding:0!important}
+  .qr-follow img{display:block!important;margin:0 auto;width:28mm!important;height:28mm!important;
+    image-rendering:pixelated;filter:none!important}
+  .qr-follow .qr-cap,.qr-follow small,.qr-follow div{color:#000!important;font-size:7pt}
+  /* Tirets séparateurs façon ticket thermique */
+  .ticket-num::before{content:"- - - - - - - - - - - - - - - - - -";display:block;
+    font-size:9pt;font-weight:400;color:#000;margin-bottom:2mm;letter-spacing:.05em}
+  .ticket-num::after{content:"- - - - - - - - - - - - - - - - - -";display:block;
+    font-size:9pt;font-weight:400;color:#000;margin-top:2mm;letter-spacing:.05em}
+}
+
+</style>
+</head>
+<body>
+<div class="screen-wrap">
+  <div class="card">
+    <div class="kicker">@title</div>
+    <div class="site-name">@siteName</div>
+    <div class="ticket-num">@ticketNumber</div>
+    @if (priorityTicket) {
+      <div style="text-align:center;margin-bottom:6px">
+        <span class="priority-badge">
+          @(lang == "ar" ? "⚡ أولوية" : lang == "en" ? "⚡ Priority" : "⚡ Prioritaire") — @priorityReason
+        </span>
+      </div>
+    }
+    <div class="rows">
+      <div class="row">
+        <span class="row-label">@serviceLabel</span>
+        <span class="row-value">@serviceName</span>
+      </div>
+      <div class="row">
+        <span class="row-label">@dateLabel</span>
+        <span class="row-value">@createdAt</span>
+      </div>
+      <div class="row">
+        <span class="row-label">@waitLabel</span>
+        <span class="row-value">@waitingCount</span>
+      </div>
+      <div class="row">
+        <span class="row-label">@estimateLabel</span>
+        <span class="row-value">@estimateValue</span>
+      </div>
+    </div>
+    <div class="instruction">@instruction</div>
+    @if (escposOk == "ok") {
+      <div style="text-align:center;margin-top:10px;padding:8px 12px;border-radius:10px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;font-size:.85rem;font-weight:700">
+        🖨️ @(lang == "ar" ? "تمت طباعة التذكرة" : lang == "en" ? "Ticket printed" : "Ticket imprimé")
+      </div>
+    } else if (escposOk == "queued") {
+      <div style="text-align:center;margin-top:10px;padding:8px 12px;border-radius:10px;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.25);color:#86efac;font-size:.85rem;font-weight:700">
+        🖨️ @(lang == "ar" ? "جار طباعة التذكرة..." : lang == "en" ? "Printing ticket..." : "Impression du ticket…")
+      </div>
+    } else if (escposOk == "error") {
+      <div style="text-align:center;margin-top:10px;padding:8px 12px;border-radius:10px;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.25);color:#fca5a5;font-size:.78rem;font-weight:600">
+        ⚠️ @(lang == "ar" ? "تعذر الاتصال بالطابعة" : lang == "en" ? "Printer unreachable — please contact reception" : "Imprimante injoignable — veuillez vous présenter à l'accueil")
+      </div>
+    }
+    @if (qrFollowEnabled && !string.IsNullOrEmpty(publicId))
+    {
+        <div class="qr-follow" style="margin:18px 0 0 0;padding:18px 14px;border:1px dashed rgba(232,184,75,.45);border-radius:18px;background:rgba(232,184,75,.06);text-align:center">
+            <div style="font-size:.95rem;font-weight:800;color:#cbd5e1;margin-bottom:10px;line-height:1.35">📱 @scanLabel</div>
+            <img src="/suivi/qr-img/@(publicId)?size=10"
+                 alt="QR de suivi"
+                 style="display:block;margin:0 auto;width:200px;height:200px;background:#fff;padding:10px;border-radius:14px;image-rendering:pixelated"/>
+            <div style="margin-top:10px;font-size:.78rem;color:#94a3b8;letter-spacing:.04em">
+                @codeLabel : <strong style="color:#fff;font-family:'SF Mono','Consolas',monospace;font-size:.95rem;letter-spacing:.18em">@publicId</strong>
+            </div>
+        </div>
+    }
+    <button class="print-btn" onclick="window.print()">
+      🖨️ @printBtn
+    </button>
+    <p class="auto-back">@autoBack</p>
+  </div>
+</div>
+<script>
+(function(){
+  var delay = @(borneSettings.EnableBorneAutoReturn ? borneSettings.BorneAutoReturnSeconds * 1000 : 999999);
+  var returnUrl = '@Url.Action("Index","Borne", new { lang = lang })';
+  var printMode = '@printMode';
+  var escposOk  = '@escposOk';
+
+  // Décide s'il faut déclencher l'impression NAVIGATEUR (window.print).
+  // RÈGLE D'OR borne : la boîte d'impression du navigateur ne doit JAMAIS
+  // s'ouvrir si le ticket a déjà été pris en charge par l'imprimante
+  // thermique (ESC/POS). Sinon on obtient une double impression + la boîte
+  // PDF qui s'affiche sur la tablette (cf. capture client).
+  //   - escposOk "ok" / "queued" → l'imprimante thermique s'en charge → PAS
+  //     d'impression navigateur.
+  //   - "escpos"                 → jamais d'impression navigateur (sauf échec).
+  //   - "browser" / "chrome-kiosk" → impression navigateur (silencieuse si le
+  //     navigateur est lancé en mode kiosque, voir guide d'installation).
+  //   - "all"                    → ESC/POS prioritaire ; on n'imprime via le
+  //     navigateur QUE si l'ESC/POS n'a pas pris le relais (imprimante
+  //     désactivée → "skipped", ou échec → "error").
+  var escposHandled = (escposOk === 'ok' || escposOk === 'queued');
+  var shouldBrowserPrint =
+        printMode === 'browser'
+     || printMode === 'chrome-kiosk'
+     || (printMode === 'all' && !escposHandled)
+     || (escposOk === 'error');
+
+  if (shouldBrowserPrint) {
+    // On attend que l'image QR soit chargée AVANT d'imprimer : sinon, comme
+    // le QR est généré à la volée côté serveur, l'impression partait parfois
+    // avant son arrivée → QR absent du ticket. Sécurité : si le QR tarde
+    // trop (> 2,5 s) ou s'il n'y a pas de QR, on imprime quand même.
+    var qrImg = document.querySelector('.qr-follow img');
+    var printed = false;
+    function doPrint(){ if(printed) return; printed = true; try { window.print(); } catch(e){} }
+    if (qrImg && !qrImg.complete) {
+      qrImg.addEventListener('load', function(){ setTimeout(doPrint, 250); });
+      qrImg.addEventListener('error', function(){ setTimeout(doPrint, 250); });
+      setTimeout(doPrint, 2500); // filet de sécurité
+    } else {
+      setTimeout(doPrint, 600);
+    }
+  }
+
+  // Retour à l'accueil après le délai configuré + 1.2s de marge pour l'impression.
+  setTimeout(function(){ window.location.href = returnUrl; }, delay + 1200);
+
+  // Retour dès que l'utilisateur ferme la boîte d'impression.
+  window.addEventListener('afterprint', function(){
+    setTimeout(function(){ window.location.href = returnUrl; }, 1800);
+  });
+
+  // Si pas d'impression navigateur et ticket OK ou en cours d'impression → retour rapide après 4s.
+  if (!shouldBrowserPrint && (escposOk === 'ok' || escposOk === 'queued')) {
+    setTimeout(function(){ window.location.href = returnUrl; }, 4000);
+  }
+})();
+</script>
+</body>
+</html>

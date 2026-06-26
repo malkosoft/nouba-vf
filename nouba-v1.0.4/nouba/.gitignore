@@ -1,0 +1,26 @@
+# ── Build .NET ──────────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+publish/
+*.pdb
+*.user
+*.suo
+
+# ── Visual Studio / VS Code ─────────────────────────────────
+.vs/
+.vscode/
+.idea/
+
+# ── Données locales (ne doivent jamais partir avec le code) ──
+*.db
+*.db-shm
+*.db-wal
+appsettings.Development.json
+appsettings.*.local.json
+
+# ── Système ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Archives ─────────────────────────────────────────────────
+*.zip
