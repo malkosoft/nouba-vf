@@ -48,10 +48,10 @@ public sealed class PiperTtsService
 
     private static readonly string[] ArabicMaleCandidates =
     {
-        "ar_JO-SA_miro-high.onnx",
         "ar_JO-kareem-medium.onnx",
         "ar_JO-kareem-low.onnx",
         "ar_SA-miro-high.onnx",
+        "ar_JO-SA_miro-high.onnx",
         "ar_SA-miro-medium.onnx",
         "ar_SA-miro-low.onnx",
         "arabic-male-model.onnx",

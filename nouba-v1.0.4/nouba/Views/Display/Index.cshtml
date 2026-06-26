@@ -1988,6 +1988,12 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
     try {
       // 🔔 Carillon doux d'abord (attire l'attention), puis la voix.
       await playChime();
+      // Si la sonnerie a pu jouer (AudioContext actif), on profite de cet état
+      // pour débloquer l'élément <audio> sans geste utilisateur : on appelle
+      // unlockAudio() dont la branche warmAudioContextUnlock réussit dès que
+      // l'AudioContext est en état « running ». Résout le cas TV/kiosque où le
+      // chime passe (Web Audio API) mais le WAV Piper reste muet (<audio>).
+      if (!audioUnlocked) { try { await unlockAudio(); } catch(_) {} }
       // Voix IA Piper en priorité quand les modèles .onnx sont présents.
       // La voix navigateur ne sert que de secours si Piper est absent ou refuse.
       console.info('[Nouba TTS] Piper IA d abord, voix navigateur en secours.');

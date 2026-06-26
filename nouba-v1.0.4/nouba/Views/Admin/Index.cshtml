@@ -979,6 +979,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             </div>
         </div>
 
+        <!-- Rapport journalier CSV — visible par tous les rôles admin -->
+        <div class="panel" style="margin-top:18px">
+            <div class="panel-header">
+                <h2><i class="bi bi-file-earmark-bar-graph me-2" style="color:var(--accent)"></i>Rapport journalier</h2>
+                <p>Statistiques et tickets du jour</p>
+            </div>
+            <div class="panel-body" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+                <a href="/Admin/ExportStats" class="btn btn-primary">
+                    <i class="bi bi-download"></i> Exporter CSV
+                </a>
+                <a href="/Admin/PrintReport" target="_blank" class="btn btn-ghost">
+                    <i class="bi bi-printer"></i> Rapport imprimable
+                </a>
+                <span style="font-size:.78rem;color:var(--muted)">Fichier CSV du jour avec tous les tickets, temps d'attente et statistiques par service.</span>
+            </div>
+        </div>
+
         <script>
         async function aiLoadSummary(){
             try{
