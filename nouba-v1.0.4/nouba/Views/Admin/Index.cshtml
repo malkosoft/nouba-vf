@@ -28,6 +28,8 @@
     bool sysDbOk        = (bool)(ViewBag.SystemDbOk ?? true);
     long sysDiskFreeMb  = (long)(ViewBag.SystemDiskFreeMb ?? 0L);
     long sysDiskTotalMb = (long)(ViewBag.SystemDiskTotalMb ?? 0L);
+    string tunnelStatusTop = ViewBag.TunnelStatus as string ?? "initializing";
+    string? tunnelUrlTop   = ViewBag.TunnelUrl as string;
 }
 <!DOCTYPE html>
 <html lang="fr">
@@ -530,6 +532,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
                 <span id="topPrinterLabel">Imprimante…</span>
             </a>
             }
+            @{
+                string tunnelStatus = ViewBag.TunnelStatus as string ?? "initializing";
+                string? tunnelUrl   = ViewBag.TunnelUrl as string;
+                var (tunnelColor, tunnelTitle, tunnelLabel) = tunnelStatus switch {
+                    "running"     => ("#34d399", tunnelUrl ?? "", "QR internet actif"),
+                    "starting"    => ("#fbbf24", "Démarrage du tunnel…", "QR tunnel…"),
+                    "restarting"  => ("#fbbf24", "Redémarrage du tunnel dans 30 s…", "QR tunnel…"),
+                    "not_found"   => ("#475569", "cloudflared.exe introuvable — suivi QR limité au Wi-Fi local", "QR local"),
+                    "no_internet" => ("#475569", "Pas de connexion internet — tunnel non démarré", "QR local"),
+                    "error"       => ("#f87171", "Erreur tunnel Cloudflare", "QR erreur"),
+                    _             => ("#475569", "Initialisation du tunnel…", "QR…"),
+                };
+            }
+            <div title="@tunnelTitle" style="display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);font-size:.78rem;color:#cbd5e1;font-weight:600;cursor:default">
+                <span style="width:9px;height:9px;border-radius:50%;background:@tunnelColor;flex-shrink:0"></span>
+                @tunnelLabel
+            </div>
             <div id="clock" style="font-size:.85rem;color:var(--muted);font-weight:600;min-width:80px;text-align:right;"></div>
             <button class="topbar-btn" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Actualiser</button>
             <a href="/Admin/ExportStats" class="topbar-btn primary"><i class="bi bi-download"></i> Export CSV</a>

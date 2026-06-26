@@ -24,7 +24,9 @@ public class AdminController : Controller
     public const string RoleProvider = "fournisseur";
     public const string RoleClient = "client";
 
-    public AdminController(AppDbContext context, IWebHostEnvironment environment, AppStoragePaths storagePaths, UiSettingsCache settingsCache, IHubContext<QueueHub> hub, LoginRateLimiter loginRateLimiter)
+    private readonly CloudflareTunnelService _tunnel;
+
+    public AdminController(AppDbContext context, IWebHostEnvironment environment, AppStoragePaths storagePaths, UiSettingsCache settingsCache, IHubContext<QueueHub> hub, LoginRateLimiter loginRateLimiter, CloudflareTunnelService tunnel)
     {
         _context = context;
         _environment = environment;
@@ -32,6 +34,7 @@ public class AdminController : Controller
         _settingsCache = settingsCache;
         _hub = hub;
         _loginRateLimiter = loginRateLimiter;
+        _tunnel = tunnel;
     }
 
     private bool IsLoggedIn() => HttpContext.Session.GetInt32(SessionKey).HasValue;
@@ -309,6 +312,8 @@ public class AdminController : Controller
         ViewBag.SystemDiskWarn    = diskWarn;
         ViewBag.SystemDbOk        = dbOk;
         ViewBag.SystemHasAlert    = diskWarn || !dbOk;
+        ViewBag.TunnelStatus      = _tunnel.Status;
+        ViewBag.TunnelUrl         = _tunnel.TunnelUrl;
 
         return View(services);
     }

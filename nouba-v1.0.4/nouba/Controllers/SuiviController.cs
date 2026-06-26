@@ -26,12 +26,14 @@ public class SuiviController : Controller
     private readonly AppDbContext _db;
     private readonly QrCodeService _qr;
     private readonly UiSettingsCache _settingsCache;
+    private readonly CloudflareTunnelService _tunnel;
 
-    public SuiviController(AppDbContext db, QrCodeService qr, UiSettingsCache settingsCache)
+    public SuiviController(AppDbContext db, QrCodeService qr, UiSettingsCache settingsCache, CloudflareTunnelService tunnel)
     {
         _db = db;
         _qr = qr;
         _settingsCache = settingsCache;
+        _tunnel = tunnel;
     }
 
     /// <summary>Page d'accueil du suivi (saisie de numéro). Utile pour QR général TV.</summary>
@@ -160,7 +162,7 @@ public class SuiviController : Controller
         var settings = await _settingsCache.GetAsync();
         if (!settings.QrFollowEnabled) return NotFound();
         var pid = publicId.ToUpperInvariant();
-        var url = TicketTrackingUrl.Build(settings, pid, Request);
+        var url = TicketTrackingUrl.Build(settings, pid, Request, _tunnel.TunnelUrl);
         var px = Math.Clamp(size, 4, 20);
         var png = _qr.GeneratePng(url, px);
         return File(png, "image/png");

@@ -15,6 +15,7 @@ public class BorneController : Controller
     private readonly UiSettingsCache _settingsCache;
     private readonly TicketNumberAllocator _numberAllocator;
     private readonly EscPosPrinter _printer;
+    private readonly CloudflareTunnelService _tunnel;
     private readonly ILogger<BorneController> _logger;
 
     public BorneController(
@@ -23,6 +24,7 @@ public class BorneController : Controller
         UiSettingsCache settingsCache,
         TicketNumberAllocator numberAllocator,
         EscPosPrinter printer,
+        CloudflareTunnelService tunnel,
         ILogger<BorneController> logger)
     {
         _context = context;
@@ -30,6 +32,7 @@ public class BorneController : Controller
         _settingsCache = settingsCache;
         _numberAllocator = numberAllocator;
         _printer = printer;
+        _tunnel = tunnel;
         _logger = logger;
     }
 
@@ -238,7 +241,7 @@ public class BorneController : Controller
             string? qrPayload = null;
             if (settings.QrFollowEnabled && !string.IsNullOrEmpty(ticket.PublicId))
             {
-                qrPayload = Nouba.Helpers.TicketTrackingUrl.Build(settings, ticket.PublicId, Request);
+                qrPayload = Nouba.Helpers.TicketTrackingUrl.Build(settings, ticket.PublicId, Request, _tunnel.TunnelUrl);
             }
 
             var data = new EscPosTicketData

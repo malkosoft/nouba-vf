@@ -123,6 +123,10 @@ builder.Services.AddSingleton<QrCodeService>();
 builder.Services.AddSingleton<PrinterMonitor>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PrinterMonitor>());
 
+// Tunnel Cloudflare automatique — démarre cloudflared si présent, expose TunnelUrl
+builder.Services.AddSingleton<CloudflareTunnelService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<CloudflareTunnelService>());
+
 // Service IA offline (résumés, chatbot, traductions). Scoped car dépend du DbContext.
 builder.Services.AddScoped<NoubaAiService>();
 
