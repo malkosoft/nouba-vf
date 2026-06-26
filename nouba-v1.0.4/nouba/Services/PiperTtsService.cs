@@ -62,9 +62,9 @@ public sealed class PiperTtsService
     // Il suffit de déposer un couple .onnx + .onnx.json avec l'un de ces noms.
     private static readonly string[] ArabicFemaleCandidates =
     {
+        "ar_SA-dii-medium.onnx",
         "arabic-emirati-female-model.onnx",
         "voix-arabe-feminine.onnx",
-        "ar_SA-dii-medium.onnx",
         "ar_SA-dii-low.onnx",
         "ar_SA-miro-medium.onnx",
         "ar_SA-miro-low.onnx",
