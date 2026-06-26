@@ -1,0 +1,227 @@
+@{
+    ViewData["Title"] = "Connexion administration — Nouba";
+    Layout = null;
+    bool requiresSetup = ViewBag.RequiresSetup is bool b && b;
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <link rel="icon" type="image/png" href="~/images/favicon.png"/>
+    <style>
+        :root{
+            --bg:#07111f;
+            --bg2:#0f172a;
+            --card:rgba(255,255,255,.075);
+            --card2:rgba(255,255,255,.045);
+            --line:rgba(255,255,255,.14);
+            --text:#f8fafc;
+            --muted:#94a3b8;
+            --accent:#d4af37;
+            --accent2:#f8d56b;
+            --danger:#ef4444;
+            --success:#22c55e;
+            --radius:26px;
+            --shadow:0 30px 90px rgba(0,0,0,.45);
+        }
+        *{box-sizing:border-box}
+        html,body{margin:0;min-height:100%;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,"Noto Sans Arabic",Tahoma,sans-serif;background:var(--bg);color:var(--text)}
+        body{
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:28px;
+            background:
+                radial-gradient(circle at 15% 15%, rgba(212,175,55,.22), transparent 26%),
+                radial-gradient(circle at 85% 20%, rgba(59,130,246,.20), transparent 30%),
+                linear-gradient(135deg,#030712 0%,#0f172a 48%,#111827 100%);
+            overflow-x:hidden;
+        }
+        .shell{width:min(1120px,100%);display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:stretch}
+        .hero,.panel{
+            border:1px solid var(--line);
+            background:linear-gradient(180deg,var(--card),rgba(255,255,255,.035));
+            backdrop-filter:blur(18px);
+            border-radius:var(--radius);
+            box-shadow:var(--shadow);
+            overflow:hidden;
+        }
+        .hero{padding:34px;position:relative;min-height:560px;display:flex;flex-direction:column;justify-content:space-between}
+        .hero::after{content:"";position:absolute;inset:auto -120px -140px auto;width:360px;height:360px;border-radius:50%;background:rgba(212,175,55,.14);filter:blur(4px)}
+        .brand{display:flex;align-items:center;gap:16px;position:relative;z-index:1}
+        .logo{width:68px;height:68px;border-radius:18px;background:#fff;display:flex;align-items:center;justify-content:center;padding:6px;box-shadow:0 18px 45px rgba(212,175,55,.25), 0 0 0 1px rgba(255,255,255,.08) inset}
+        .logo img{width:100%;height:100%;object-fit:contain;display:block}
+        .brand h1{margin:0;font-size:28px;letter-spacing:.02em}
+        .brand p{margin:4px 0 0;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:1.8px}
+        .headline{position:relative;z-index:1;margin-top:54px}
+        .badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(212,175,55,.35);color:#fde68a;background:rgba(212,175,55,.10);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:800;margin-bottom:18px}
+        .headline h2{font-size:44px;line-height:1.04;margin:0 0 16px;font-weight:1000;letter-spacing:-.03em}
+        .headline p{font-size:18px;line-height:1.6;color:#cbd5e1;max-width:580px;margin:0}
+        .features{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:32px}
+        .feature{background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:15px;min-height:86px}
+        .feature strong{display:block;font-size:15px;margin-bottom:5px;color:#fff}
+        .feature span{font-size:13px;color:var(--muted);line-height:1.4}
+        .panel{padding:28px;background:rgba(15,23,42,.82)}
+        .panel-title{margin:0 0 6px;font-size:26px;font-weight:1000}
+        .panel-sub{margin:0 0 22px;color:var(--muted);line-height:1.5}
+        .alert{border-radius:16px;padding:13px 15px;margin-bottom:16px;font-weight:800;font-size:14px}
+        .alert.error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.32);color:#fecaca}
+        .alert.success{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.32);color:#bbf7d0}
+        .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+        .field{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+        .field.full{grid-column:1 / -1}
+        label{font-size:13px;color:#cbd5e1;font-weight:800}
+        input{
+            width:100%;height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.14);
+            background:rgba(255,255,255,.07);color:#fff;padding:0 14px;font-size:15px;outline:none;
+            transition:border-color .15s, box-shadow .15s, background .15s;
+        }
+        input::placeholder{color:#64748b}
+        input:focus{border-color:rgba(212,175,55,.75);box-shadow:0 0 0 4px rgba(212,175,55,.12);background:rgba(255,255,255,.10)}
+        .password-wrap{position:relative}
+        .password-wrap input{padding-right:48px}
+        .eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;border-radius:10px;background:rgba(255,255,255,.09);color:#e2e8f0;cursor:pointer}
+        .primary{
+            width:100%;height:52px;border:0;border-radius:16px;margin-top:6px;cursor:pointer;
+            background:linear-gradient(135deg,var(--accent),var(--accent2));color:#111827;font-size:16px;font-weight:1000;
+            box-shadow:0 18px 45px rgba(212,175,55,.22);transition:transform .15s, filter .15s;
+        }
+        .primary:hover{transform:translateY(-1px);filter:brightness(1.04)}
+        .quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+        .quick a{display:block;text-decoration:none;color:#e2e8f0;border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:16px;padding:13px}
+        .quick strong{display:block;font-size:14px;margin-bottom:4px}
+        .quick span{font-size:12px;color:var(--muted)}
+        .footnote{font-size:12px;color:#64748b;text-align:center;margin-top:18px;line-height:1.5}
+        .setup-note{background:rgba(212,175,55,.09);border:1px solid rgba(212,175,55,.25);border-radius:16px;padding:13px;color:#fde68a;font-size:13px;line-height:1.5;margin-bottom:16px}
+        @@media(max-width:920px){.shell{grid-template-columns:1fr}.hero{min-height:auto}.headline h2{font-size:34px}.features{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div>
+                <div class="brand">
+                    <div class="logo"><img src="~/images/nouba-icon.png" alt="Nouba"/></div>
+                    <div>
+                        <h1>NOUBA</h1>
+                        <p>Administration locale</p>
+                    </div>
+                </div>
+                <div class="headline">
+                    <div class="badge">Made in DZ • Offline ready</div>
+                    <h2>Console d’administration professionnelle</h2>
+                    <p>Gérez les services, guichets, langues, médias d’affichage et annonces vocales depuis une seule interface claire.</p>
+                </div>
+            </div>
+            <div class="features">
+                <div class="feature"><strong>100% local</strong><span>Fonctionne sur mini-PC, sans cloud et sans Internet.</span></div>
+                <div class="feature"><strong>Simple à gérer</strong><span>Configuration complète depuis l’interface Admin.</span></div>
+                <div class="feature"><strong>Affichage média</strong><span>Images, vidéos et bandeau de communication client.</span></div>
+                <div class="feature"><strong>Voix & langues</strong><span>Paramètres centralisés : arabe, français, anglais, tamazight.</span></div>
+            </div>
+        </section>
+
+        <section class="panel">
+            @if (requiresSetup)
+            {
+                <h2 class="panel-title">Créer le compte administrateur</h2>
+                <p class="panel-sub">Première utilisation : créez l’accès principal de l’administrateur.</p>
+            }
+            else
+            {
+                <h2 class="panel-title">Connexion administrateur</h2>
+                <p class="panel-sub">Connectez-vous pour piloter tout le système NOUBA.</p>
+            }
+
+            @if (TempData["Error"] != null)
+            { <div class="alert error">@TempData["Error"]</div> }
+            @if (TempData["Success"] != null)
+            { <div class="alert success">@TempData["Success"]</div> }
+
+            @if (requiresSetup)
+            {
+                <div class="setup-note">Renseignez le nom et le prénom séparément. Le compte sera utilisé pour gérer le logiciel chez le client.</div>
+                <form method="post" asp-action="Setup" id="setupForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="fullName" id="fullName" />
+                    <div class="form-grid">
+                        <div class="field">
+                            <label>Nom</label>
+                            <input name="lastName" id="lastName" autocomplete="family-name" placeholder="Nom" required />
+                        </div>
+                        <div class="field">
+                            <label>Prénom</label>
+                            <input name="firstName" id="firstName" autocomplete="given-name" placeholder="Prénom" required />
+                        </div>
+                        <div class="field full">
+                            <label>Identifiant</label>
+                            <input name="login" autocomplete="username" placeholder="admin" required />
+                        </div>
+                        <div class="field full">
+                            <label>Mot de passe</label>
+                            <div class="password-wrap">
+                                <input name="password" id="setupPassword" type="password" autocomplete="new-password" placeholder="••••••••" required />
+                                <button type="button" class="eye" data-target="setupPassword">👁</button>
+                            </div>
+                        </div>
+                        <div class="field full">
+                            <label>Confirmer le mot de passe</label>
+                            <div class="password-wrap">
+                                <input name="confirmPassword" id="setupConfirm" type="password" autocomplete="new-password" placeholder="••••••••" required />
+                                <button type="button" class="eye" data-target="setupConfirm">👁</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="primary" type="submit">Créer le compte administrateur</button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-action="Login">
+                    @Html.AntiForgeryToken()
+                    <div class="field">
+                        <label>Identifiant</label>
+                        <input name="login" autocomplete="username" placeholder="admin" required />
+                    </div>
+                    <div class="field">
+                        <label>Mot de passe</label>
+                        <div class="password-wrap">
+                            <input name="password" id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" required />
+                            <button type="button" class="eye" data-target="loginPassword">👁</button>
+                        </div>
+                    </div>
+                    <button class="primary" type="submit">Se connecter</button>
+                </form>
+                <div class="quick">
+                    <a href="/Borne"><strong>Borne</strong><span>Prise de ticket client</span></a>
+                    <a href="/Display"><strong>Affichage</strong><span>Écran salle d’attente</span></a>
+                    <a href="/Agent"><strong>Agent</strong><span>Interface guichet</span></a>
+                    <a href="/"><strong>Accueil</strong><span>Page par défaut</span></a>
+                </div>
+            }
+            <div class="footnote">NOUBA Pro — solution locale de gestion de file d’attente.</div>
+        </section>
+    </main>
+
+    <script>
+        document.querySelectorAll('.eye').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.dataset.target);
+                if(!input) return;
+                input.type = input.type === 'password' ? 'text' : 'password';
+            });
+        });
+        const setupForm = document.getElementById('setupForm');
+        if(setupForm){
+            setupForm.addEventListener('submit', () => {
+                const first = (document.getElementById('firstName')?.value || '').trim();
+                const last = (document.getElementById('lastName')?.value || '').trim();
+                document.getElementById('fullName').value = `${last} ${first}`.trim();
+            });
+        }
+    </script>
+</body>
+</html>

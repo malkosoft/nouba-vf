@@ -1,0 +1,1041 @@
+@model IEnumerable<Nouba.Models.ServiceType>
+@using Nouba.Models
+@{
+    Layout = null;
+    ViewData["Title"] = "Borne";
+    var settings = ViewBag.UiSettings as UiSettings ?? new UiSettings();
+    string currentLanguage = ViewBag.CurrentLanguage as string ?? "fr";
+    string titleText = ViewBag.TitleText as string ?? "Choisissez votre service";
+    string subtitleText = ViewBag.SubtitleText as string ?? "Touchez un bouton pour imprimer un ticket.";
+    bool showClosedAlert = settings.TicketsClosed;
+    string closureMessage = settings.TicketsClosed ? (ViewBag.ClosureMessage as string ?? string.Empty) : string.Empty;
+    string closedTitle = currentLanguage switch { "ar" => "المكاتب مغلقة", "tz" => "Ixxamen medlen", "en" => "Offices closed", _ => "Bureaux fermés" };
+    bool isRtl = currentLanguage == "ar";
+    var services = Model.ToList();
+    var firstService = services.FirstOrDefault();
+    var waitingByService = ViewBag.WaitingByService as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var estimateByService = ViewBag.EstimateByService as Dictionary<int, int> ?? new Dictionary<int, int>();
+    string waitWord = currentLanguage switch { "ar" => "في الانتظار", "en" => "waiting", "tz" => "ttraǧun", _ => "en attente" };
+    string freeWord = currentLanguage switch { "ar" => "متاح", "en" => "free", "tz" => "ilelli", _ => "libre" };
+    string etaMinWord = currentLanguage switch { "ar" => "دقيقة انتظار", "en" => "min wait", "tz" => "min", _ => "min d'attente" };
+    string priorityTitle = currentLanguage switch { "ar" => "تذكرة أولوية", "en" => "Priority ticket", "tz" => "Tikect tamezwarut", _ => "Ticket prioritaire" };
+    string priorityNote = currentLanguage switch { "ar" => "مخصص فقط للمرأة الحامل أو الأشخاص ذوي الإعاقة. يجب أن تكون الأولوية مبررة.", "en" => "Reserved for pregnant women and people with disabilities. Priority must be justified.", "tz" => "I tikacin timezwarin kan. Tamezwarut ilaq ad tettwasisen.", _ => "Réservé aux femmes enceintes et aux personnes handicapées. La priorité doit être justifiée." };
+    string chooseServiceLabel = currentLanguage switch { "ar" => "— اختر الخدمة —", "en" => "— Choose a service —", "tz" => "— Fren tanafa —", _ => "— Choisir un service —" };
+    string chooseServiceError = currentLanguage switch { "ar" => "يرجى اختيار خدمة أولاً.", "en" => "Please choose a service first.", "tz" => "Ttxil-k fren tanafa qbel.", _ => "Veuillez d'abord choisir un service." };
+    // Locale BCP-47 pour le formatage de date côté JS
+    string jsLocale = currentLanguage switch { "ar" => "ar-DZ", "en" => "en-US", "tz" => "fr-FR", _ => "fr-FR" };
+}
+@functions {
+    string ServiceLabel(string? serviceName, string lang)
+    {
+        // Fallback basé sur les mots-clés quand aucun nom multilingue n'est défini.
+        var name = (serviceName ?? string.Empty).Trim();
+        var key = name.ToLowerInvariant();
+        return lang switch
+        {
+            "ar" when key.Contains("consult") => "الاستشارة",
+            "ar" when key.Contains("accueil") || key.Contains("general") || key.Contains("général") => "الاستقبال العام",
+            "ar" when key.Contains("paiement") || key.Contains("payment") => "الدفع",
+            "ar" when key.Contains("réclamation") || key.Contains("reclamation") => "الشكاوى",
+            "en" when key.Contains("accueil") || key.Contains("général") => "General reception",
+            "en" when key.Contains("paiement") => "Payment",
+            "tz" when key.Contains("accueil") || key.Contains("général") => "Asefrak amatu",
+            "tz" when key.Contains("consult") => "Tamsulta",
+            "tz" when key.Contains("paiement") => "Lexlaṣ",
+            _ => name
+        };
+    }
+
+    // Utilise le nom multilingue configuré si disponible, sinon fallback par mots-clés.
+    string ServiceLabelFromModel(Nouba.Models.ServiceType svc, string lang)
+    {
+        string? localized = lang switch
+        {
+            "ar" => svc.NameAr,
+            "tz" => svc.NameTz,
+            "en" => svc.NameEn,
+            _ => null
+        };
+        return !string.IsNullOrWhiteSpace(localized) ? localized : ServiceLabel(svc.Name, lang);
+    }
+}
+<!DOCTYPE html>
+<html lang="@currentLanguage" dir="@(isRtl ? "rtl" : "ltr")">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>@settings.SiteName — Borne</title>
+<link rel="icon" type="image/png" href="~/images/favicon.png"/>
+<link href="~/lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet"/>
+<style>
+:root{
+  --bg-deep:#020617;
+  --bg-mid:#0b1224;
+  --bg-soft:#101a33;
+  --gold:#f3c969;
+  --gold-deep:#c9962e;
+  --blue:#60a5fa;
+  --emerald:#10b981;
+  --rose:#f87171;
+  --text:#f8fafc;
+  --muted:#94a3b8;
+  --border:rgba(255,255,255,.10);
+  --card:rgba(255,255,255,.06);
+  --shadow-lg:0 30px 80px rgba(0,0,0,.45);
+  --shadow-md:0 18px 50px rgba(0,0,0,.32);
+  --accent:@(string.IsNullOrWhiteSpace(settings.DisplayAccentColor)?"#0f766e":settings.DisplayAccentColor);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,"Noto Sans Arabic",Tahoma,sans-serif;background:var(--bg-deep);color:var(--text);touch-action:manipulation;-webkit-font-smoothing:antialiased}
+
+/* ── Background : couches multiples pour effet premium ── */
+.borne-page{
+  height:100vh;width:100vw;
+  display:flex;align-items:center;justify-content:center;
+  padding:clamp(14px,2vw,30px);
+  position:relative;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(243,201,105,.18), transparent 32%),
+    radial-gradient(circle at 82% 14%, rgba(96,165,250,.15), transparent 38%),
+    radial-gradient(circle at 50% 100%, rgba(16,185,129,.10), transparent 42%),
+    linear-gradient(135deg, #020617 0%, #0b1224 50%, #101a33 100%);
+}
+.borne-page::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:
+    radial-gradient(circle at 25% 30%, rgba(255,255,255,.04) 0, transparent 1px),
+    radial-gradient(circle at 75% 70%, rgba(255,255,255,.03) 0, transparent 1px);
+  background-size: 60px 60px, 80px 80px;
+  opacity:.5;
+}
+
+.borne-inner{
+  position:relative;
+  width:min(1320px,100%);height:100%;
+  display:grid;grid-template-rows:auto auto 1fr;
+  gap:clamp(12px,1.6vh,22px);min-height:0;
+}
+
+/* ── Topbar : logo + titre + horloge premium ── */
+.topbar{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:clamp(14px,2vw,28px);
+  background:linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+  border:1px solid var(--border);
+  border-radius:32px;
+  padding:clamp(14px,1.8vw,24px) clamp(18px,2.2vw,30px);
+  box-shadow:var(--shadow-lg);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+
+.client-logo{
+  width:clamp(80px,9vw,140px);height:clamp(60px,7vh,88px);
+  object-fit:contain;background:#fff;border-radius:22px;
+  padding:10px;box-shadow:0 18px 40px rgba(0,0,0,.32);
+}
+.client-logo.placeholder{
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg, var(--gold), var(--gold-deep));
+  color:#111827;font-weight:950;font-size:clamp(18px,1.9vw,26px);
+  letter-spacing:.04em;
+}
+
+.title-block{min-width:0}
+.borne-site-badge{
+  font-size:.7rem;font-weight:950;text-transform:uppercase;
+  letter-spacing:.22em;color:var(--gold);
+  margin-bottom:6px;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.borne-site-badge::before{
+  content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 10px var(--gold);
+  animation:pulse 2s ease-in-out infinite;
+}
+@@keyframes pulse{0%,100%{opacity:.6;transform:scale(.9)}50%{opacity:1;transform:scale(1.2)}}
+.borne-title{
+  font-size:clamp(1.5rem,3.2vw,2.8rem);
+  font-weight:900;color:#fff;line-height:1.05;margin:0 0 8px;
+  letter-spacing:-.01em;
+  text-shadow:0 2px 18px rgba(243,201,105,.12);
+}
+.borne-subtitle{
+  font-size:clamp(.86rem,1.3vw,1.05rem);color:var(--muted);
+  margin:0;font-weight:500;
+}
+
+/* ── Horloge premium ── */
+.clock-block{
+  display:flex;flex-direction:column;align-items:flex-end;
+  gap:4px;min-width:clamp(140px,14vw,200px);
+  text-align:right;
+  padding:clamp(8px,1vw,14px) clamp(12px,1.4vw,20px);
+  background:linear-gradient(135deg, rgba(243,201,105,.10), rgba(243,201,105,.02));
+  border:1px solid rgba(243,201,105,.20);
+  border-radius:22px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+[dir="rtl"] .clock-block{text-align:left;align-items:flex-start}
+.clock-time{
+  font-size:clamp(1.6rem,2.7vw,2.2rem);font-weight:900;
+  font-variant-numeric:tabular-nums;
+  background:linear-gradient(135deg,#fff 0%, var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  letter-spacing:-.01em;line-height:1;
+}
+.clock-time .sec{
+  font-size:.62em;color:var(--gold);opacity:.75;
+  -webkit-text-fill-color:var(--gold);
+  margin-inline-start:4px;font-weight:700;
+}
+.clock-date{
+  font-size:clamp(.78rem,1vw,.92rem);color:var(--muted);
+  font-weight:600;text-transform:capitalize;
+  letter-spacing:.02em;
+}
+
+/* ── Closed alert ── */
+.closure-alert{
+  background:linear-gradient(135deg, rgba(127,29,29,.92), rgba(153,27,27,.76));
+  border:1px solid rgba(252,165,165,.44);
+  border-radius:24px;padding:20px 26px;
+  display:flex;align-items:center;gap:18px;
+  box-shadow:var(--shadow-md);
+}
+.closure-alert .icon{font-size:2rem}
+.closure-alert .title{font-size:1.2rem;font-weight:950;color:#fecaca;margin-bottom:4px}
+.closure-alert .msg{color:#fee2e2;font-weight:700}
+
+/* ── Priority panel ── */
+.priority-panel{
+  background:linear-gradient(135deg, rgba(245,158,11,.16), rgba(245,158,11,.04));
+  border:1px solid rgba(243,201,105,.32);
+  border-radius:24px;
+  padding:clamp(14px,1.6vw,20px) clamp(18px,2vw,24px);
+  display:grid;grid-template-columns:1fr minmax(180px,280px) auto;
+  gap:18px;align-items:center;
+  box-shadow:var(--shadow-md);
+}
+.priority-title{
+  font-weight:900;color:var(--gold);font-size:1.1rem;
+  display:flex;align-items:center;gap:10px;
+}
+.priority-title::before{content:"⭐";font-size:1.2em}
+.priority-note{color:#fde68a;font-size:.86rem;margin-top:4px;font-weight:500}
+.priority-select{
+  height:50px;border-radius:16px;
+  border:1px solid rgba(243,201,105,.30);
+  background:rgba(15,23,42,.85);color:#fff;
+  padding:0 16px;font-weight:800;font-size:.95rem;
+  cursor:pointer;
+}
+.priority-select.is-invalid{
+  border-color:#ef4444;
+  box-shadow:0 0 0 3px rgba(239,68,68,.30);
+  animation:priShake .35s;
+}
+@@keyframes priShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.priority-error{
+  color:#fecaca;background:rgba(239,68,68,.16);
+  border:1px solid rgba(239,68,68,.45);border-radius:12px;
+  padding:8px 14px;font-weight:800;font-size:.85rem;margin-top:8px;grid-column:1/-1;
+}
+/* Signe Tamazight (yaz) en SVG : toujours affiché, même si la police TV/tablette
+   n'a pas le glyphe Tifinagh (sinon carré vide). */
+.lang-switch .yaz{width:1em;height:1.15em;vertical-align:-.18em;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;fill:none}
+.priority-options{display:flex;gap:10px;flex-wrap:wrap}
+.priority-options form{margin:0}
+.priority-btn{
+  border:0;border-radius:18px;padding:14px 20px;
+  font-weight:900;color:#111827;font-size:.95rem;
+  background:linear-gradient(135deg, var(--gold), #f59e0b);
+  box-shadow:0 14px 30px rgba(245,158,11,.28), inset 0 1px 0 rgba(255,255,255,.4);
+  cursor:pointer;white-space:nowrap;
+  transition:transform .15s, box-shadow .15s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.priority-btn:hover{transform:translateY(-2px);box-shadow:0 20px 40px rgba(245,158,11,.4)}
+.priority-btn:active{transform:translateY(0)}
+.priority-btn.handicap{
+  background:linear-gradient(135deg, #93c5fd, #2563eb);color:#fff;
+  box-shadow:0 14px 30px rgba(37,99,235,.28), inset 0 1px 0 rgba(255,255,255,.3);
+}
+.priority-btn.handicap:hover{box-shadow:0 20px 40px rgba(37,99,235,.4)}
+
+/* ── Services grid : tuiles premium ── */
+.services-grid{
+  min-height:0;display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:clamp(14px,1.8vw,22px);
+  align-content:stretch;
+}
+.service-form{margin:0;min-height:0}
+.service-tile{
+  width:100%;height:100%;
+  min-height:clamp(135px, 22vh, 200px);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:30px;
+  padding:clamp(18px,2.2vw,30px);
+  cursor:pointer;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, opacity .18s, border-color .2s;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;
+  box-shadow:var(--shadow-md);
+  position:relative;overflow:hidden;
+}
+/* Reflet brillant en haut */
+.service-tile::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.06) 35%, transparent 60%);
+  pointer-events:none;opacity:.85;
+}
+/* Halo lumineux au survol */
+.service-tile::after{
+  content:"";position:absolute;inset:-2px;border-radius:30px;
+  background:linear-gradient(135deg, rgba(255,255,255,.4), transparent 50%);
+  opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.service-tile:hover::after{opacity:.6}
+.service-tile>*{position:relative;z-index:1}
+.service-tile:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.service-tile:active{transform:translateY(-1px) scale(.98);transition-duration:.08s}
+.service-tile.disabled-ticket{opacity:.4;cursor:not-allowed;pointer-events:none;filter:grayscale(.4)}
+.service-logo{
+  width:clamp(54px,6.5vw,78px);height:clamp(54px,6.5vw,78px);
+  object-fit:contain;background:rgba(255,255,255,.22);
+  border-radius:22px;padding:10px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3);
+}
+.service-name{
+  font-size:clamp(1.05rem,1.9vw,1.35rem);
+  font-weight:900;text-align:center;line-height:1.2;
+  letter-spacing:-.005em;
+}
+.service-emoji{
+  font-size:clamp(40px,5.5vw,68px);line-height:1;
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,.35));
+  margin-bottom:2px;
+}
+.service-code{
+  font-size:.72rem;font-weight:900;
+  opacity:.85;text-transform:uppercase;letter-spacing:.18em;
+  padding:4px 10px;border-radius:8px;
+  background:rgba(0,0,0,.25);
+  backdrop-filter:blur(4px);
+}
+
+/* ── Badge « en attente » en direct (différenciateur produit) ──
+   Affiche en temps réel le nombre de personnes en attente pour ce
+   service, avec un point qui pulse. La couleur passe du vert (libre)
+   à l'ambre (chargé) → le citoyen voit d'un coup d'œil où aller. */
+.service-waiting{
+  position:absolute;top:12px;inset-inline-end:12px;z-index:2;
+  display:inline-flex;align-items:center;gap:7px;
+  padding:6px 12px 6px 9px;border-radius:999px;
+  background:rgba(2,6,23,.55);
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:0 6px 18px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.12);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  font-weight:900;line-height:1;color:#fff;
+  transition:background .35s, border-color .35s;
+}
+[dir="rtl"] .service-waiting{padding:6px 9px 6px 12px}
+.service-waiting .sw-dot{
+  width:9px;height:9px;border-radius:50%;flex:0 0 auto;
+  background:#34d399;box-shadow:0 0 0 0 rgba(52,211,153,.6);
+  animation:swPulse 2s ease-in-out infinite;
+}
+@@keyframes swPulse{
+  0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}
+  70%{box-shadow:0 0 0 7px rgba(52,211,153,0)}
+  100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}
+}
+.service-waiting .sw-num{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.service-waiting .sw-label{font-size:.66rem;font-weight:700;opacity:.82;text-transform:lowercase;letter-spacing:.01em}
+/* État « libre » : aucune attente */
+.service-waiting.is-free{background:rgba(6,78,59,.55);border-color:rgba(52,211,153,.45)}
+.service-waiting.is-free .sw-dot{background:#34d399}
+/* État « chargé » : 6+ en attente → ambre, point orange */
+.service-waiting.is-busy{background:rgba(120,53,15,.55);border-color:rgba(251,191,36,.50)}
+.service-waiting.is-busy .sw-dot{background:#fbbf24;animation-name:swPulseBusy}
+@@keyframes swPulseBusy{
+  0%{box-shadow:0 0 0 0 rgba(251,191,36,.55)}
+  70%{box-shadow:0 0 0 7px rgba(251,191,36,0)}
+  100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}
+}
+/* Petite animation quand le nombre change (feedback de vie) */
+.service-waiting.bump{animation:swBump .45s cubic-bezier(.34,1.56,.64,1)}
+@@keyframes swBump{0%{transform:scale(1)}40%{transform:scale(1.16)}100%{transform:scale(1)}}
+
+/* ── Effet d'onde (ripple) au toucher : feedback tactile premium ── */
+.service-tile .ripple{
+  position:absolute;border-radius:50%;pointer-events:none;z-index:1;
+  background:radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 70%);
+  transform:translate(-50%,-50%) scale(0);
+  animation:rippleOut .6s ease-out forwards;
+}
+@@keyframes rippleOut{to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+
+@@media (max-width: 900px){
+  .service-waiting{top:8px;inset-inline-end:8px;padding:4px 9px 4px 7px}
+  .service-waiting .sw-num{font-size:.92rem}
+  .service-waiting .sw-label{display:none}
+}
+
+/* ── Bandeau « délai estimé » sous le nom du service ──
+   Affiché uniquement quand au moins une personne attend. Présenté
+   clairement comme une ESTIMATION (≈) pour ne pas créer d'attente ferme. */
+.service-eta{
+  margin-top:8px;display:inline-flex;align-items:center;gap:7px;
+  padding:5px 13px;border-radius:999px;
+  background:rgba(0,0,0,.26);border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  font-size:.78rem;font-weight:800;line-height:1;color:rgba(255,255,255,.95);
+  letter-spacing:.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
+  transition:transform .2s, background .35s;
+}
+.service-eta[hidden]{display:none!important}
+.service-eta .bi{width:.95em;height:.95em;opacity:.9;flex:0 0 auto}
+.service-eta .eta-num{font-variant-numeric:tabular-nums}
+.service-eta.bump{animation:swBump .45s cubic-bezier(.34,1.56,.64,1)}
+@@media (max-width: 900px){
+  .service-eta{margin-top:6px;padding:4px 10px;font-size:.72rem}
+}
+@@media (max-width: 520px){
+  .service-eta{font-size:.7rem;padding:3px 9px}
+}
+
+/* Animations d'entrée échelonnées */
+.premium-motion .service-tile{animation:tileIn .5s cubic-bezier(.25,1.5,.5,1) both}
+.premium-motion .service-tile:nth-child(1){animation-delay:.05s}
+.premium-motion .service-tile:nth-child(2){animation-delay:.1s}
+.premium-motion .service-tile:nth-child(3){animation-delay:.15s}
+.premium-motion .service-tile:nth-child(4){animation-delay:.2s}
+.premium-motion .service-tile:nth-child(5){animation-delay:.25s}
+.premium-motion .service-tile:nth-child(6){animation-delay:.3s}
+.premium-motion .topbar,
+.premium-motion .priority-panel{animation:slideDown .55s cubic-bezier(.25,1.2,.5,1) both}
+@@keyframes tileIn{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+
+.lang-switch{display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-top:10px;flex-wrap:wrap}
+.lang-switch button{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.09);color:#fff;border-radius:999px;padding:7px 11px;font-weight:900;font-size:.78rem;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.16);transition:.15s}
+.lang-switch button.active,.lang-switch button:hover{background:var(--gold);border-color:var(--gold);color:#111827;transform:translateY(-1px)}
+
+/* ── Responsive ── */
+/* ═══════════════════════════════════════════════════════════════════════
+   v2.7.21 — Responsive borne refondu : smartphone, tablette portrait/paysage,
+   PC, écran tactile sur pied. Plus de doublons, breakpoints alignés sur
+   les vraies tailles d'appareils.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Tablette paysage (iPad standard 1024×768, tablettes Android 1280×800) */
+@@media (max-width: 1280px) and (min-width: 901px) {
+  .borne-inner { gap:14px }
+  .services-grid { gap:14px }
+  .service-tile { min-height:140px }
+}
+
+/* Tablette portrait + petits écrans (iPad 768px portrait, Android 600-900px) */
+@@media (max-width: 900px) {
+  html, body { height:auto; min-height:100dvh; overflow-x:hidden; overflow-y:auto }
+  .borne-page { height:auto; min-height:100dvh; align-items:flex-start; padding:12px }
+  .borne-inner { height:auto; min-height:0; display:flex; flex-direction:column; gap:12px; width:100%; max-width:100% }
+  /* Header empilé verticalement, logo centré */
+  .topbar {
+    grid-template-columns:1fr;
+    justify-items:center; text-align:center;
+    border-radius:20px; padding:14px; gap:10px;
+  }
+  .brand { justify-content:center }
+  .client-logo { width:clamp(64px,12vw,90px); height:clamp(48px,9vw,68px) }
+  .title-block { text-align:center }
+  .borne-title { font-size:clamp(1.3rem, 4.5vw, 1.85rem); line-height:1.15 }
+  .borne-subtitle { font-size:clamp(.78rem, 2.2vw, .95rem); display:block }
+  .clock-block { align-items:center; text-align:center; min-width:0; width:auto; max-width:280px; padding:8px 14px }
+  .clock-time { font-size:clamp(1.1rem, 3.5vw, 1.5rem) }
+  .clock-date { font-size:clamp(.7rem, 1.8vw, .82rem) }
+  .lang-switch { justify-content:center; flex-wrap:wrap }
+  /* Panneau priorité empilé */
+  .priority-panel { grid-template-columns:1fr; text-align:center; padding:14px }
+  .priority-title { justify-content:center }
+  .priority-options { grid-template-columns:1fr 1fr; width:100%; gap:8px }
+  .priority-btn { width:100%; padding:14px 10px; font-size:.9rem }
+  /* Services : 2 colonnes sur tablette portrait/grand smartphone */
+  .services-grid {
+    display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:12px; align-content:start; min-height:auto;
+  }
+  .service-form, .service-tile { height:auto }
+  .service-tile {
+    min-height:clamp(120px, 22vw, 160px);
+    border-radius:20px;
+    padding:clamp(12px, 2.5vw, 18px);
+  }
+  .service-logo { width:clamp(48px,10vw,72px); height:clamp(48px,10vw,72px) }
+  .service-name { font-size:clamp(1rem, 2.6vw, 1.2rem) }
+}
+
+/* Smartphone portrait étroit (≤520px) */
+@@media (max-width: 520px) {
+  .services-grid { grid-template-columns:1fr }
+  .priority-options { grid-template-columns:1fr }
+  .service-tile { min-height:96px; padding:14px }
+  .service-logo { width:48px; height:48px }
+  .service-name { font-size:1rem }
+  .topbar { padding:12px; border-radius:16px }
+  .client-logo { width:60px; height:46px }
+}
+
+/* PC ou tablette en mode pied portrait HAUT (1080×1920 portrait) */
+@@media (min-width:901px) and (orientation:portrait) {
+  .services-grid { grid-template-columns:repeat(2, 1fr) }
+  .service-tile { min-height:180px }
+}
+
+/* PC bureau hauteur réduite (laptop 13") */
+@@media (min-width:901px) and (max-height:760px) {
+  .borne-page { padding:10px }
+  .borne-inner { gap:10px }
+  .topbar { padding:10px 14px }
+  .client-logo { height:50px; width:82px }
+  .borne-title { font-size:clamp(1.35rem, 2.5vw, 2.2rem) }
+  .borne-subtitle { display:none }
+  .priority-panel { padding:10px 14px }
+  .service-tile { min-height:105px; padding:14px }
+}
+
+/* ── Overlay « Création du ticket… » : feedback instantané au clic ── */
+.nouba-loading-overlay{
+  position:fixed;inset:0;z-index:9998;
+  background:rgba(2,6,23,.92);backdrop-filter:blur(10px);
+  display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:24px;
+  animation:noubaFadeIn .18s ease both;
+}
+.nouba-loading-overlay.show{display:flex}
+@@keyframes noubaFadeIn{from{opacity:0}to{opacity:1}}
+.nouba-spinner{
+  width:88px;height:88px;border-radius:50%;
+  border:6px solid rgba(243,201,105,.18);
+  border-top-color:#f3c969;
+  animation:noubaSpin .8s linear infinite;
+  box-shadow:0 0 60px rgba(243,201,105,.35);
+}
+@@keyframes noubaSpin{to{transform:rotate(360deg)}}
+.nouba-loading-text{
+  color:#fff;font-size:clamp(1.25rem,2.6vw,1.75rem);
+  font-weight:900;letter-spacing:.02em;text-align:center;
+  text-shadow:0 2px 12px rgba(0,0,0,.45);
+}
+.nouba-loading-sub{
+  color:#94a3b8;font-size:clamp(.85rem,1.4vw,1rem);
+  font-weight:500;text-align:center;
+}
+
+/* ── Modale de confirmation custom (remplace alert/confirm natifs) ── */
+.nouba-modal-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(2,6,23,.90);backdrop-filter:blur(12px);
+  display:none;align-items:center;justify-content:center;
+  padding:20px;animation:noubaFadeIn .18s ease both;
+}
+.nouba-modal-overlay.show{display:flex}
+.nouba-modal{
+  background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+  border:1px solid rgba(243,201,105,.30);
+  border-radius:24px;padding:clamp(28px,3vw,40px);
+  max-width:520px;width:100%;text-align:center;
+  box-shadow:0 30px 80px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.06);
+  animation:noubaModalPop .26s cubic-bezier(.25,1.4,.5,1) both;
+}
+@@keyframes noubaModalPop{
+  from{opacity:0;transform:scale(.85) translateY(20px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+.nouba-modal-icon{font-size:clamp(56px,7vw,80px);line-height:1;margin-bottom:14px}
+.nouba-modal-title{
+  font-size:clamp(1.2rem,2.4vw,1.6rem);font-weight:900;
+  color:#fff;margin-bottom:10px;line-height:1.25;
+}
+.nouba-modal-text{
+  font-size:clamp(.92rem,1.4vw,1.05rem);color:#cbd5e1;
+  line-height:1.5;margin-bottom:24px;
+}
+.nouba-modal-actions{
+  display:grid;grid-template-columns:1fr 1.4fr;gap:12px;
+}
+.nouba-modal-btn{
+  padding:16px 18px;border-radius:14px;border:none;cursor:pointer;
+  font-size:clamp(.95rem,1.5vw,1.05rem);font-weight:800;
+  letter-spacing:.02em;transition:transform .12s,box-shadow .12s;
+}
+.nouba-modal-btn:active{transform:translateY(1px)}
+.nouba-modal-btn.cancel{
+  background:transparent;color:#94a3b8;
+  border:1px solid rgba(255,255,255,.14);
+}
+.nouba-modal-btn.cancel:hover{background:rgba(255,255,255,.04);color:#fff}
+.nouba-modal-btn.confirm{
+  background:linear-gradient(135deg,#f59e0b,#d97706);color:#1c1917;
+  box-shadow:0 14px 30px rgba(245,158,11,.35);
+}
+.nouba-modal-btn.confirm:hover{box-shadow:0 18px 36px rgba(245,158,11,.5)}
+.nouba-modal-btn.confirm.handicap{
+  background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;
+  box-shadow:0 14px 30px rgba(59,130,246,.35);
+}
+.nouba-modal-btn.confirm.handicap:hover{box-shadow:0 18px 36px rgba(59,130,246,.5)}
+</style>
+
+@{
+    string loadingLabel  = currentLanguage switch { "ar" => "جار إنشاء التذكرة...", "en" => "Creating your ticket...", "tz" => "Asnulfu n tkayya...", _ => "Création du ticket en cours…" };
+    string loadingSub    = currentLanguage switch { "ar" => "بضع ثوان من فضلك", "en" => "A few seconds, please", _ => "Quelques secondes, merci" };
+    string confirmEnceinte = currentLanguage switch { "ar" => "تأكيد تذكرة أولوية للمرأة الحامل؟", "en" => "Confirm a priority ticket for pregnant women?", _ => "Confirmer un ticket prioritaire femme enceinte ?" };
+    string confirmHandicap = currentLanguage switch { "ar" => "تأكيد تذكرة أولوية لشخص من ذوي الإعاقة؟", "en" => "Confirm a priority ticket for disability?", _ => "Confirmer un ticket prioritaire handicap ?" };
+    string confirmEnceinteSub = currentLanguage switch { "ar" => "ستحصل على تذكرة بأولوية مرتفعة عند المناداة.", "en" => "You will receive a high-priority ticket.", _ => "Vous obtiendrez un ticket avec priorité dans la file d'attente." };
+    string confirmHandicapSub = currentLanguage switch { "ar" => "ستحصل على تذكرة بأولوية مرتفعة عند المناداة.", "en" => "You will receive a high-priority ticket.", _ => "Vous obtiendrez un ticket avec priorité dans la file d'attente." };
+    string btnCancel  = currentLanguage switch { "ar" => "إلغاء", "en" => "Cancel", _ => "Annuler" };
+    string btnConfirm = currentLanguage switch { "ar" => "تأكيد", "en" => "Confirm", _ => "Confirmer" };
+}
+
+<!-- ── Bouton plein écran / kiosque (#7) ── -->
+<button id="borneFsBtn" title="Plein écran"
+        style="position:fixed;bottom:16px;right:16px;z-index:9999;
+               background:rgba(0,0,0,.45);border:none;border-radius:50%;
+               width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+               color:#fff;font-size:1.1rem;cursor:pointer;backdrop-filter:blur(6px);
+               box-shadow:0 2px 8px rgba(0,0,0,.4);transition:.2s;"
+        aria-label="Basculer le plein écran">
+  <i class="bi bi-fullscreen"></i>
+</button>
+
+<!-- ── Overlay « Création du ticket… » : feedback instantané au submit ── -->
+<div class="nouba-loading-overlay" id="noubaLoadingOverlay" aria-hidden="true">
+    <div class="nouba-spinner" aria-hidden="true"></div>
+    <div>
+        <div class="nouba-loading-text">@loadingLabel</div>
+        <div class="nouba-loading-sub">@loadingSub</div>
+    </div>
+</div>
+
+<!-- ── Modale de confirmation pour tickets prioritaires ── -->
+<div class="nouba-modal-overlay" id="noubaConfirmOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="nouba-modal">
+        <div class="nouba-modal-icon" id="noubaConfirmIcon">⭐</div>
+        <div class="nouba-modal-title" id="noubaConfirmTitle">@confirmEnceinte</div>
+        <div class="nouba-modal-text"  id="noubaConfirmText">@confirmEnceinteSub</div>
+        <div class="nouba-modal-actions">
+            <button type="button" class="nouba-modal-btn cancel"  id="noubaConfirmCancel">@btnCancel</button>
+            <button type="button" class="nouba-modal-btn confirm" id="noubaConfirmOk">@btnConfirm</button>
+        </div>
+    </div>
+</div>
+@{
+    var noubaConfirmCfg = new {
+        enceinte = new { icon = "🤰", title = confirmEnceinte, text = confirmEnceinteSub, btnClass = "" },
+        handicap = new { icon = "♿", title = confirmHandicap, text = confirmHandicapSub, btnClass = "handicap" }
+    };
+}
+<script>
+  window.noubaConfirmCfg = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(noubaConfirmCfg));
+</script>
+
+<script src="/lib/signalr/signalr.min.js" onerror="this.onerror=null;console.warn('[Nouba] SignalR client indisponible — fallback auto-refresh actif.');"></script>
+</head>
+<body>
+<div class="borne-page theme-@settings.ThemePreset @(settings.EnableAnimations ? "premium-motion" : "")">
+  <div class="borne-inner">
+    <header class="topbar">
+      <div class="logo-wrap">
+        @if (!string.IsNullOrWhiteSpace(settings.HeaderImageUrl))
+        {
+          <img class="client-logo" src="@settings.HeaderImageUrl" alt="Logo"/>
+        }
+        else
+        {
+          <div class="client-logo placeholder">@settings.SiteName</div>
+        }
+      </div>
+      <div class="title-block">
+        <div class="borne-site-badge">@settings.SiteName</div>
+        <h1 class="borne-title">@titleText</h1>
+        <p class="borne-subtitle">@subtitleText</p>
+      </div>
+      <div class="clock-block" aria-live="polite">
+        <div class="clock-time" id="clockTime">--:--<span class="sec" id="clockSec">:--</span></div>
+        <div class="clock-date" id="clockDate">—</div>
+        @if (settings.BorneShowLanguageSwitcher)
+        {
+          var enabledLangsSet = (settings.BorneEnabledLanguages ?? "fr,ar,tz,en")
+              .Split(',').Select(l => l.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+          <div class="lang-switch" aria-label="Choix de langue">
+            @foreach (var l in new[] { ("fr","FR"), ("ar","AR"), ("tz","ⵣ"), ("en","EN") })
+            {
+              if (!enabledLangsSet.Contains(l.Item1)) { continue; }
+              <button type="button" class="@(currentLanguage==l.Item1?"active":"")" onclick="noubaSetLanguage('@l.Item1')" aria-label="@(l.Item1=="tz" ? "Tamazight" : l.Item2)">
+                @if (l.Item1 == "tz")
+                {
+                  <svg class="yaz" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 V20.8 M5.2 8 H18.8 M12 14.5 L7 20.8 M12 14.5 L17 20.8"/></svg>
+                }
+                else
+                {
+                  @l.Item2
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </header>
+
+    @if (showClosedAlert)
+    {
+      <div class="closure-alert">
+        <div class="icon">🔒</div>
+        <div>
+          <div class="title">@closedTitle</div>
+          <div class="msg">@closureMessage</div>
+        </div>
+      </div>
+    }
+    else if (settings.EnablePriorityTickets && firstService != null)
+    {
+      <section class="priority-panel">
+        <div>
+          <div class="priority-title">@priorityTitle</div>
+          <div class="priority-note">@priorityNote</div>
+        </div>
+        <select id="priorityServiceSelect" class="priority-select" onchange="document.querySelectorAll('.priority-service-id').forEach(x=>x.value=this.value); this.classList.remove('is-invalid'); var e=document.getElementById('priorityError'); if(e) e.hidden=true;" aria-label="Service">
+          <option value="" disabled selected>@chooseServiceLabel</option>
+          @foreach (var ps in services)
+          {
+            <option value="@ps.Id">@ServiceLabelFromModel(ps, currentLanguage)</option>
+          }
+        </select>
+        <div id="priorityError" class="priority-error" hidden>@chooseServiceError</div>
+        <div class="priority-options">
+          <form asp-action="CreateTicket" method="post" class="priority-form" data-priority-reason="enceinte">
+            @Html.AntiForgeryToken()
+            <input type="hidden" class="priority-service-id" name="serviceId" value=""/>
+            <input type="hidden" name="lang" value="@currentLanguage"/>
+            <input type="hidden" name="priorityTicket" value="true"/>
+            <input type="hidden" name="priorityReason" value="Femme enceinte"/>
+            <button class="priority-btn" type="submit">
+              🤰 @(currentLanguage switch { "ar" => "امرأة حامل", "en" => "Pregnant", _ => "Enceinte" })
+            </button>
+          </form>
+          <form asp-action="CreateTicket" method="post" class="priority-form" data-priority-reason="handicap">
+            @Html.AntiForgeryToken()
+            <input type="hidden" class="priority-service-id" name="serviceId" value=""/>
+            <input type="hidden" name="lang" value="@currentLanguage"/>
+            <input type="hidden" name="priorityTicket" value="true"/>
+            <input type="hidden" name="priorityReason" value="Handicap"/>
+            <button class="priority-btn handicap" type="submit">
+              ♿ @(currentLanguage switch { "ar" => "ذوي الإعاقة", "en" => "Disability", _ => "Handicap" })
+            </button>
+          </form>
+        </div>
+      </section>
+    }
+
+    <main class="services-grid">
+      @foreach (var service in services)
+      {
+        <form class="service-form" asp-action="CreateTicket" method="post">
+          @Html.AntiForgeryToken()
+          <input type="hidden" name="serviceId" value="@service.Id"/>
+          <input type="hidden" name="lang" value="@currentLanguage"/>
+          @{
+              var waitC = waitingByService.TryGetValue(service.Id, out var wc) ? wc : 0;
+              var estC = estimateByService.TryGetValue(service.Id, out var ec) ? ec : 0;
+              var swState = waitC == 0 ? "is-free" : (waitC >= 6 ? "is-busy" : "");
+              var swWord = waitC == 0 ? freeWord : waitWord;
+          }
+          <button type="submit"
+                  class="service-tile @(settings.TicketsClosed ? "disabled-ticket" : "")"
+                  style="background:@service.ButtonColor;color:@service.TextColor"
+                  @(settings.TicketsClosed ? "disabled" : null)>
+            <span class="service-waiting @swState" data-service-id="@service.Id" data-free="@freeWord" data-wait="@waitWord" aria-hidden="true">
+              <span class="sw-dot"></span>
+              <span class="sw-num">@waitC</span>
+              <span class="sw-label">@swWord</span>
+            </span>
+            @if (!string.IsNullOrWhiteSpace(service.LogoUrl))
+            {
+              <img src="@service.LogoUrl" alt="" class="service-logo"/>
+            }
+            else if (!string.IsNullOrWhiteSpace(service.Emoji))
+            {
+              <span class="service-emoji" aria-hidden="true">@service.Emoji</span>
+            }
+            <span class="service-name">@ServiceLabelFromModel(service, currentLanguage)</span>
+            <span class="service-eta" data-eta-id="@service.Id" data-min="@etaMinWord" hidden="@(waitC > 0 ? null : "hidden")">
+              <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+              <span class="eta-text">≈ <span class="eta-num">@estC</span> @etaMinWord</span>
+            </span>
+          </button>
+        </form>
+      }
+    </main>
+  </div>
+</div>
+
+
+<script>
+// Horloge premium : mise à jour fluide chaque seconde, formatage localisé.
+(function(){
+  const locale = '@jsLocale';
+  const elTime = document.getElementById('clockTime');
+  const elSec  = document.getElementById('clockSec');
+  const elDate = document.getElementById('clockDate');
+  const dateFmt = new Intl.DateTimeFormat(locale, {
+    weekday:'long', year:'numeric', month:'long', day:'numeric'
+  });
+  function pad(n){return String(n).padStart(2,'0');}
+  function tick(){
+    const d = new Date();
+    const h = pad(d.getHours()), m = pad(d.getMinutes()), s = pad(d.getSeconds());
+    // On ne met à jour le HTML de la partie HH:MM que quand elle change,
+    // pour éviter de re-render le gradient de texte chaque seconde (effet de scintillement).
+    const hm = h + ':' + m;
+    if (elTime.dataset.hm !== hm) {
+      elTime.firstChild.nodeValue = hm;
+      elTime.dataset.hm = hm;
+    }
+    elSec.textContent = ':' + s;
+    elDate.textContent = dateFmt.format(d);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+
+// ════════════════════════════════════════════════════════════════════
+// ══   FEEDBACK INSTANTANÉ : overlay loading + modale prioritaire   ══
+// ════════════════════════════════════════════════════════════════════
+// Objectifs UX :
+//  1. Au submit d'un form ticket → afficher tout de suite l'overlay
+//     « Création du ticket… ». Même si le serveur prend 200-500 ms, le
+//     client a un retour visuel immédiat → la borne ne paraît plus
+//     « lente » entre le clic et l'écran de confirmation.
+//  2. Pour les tickets prioritaires (Enceinte / Handicap), remplacer le
+//     confirm() natif par une modale stylée intégrée à la borne.
+(function(){
+  var loadingOverlay = document.getElementById('noubaLoadingOverlay');
+  var confirmOverlay = document.getElementById('noubaConfirmOverlay');
+  var confirmIcon    = document.getElementById('noubaConfirmIcon');
+  var confirmTitle   = document.getElementById('noubaConfirmTitle');
+  var confirmText    = document.getElementById('noubaConfirmText');
+  var confirmCancel  = document.getElementById('noubaConfirmCancel');
+  var confirmOk      = document.getElementById('noubaConfirmOk');
+  var pendingForm    = null;
+
+  function showLoading(){ if (loadingOverlay) loadingOverlay.classList.add('show'); }
+  function hideLoading(){ if (loadingOverlay) loadingOverlay.classList.remove('show'); }
+  function showConfirm(form){
+    pendingForm = form;
+    var cfg = (window.noubaConfirmCfg || {})[form.dataset.priorityReason] || {};
+    if (confirmIcon)  confirmIcon.textContent  = cfg.icon || '⭐';
+    if (confirmTitle) confirmTitle.textContent = cfg.title || '';
+    if (confirmText)  confirmText.textContent  = cfg.text || '';
+    if (confirmOk) {
+      confirmOk.classList.remove('handicap');
+      if (cfg.btnClass) confirmOk.classList.add(cfg.btnClass);
+    }
+    if (confirmOverlay) confirmOverlay.classList.add('show');
+  }
+  function hideConfirm(){ if (confirmOverlay) confirmOverlay.classList.remove('show'); pendingForm = null; }
+
+  // Bouton Annuler de la modale priorité
+  if (confirmCancel) confirmCancel.addEventListener('click', hideConfirm);
+  // Clic en dehors de la boîte = annuler
+  if (confirmOverlay) confirmOverlay.addEventListener('click', function(e){
+    if (e.target === confirmOverlay) hideConfirm();
+  });
+  // Bouton Confirmer : on lance le submit du formulaire en attente,
+  // on cache la modale et on affiche l'overlay loading.
+  if (confirmOk) confirmOk.addEventListener('click', function(){
+    var f = pendingForm;
+    hideConfirm();
+    if (f) { showLoading(); f.submit(); }
+  });
+
+  // Intercepte les soumissions des forms priorité (enceinte / handicap)
+  // pour afficher la modale custom à la place du confirm() natif.
+  document.querySelectorAll('form.priority-form').forEach(function(f){
+    f.addEventListener('submit', function(e){
+      e.preventDefault();
+      // #8 : aucun service présélectionné — le client doit choisir explicitement.
+      var sid = f.querySelector('.priority-service-id');
+      if(!sid || !sid.value){
+        var sel = document.getElementById('priorityServiceSelect');
+        var err = document.getElementById('priorityError');
+        if(sel){ sel.classList.add('is-invalid'); sel.focus(); try{ sel.scrollIntoView({behavior:'smooth',block:'center'}); }catch(_){ } }
+        if(err){ err.hidden = false; }
+        return;
+      }
+      showConfirm(f);
+    });
+  });
+
+  // Intercepte les soumissions des forms de service standard pour
+  // afficher l'overlay loading dès le clic.
+  document.querySelectorAll('form.service-form').forEach(function(f){
+    f.addEventListener('submit', function(){
+      showLoading();
+    });
+  });
+
+  // Si l'utilisateur revient en arrière (back navigateur), masquer.
+  window.addEventListener('pageshow', function(){ hideLoading(); hideConfirm(); });
+})();
+
+
+// Changement de langue immédiat borne + refresh automatique après changement admin.
+function noubaSetLanguage(lang){
+  fetch('/Home/SetLanguage?lang=' + encodeURIComponent(lang) + '&json=true', { credentials:'same-origin', cache:'no-store' })
+    .then(function(){ window.location.href = '/Borne?lang=' + encodeURIComponent(lang); })
+    .catch(function(){ window.location.href = '/Borne?lang=' + encodeURIComponent(lang); });
+}
+(function(){
+  function applyAdminLanguage(lang){
+    if (!lang) { window.location.reload(); return; }
+    fetch('/Home/SetLanguage?lang=' + encodeURIComponent(lang) + '&json=true', { credentials:'same-origin', cache:'no-store' })
+      .then(function(){ window.location.href = '/Borne?lang=' + encodeURIComponent(lang); })
+      .catch(function(){ window.location.href = '/Borne?lang=' + encodeURIComponent(lang); });
+  }
+  function startBorneSignalR(){
+    if (typeof signalR === 'undefined') return;
+    try {
+      const conn = new signalR.HubConnectionBuilder().withUrl('/queueHub').withAutomaticReconnect([0,1000,3000,5000,10000]).build();
+      conn.on('SettingsChanged', applyAdminLanguage);
+      conn.on('RefreshQueue', function(lang){ if (lang) { applyAdminLanguage(lang); } else if (window.noubaRefreshCounts) { window.noubaRefreshCounts(); } });
+      // #10 — service créé/modifié/supprimé côté admin : la borne se recharge
+      // pour reconstruire la grille (nom, icône, ordre, activation), sans action manuelle.
+      conn.on('ServicesChanged', function(){ window.location.reload(); });
+      // Filet de sécurité (cf. Display/Agent) : sans ça, la borne perd le push
+      // temps réel après une coupure réseau un peu longue, jusqu'au prochain
+      // rechargement auto (60s) ou manuel. On retente toutes les 15s.
+      conn.onclose(function(){ setTimeout(startBorneSignalR, 15000); });
+      conn.start().catch(function(e){ console.debug('[Nouba] SignalR borne:', e); });
+    } catch(e) { console.debug('[Nouba] SignalR borne indisponible:', e); }
+  }
+  startBorneSignalR();
+})();
+
+// ════════════════════════════════════════════════════════════════════
+// ══   BADGES « EN ATTENTE » EN DIRECT + EFFET D'ONDE AU TOUCHER     ══
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  var FREE_THRESHOLD = 0;   // 0 en attente = libre (vert)
+  var BUSY_THRESHOLD = 6;   // 6+ en attente = chargé (ambre)
+
+  function applyCount(badge, n){
+    var numEl = badge.querySelector('.sw-num');
+    var lblEl = badge.querySelector('.sw-label');
+    var prev = parseInt(badge.dataset.count || '0', 10);
+    badge.dataset.count = String(n);
+    if (numEl) numEl.textContent = n;
+    if (lblEl) lblEl.textContent = (n === 0) ? (badge.dataset.free || '') : (badge.dataset.wait || '');
+    badge.classList.remove('is-free','is-busy');
+    if (n <= FREE_THRESHOLD) badge.classList.add('is-free');
+    else if (n >= BUSY_THRESHOLD) badge.classList.add('is-busy');
+    // Petite pulsation quand la valeur change réellement
+    if (prev !== n){
+      badge.classList.remove('bump');
+      void badge.offsetWidth;   // reflow pour rejouer l'animation
+      badge.classList.add('bump');
+    }
+  }
+
+  function applyEta(serviceId, minutes){
+    var eta = document.querySelector('.service-eta[data-eta-id="' + serviceId + '"]');
+    if (!eta) return;
+    var numEl = eta.querySelector('.eta-num');
+    var prev = parseInt(eta.dataset.lastmin || '-1', 10);
+    if (minutes > 0){
+      if (numEl) numEl.textContent = minutes;
+      eta.hidden = false;
+      if (prev !== minutes){
+        eta.classList.remove('bump');
+        void eta.offsetWidth;
+        eta.classList.add('bump');
+      }
+    } else {
+      eta.hidden = true;
+    }
+    eta.dataset.lastmin = String(minutes);
+  }
+
+  window.noubaRefreshCounts = function(){
+    fetch('/Borne/Counts', { credentials:'same-origin', cache:'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){
+        if (!data) return;
+        document.querySelectorAll('.service-waiting').forEach(function(badge){
+          var id = badge.dataset.serviceId;
+          var entry = data[id];
+          if (entry === undefined || entry === null) return;
+          // Nouveau format { w, e } ; rétro-compat avec l'ancien (nombre seul).
+          var w = (typeof entry === 'object') ? (entry.w || 0) : entry;
+          var e = (typeof entry === 'object') ? (entry.e || 0) : 0;
+          applyCount(badge, w);
+          applyEta(id, e);
+        });
+      })
+      .catch(function(){ /* hors-ligne ponctuel : on garde l'affichage courant */ });
+  };
+
+  // Rafraîchissement périodique (filet de sécurité si SignalR est coupé).
+  setInterval(function(){ if (!document.hidden) window.noubaRefreshCounts(); }, 5000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) window.noubaRefreshCounts(); });
+
+  // Effet d'onde au toucher/clic sur chaque tuile (feedback tactile premium).
+  document.querySelectorAll('.service-tile:not(.disabled-ticket)').forEach(function(tile){
+    tile.addEventListener('pointerdown', function(e){
+      var rect = tile.getBoundingClientRect();
+      var size = Math.max(rect.width, rect.height) * 1.1;
+      var ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = (e.clientX - rect.left) + 'px';
+      ripple.style.top  = (e.clientY - rect.top) + 'px';
+      tile.appendChild(ripple);
+      setTimeout(function(){ ripple.remove(); }, 650);
+    }, { passive:true });
+  });
+})();
+
+
+// Auto-refresh de la borne toutes les 60s pour récupérer d'éventuels changements
+// de paramètres (services, fermeture des bureaux) sans intervention.
+setTimeout(function(){ if (!document.hidden) window.location.reload(); }, 60000);
+
+// ── Bouton plein écran / kiosque (#7) ──────────────────────────────────────
+(function(){
+  var btn = document.getElementById('borneFsBtn');
+  if (!btn) return;
+  function updateIcon(){
+    btn.innerHTML = document.fullscreenElement
+      ? '<i class="bi bi-fullscreen-exit"></i>'
+      : '<i class="bi bi-fullscreen"></i>';
+    btn.title = document.fullscreenElement ? 'Quitter le plein écran' : 'Plein écran';
+  }
+  btn.addEventListener('click', function(){
+    if (!document.fullscreenElement) {
+      (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen || function(){}).call(document.documentElement);
+    } else {
+      (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+    }
+  });
+  document.addEventListener('fullscreenchange', updateIcon);
+  document.addEventListener('webkitfullscreenchange', updateIcon);
+  updateIcon();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+# Build output
+**/bin/
+**/obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg
+
+# Logs & runtime data
+*.log
+nouba-data/
+nouba-backups/
+**/wwwroot/uploads/
+
+# Secrets / local config
+appsettings.local.json
+appsettings.Development.json
+
+# Archives
+*.zip
+*.tar.gz
+
+# Modèles IA Piper (fichiers binaires lourds, 60-200 MB chacun)
+*.onnx
+# Binaire Piper TTS
+**/tts/piper/piper.exe
+**/tts/piper/piper

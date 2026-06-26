@@ -1,0 +1,30 @@
+@{
+    Layout = null;
+    var settings = ViewBag.Settings as Nouba.Models.UiSettings;
+    var siteName = settings?.SiteName ?? "Nouba";
+    var err = ViewBag.Error as string ?? "Suivi indisponible.";
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Suivi indisponible — @siteName</title>
+<link rel="icon" type="image/png" href="~/images/favicon.png"/>
+<style>
+html,body{margin:0;padding:0;min-height:100dvh;background:#020617;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;display:flex;align-items:center;justify-content:center;padding:30px 16px}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:24px;padding:32px 24px;max-width:420px;text-align:center}
+h1{margin:0 0 12px 0;font-size:1.4rem;color:#fff}
+p{color:#94a3b8;line-height:1.5}
+.icon{font-size:60px;margin-bottom:8px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">😶‍🌫️</div>
+    <h1>Ticket introuvable</h1>
+    <p>@err</p>
+    <p style="margin-top:18px;font-size:.82rem;color:#475569">@siteName</p>
+  </div>
+</body>
+</html>

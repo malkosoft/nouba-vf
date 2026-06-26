@@ -1,0 +1,212 @@
+@model Nouba.Models.Ticket
+@{
+    Layout = null;
+    var settings = ViewBag.Settings as Nouba.Models.UiSettings;
+    var publicId = ViewBag.PublicId as string ?? "";
+    var siteName = settings?.SiteName ?? "Nouba";
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0f172a"/>
+<title>Suivi de votre ticket — @siteName</title>
+<link rel="icon" type="image/png" href="~/images/favicon.png"/>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;background:#020617;color:#e2e8f0;font-family:"Segoe UI","Noto Sans Arabic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-height:100dvh;padding:20px 16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:max(20px,env(safe-area-inset-top))}
+.brand{display:flex;align-items:center;gap:10px;color:#94a3b8;font-size:.85rem;margin-bottom:18px;letter-spacing:.04em}
+.brand strong{color:#fff;font-weight:700}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:24px;padding:28px 22px;width:100%;max-width:440px;box-shadow:0 30px 60px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);text-align:center}
+.status-badge{display:inline-flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;padding:8px 14px;border-radius:999px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:18px;transition:all .25s}
+.status-waiting{background:rgba(232,184,75,.15);color:#f3d486;border:1px solid rgba(232,184,75,.3)}
+.status-soon{background:rgba(245,158,11,.18);color:#fcd34d;border:1px solid rgba(245,158,11,.4);animation:pulseSoon 2s ease infinite}
+.status-called{background:rgba(34,197,94,.20);color:#86efac;border:1px solid rgba(34,197,94,.4);animation:pulseCalled 1s ease infinite}
+.status-completed{background:rgba(100,116,139,.18);color:#cbd5e1;border:1px solid rgba(100,116,139,.3)}
+.status-skipped{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+@@keyframes pulseSoon{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@@keyframes pulseCalled{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(34,197,94,.7)}50%{transform:scale(1.05);box-shadow:0 0 0 14px rgba(34,197,94,0)}}
+.ticket-number{font-size:clamp(64px,16vw,108px);font-weight:900;letter-spacing:-.02em;line-height:1;margin:14px 0 6px 0;background:linear-gradient(135deg,#fff 0%,#cbd5e1 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.priority-tag{display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#0f172a;padding:5px 12px;border-radius:6px;font-size:.72rem;font-weight:800;letter-spacing:.04em;margin-bottom:8px}
+.service-name{font-size:1.05rem;color:#94a3b8;font-weight:500;margin-bottom:24px}
+.service-name strong{color:#fff;font-weight:700}
+.position-block{background:rgba(15,23,42,.6);border:1px solid #1e293b;border-radius:18px;padding:18px;margin:20px 0}
+.position-num{font-size:clamp(48px,10vw,72px);font-weight:900;color:#fff;line-height:1}
+.position-label{font-size:.85rem;color:#94a3b8;margin-top:4px}
+.last-called{margin:18px 0 0 0;padding:14px;background:rgba(15,23,42,.6);border-radius:14px;border:1px solid #1e293b;font-size:.88rem}
+.last-called .lc-label{color:#64748b;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.last-called .lc-row{display:flex;justify-content:space-between;align-items:center}
+.last-called .lc-num{font-weight:800;color:#fff;font-size:1.05rem}
+.last-called .lc-cnt{color:#94a3b8;font-size:.85rem}
+.called-banner{margin:20px 0;padding:22px 18px;background:linear-gradient(135deg,rgba(34,197,94,.20),rgba(34,197,94,.10));border:2px solid rgba(34,197,94,.5);border-radius:18px;text-align:center}
+.called-banner-title{font-size:.78rem;color:#86efac;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.called-banner-counter{font-size:clamp(24px,5vw,34px);font-weight:900;color:#fff;line-height:1.1}
+.called-banner-time{font-size:.88rem;color:#a7f3d0;margin-top:6px}
+.tip{margin-top:24px;padding:14px;background:rgba(232,184,75,.08);border:1px solid rgba(232,184,75,.2);border-radius:12px;font-size:.82rem;color:#f3d486;line-height:1.5}
+.meta{margin-top:18px;font-size:.72rem;color:#475569;display:flex;justify-content:center;align-items:center;gap:14px}
+.meta .live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:livePulse 1.4s ease-in-out infinite}
+@@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+.error-msg{margin-top:20px;padding:14px;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.3);border-radius:12px;font-size:.85rem;color:#fca5a5;text-align:center}
+@@media (prefers-color-scheme: light){
+  /* On reste volontairement en sombre — meilleur contraste pour un écran mobile en plein soleil. */
+}
+</style>
+</head>
+<body>
+  <div class="brand">
+    <span>📋</span><strong>@siteName</strong>
+  </div>
+  <main class="card" id="card">
+    <div class="status-badge" id="statusBadge">
+      <span id="statusText">Chargement…</span>
+    </div>
+
+    @if (Model.IsPriority) {
+      <div class="priority-tag">⭐ PRIORITAIRE</div>
+    }
+
+    <div class="ticket-number" id="ticketNumber">@Model.Number</div>
+    <div class="service-name">Service&nbsp;: <strong id="serviceName">@(Model.ServiceType?.Name ?? "")</strong></div>
+
+    <div id="positionBlock" class="position-block" style="display:none">
+      <div class="position-num" id="positionNum">—</div>
+      <div class="position-label" id="positionLabel">personne(s) avant vous</div>
+    </div>
+
+    <div id="calledBanner" class="called-banner" style="display:none">
+      <div class="called-banner-title">✅ C'est à vous !</div>
+      <div class="called-banner-counter" id="calledCounter">—</div>
+      <div class="called-banner-time" id="calledTime"></div>
+    </div>
+
+    <div id="lastCalledBlock" class="last-called" style="display:none">
+      <div class="lc-label">Dernier ticket appelé</div>
+      <div class="lc-row">
+        <span class="lc-num" id="lastCalledNum">—</span>
+        <span class="lc-cnt" id="lastCalledCnt">—</span>
+      </div>
+    </div>
+
+    <div class="tip" id="tip">
+      Gardez cette page ouverte. Elle se met à jour automatiquement.
+    </div>
+
+    <div class="meta">
+      <span class="live-dot" id="liveDot"></span>
+      <span id="liveText">En direct</span>
+      <span>·</span>
+      <span>Ticket émis à <span id="createdAt">@Model.CreatedAt.ToString("HH:mm")</span></span>
+    </div>
+  </main>
+
+<script>
+(function(){
+  const PUBLIC_ID = '@publicId';
+  const stateUrl = '/suivi/' + encodeURIComponent(PUBLIC_ID) + '/state';
+  const $ = (id) => document.getElementById(id);
+  let lastTs = 0;
+  let pollMs = 5000;
+  let isLive = true;
+
+  function setStatus(status, peopleAhead) {
+    const badge = $('statusBadge');
+    const txt = $('statusText');
+    badge.classList.remove('status-waiting','status-soon','status-called','status-completed','status-skipped');
+    if (status === 'waiting')   { badge.classList.add('status-waiting');   txt.textContent = 'En attente'; }
+    else if (status === 'soon') { badge.classList.add('status-soon');      txt.textContent = '⚡ Bientôt à vous'; }
+    else if (status === 'called'){ badge.classList.add('status-called');   txt.textContent = '🔔 Appelé'; }
+    else if (status === 'completed'){ badge.classList.add('status-completed'); txt.textContent = '✓ Terminé'; }
+    else if (status === 'skipped'){ badge.classList.add('status-skipped'); txt.textContent = '⊘ Passé'; }
+    else                          { badge.classList.add('status-waiting'); txt.textContent = '…'; }
+  }
+
+  function render(d) {
+    if (!d) return;
+    setStatus(d.status, d.peopleAhead);
+    if (d.serviceName) $('serviceName').textContent = d.serviceName;
+    // Position
+    const positionBlock = $('positionBlock');
+    if (d.status === 'waiting' || d.status === 'soon') {
+      positionBlock.style.display = 'block';
+      $('positionNum').textContent = d.peopleAhead || 0;
+      $('positionLabel').textContent = (d.peopleAhead === 1) ? 'personne avant vous' : 'personnes avant vous';
+    } else {
+      positionBlock.style.display = 'none';
+    }
+    // Called banner
+    const calledBanner = $('calledBanner');
+    if (d.status === 'called') {
+      calledBanner.style.display = 'block';
+      $('calledCounter').textContent = d.counterName ? ('Présentez-vous au ' + d.counterName) : 'Présentez-vous au guichet';
+      $('calledTime').textContent = d.calledAt ? ('Appelé à ' + d.calledAt) : '';
+      // Vibration mobile (si supportée)
+      if (navigator.vibrate) { try { navigator.vibrate([200, 80, 200]); } catch(_){} }
+    } else {
+      calledBanner.style.display = 'none';
+    }
+    // Last called
+    const lc = $('lastCalledBlock');
+    if (d.lastCalledTicket) {
+      lc.style.display = 'block';
+      $('lastCalledNum').textContent = d.lastCalledTicket;
+      $('lastCalledCnt').textContent = (d.lastCalledCounter || '') + (d.lastCalledAt ? ' · ' + d.lastCalledAt : '');
+    } else {
+      lc.style.display = 'none';
+    }
+    // Tip selon statut
+    const tip = $('tip');
+    if (d.status === 'completed' || d.status === 'skipped') {
+      tip.textContent = 'Ce ticket est terminé. Merci de votre visite.';
+    } else if (d.status === 'called') {
+      tip.textContent = '🎯 C\'est votre tour. Présentez-vous au guichet indiqué.';
+    } else {
+      tip.textContent = 'Gardez cette page ouverte. Elle se met à jour automatiquement.';
+    }
+  }
+
+  async function poll() {
+    try {
+      const r = await fetch(stateUrl, { cache: 'no-store', credentials: 'same-origin' });
+      if (r.status === 404) {
+        $('liveText').textContent = 'Ticket introuvable';
+        return;
+      }
+      if (r.status === 503) {
+        $('liveText').textContent = 'Suivi désactivé';
+        return;
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      render(d);
+      isLive = true;
+      $('liveDot').style.background = '#22c55e';
+      $('liveText').textContent = 'En direct';
+      lastTs = d.ts || 0;
+    } catch(e) {
+      isLive = false;
+      $('liveDot').style.background = '#f59e0b';
+      $('liveText').textContent = 'Reconnexion…';
+    }
+  }
+
+  // Polling adaptatif : 5 s par défaut, 3 s si statut 'soon' ou 'called'.
+  function loop() {
+    poll().finally(() => {
+      const sb = $('statusBadge');
+      const fast = sb.classList.contains('status-soon') || sb.classList.contains('status-called');
+      pollMs = fast ? 3000 : 5000;
+      setTimeout(loop, pollMs);
+    });
+  }
+  loop();
+
+  // Si l'app passe en background, on espace les polls.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { poll(); }
+  });
+})();
+</script>
+</body>
+</html>

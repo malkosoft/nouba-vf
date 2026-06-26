@@ -1,0 +1,574 @@
+@model IEnumerable<Nouba.Models.Ticket>
+@using Nouba.Models
+@{
+    ViewData["Title"] = "Poste Agent";
+    var services = ViewBag.Services as List<ServiceType> ?? new();
+    int selectedServiceId = ViewBag.SelectedServiceId is int id ? id : 0;
+    var currentCall = ViewBag.CurrentCall as CallHistory;
+    var orderedTickets = Model.ToList();
+    var calledTickets = ViewBag.CalledTickets as List<Ticket> ?? new();
+    var currentLanguage = ViewBag.CurrentLanguage as string ?? "fr";
+    var settings = ViewBag.Settings as UiSettings ?? new UiSettings();
+    int totalToday = ViewBag.TotalToday is int tt ? tt : 0;
+    int servedToday = ViewBag.ServedToday is int st ? st : 0;
+    int absentToday = ViewBag.AbsentToday is int at ? at : 0;
+    int waitingCount = ViewBag.WaitingCount is int wc ? wc : 0;
+    double avgWait = ViewBag.AvgWaitMinutes is double aw ? aw : 0;
+    var agentName = ViewBag.AgentName as string ?? "Agent";
+    var agentCounter = ViewBag.AgentCounterName as string ?? "Guichet";
+    var agentService = ViewBag.AgentServiceName as string ?? "";
+    var selectedService = services.FirstOrDefault(s => s.Id == selectedServiceId);
+    var msgType = TempData["MessageType"] as string ?? "info";
+    string tAvgWait = currentLanguage switch { "ar"=>"متوسط الانتظار","tz"=>"Aseklu n uṛaǧu","en"=>"Avg. wait",_ => "Délai moy." };
+
+    // ── Traductions UI selon la langue courante ───────────────────
+    bool isRtl = currentLanguage == "ar";
+    string tCallNext    = currentLanguage switch { "ar" => "استدعاء التالي",    "tz" => "Asen wayeḍ",        "en" => "Call next",        _ => "Appeler le suivant" };
+    string tRecall      = currentLanguage switch { "ar" => "إعادة النداء",      "tz" => "Ales asiwel",       "en" => "Recall",           _ => "Rappeler" };
+    string tFinish      = currentLanguage switch { "ar" => "إنهاء",             "tz" => "Taggara",           "en" => "Finish",           _ => "Terminer" };
+    string tAbsent      = currentLanguage switch { "ar" => "غائب",              "tz" => "Ulac",              "en" => "Absent",           _ => "Absent" };
+    string tTransfer    = currentLanguage switch { "ar" => "تحويل",             "tz" => "Azen",              "en" => "Transfer",         _ => "Transférer" };
+    string tWaiting     = currentLanguage switch { "ar" => "في الانتظار",       "tz" => "Yettraǧun",         "en" => "Waiting",          _ => "En attente" };
+    string tServed      = currentLanguage switch { "ar" => "معالَجون اليوم",    "tz" => "Yettwaxdamen ass-a","en" => "Served today",     _ => "Traités auj." };
+    string tAbsentStat  = currentLanguage switch { "ar" => "غائبون اليوم",      "tz" => "Ulac ass-a",        "en" => "Absent today",     _ => "Absents auj." };
+    string tNoTicket    = currentLanguage switch { "ar" => "لا توجد تذاكر في الانتظار لهذه الخدمة.", "tz" => "Ulac tikacin yettraǧun i umeẓluḍ-a.", "en" => "No tickets waiting for this service.", _ => "Aucun ticket en attente pour ce service." };
+    string tTransferTitle = currentLanguage switch { "ar" => "تحويل التذكرة",   "tz" => "Azen tikect",       "en" => "Transfer ticket",  _ => "Transférer le ticket" };
+    string tCancel      = currentLanguage switch { "ar" => "إلغاء",             "tz" => "Sefsex",            "en" => "Cancel",           _ => "Annuler" };
+    string tLogout      = currentLanguage switch { "ar" => "خروج",              "tz" => "Ffeɣ",              "en" => "Logout",           _ => "Déconnexion" };
+    string tCalledTickets = currentLanguage switch { "ar"=>"التذاكر المُنادى بها","tz"=>"Tikacin yettwasiwlen","en"=>"Called tickets",    _ => "Tickets appelés" };
+    string tPriority    = currentLanguage switch { "ar" => "أولوية",            "tz" => "Amezwaru",          "en" => "Priority",         _ => "Prioritaire" };
+    string tCloseFirst  = currentLanguage switch { "ar" => "أنهِ التذكرة الحالية، أو سجّلها كغائب أو حوّلها قبل استدعاء التالي.", "tz" => "Fak neɣ azen tikect-a send ad d-tsiwleḍ wayeḍ.", "en" => "Finish, mark absent or transfer the current ticket before calling the next one.", _ => "Terminez, marquez absent ou transférez le ticket en cours avant d'appeler le suivant." };
+}
+
+<style>
+/* ───────────────────────────────────────────────────────────────────
+   AGENT — thème sombre OR / BLEU NUIT, cohérent avec Borne / Display /
+   Admin. Mêmes noms de classes qu'avant : aucune modification du HTML.
+   Couleurs issues du design system (--np-*) avec repli si absent.
+   ─────────────────────────────────────────────────────────────────── */
+.agent-shell { max-width: 1400px; margin: 0 auto; padding: 0 8px 32px; font-family: var(--np-font-body, "Segoe UI", system-ui, sans-serif); }
+.agent-topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 24px; padding: 18px 24px; background: linear-gradient(135deg, var(--np-bg-2,#111d36), var(--np-bg-3,#18274a)); border: 1px solid var(--np-line,rgba(255,255,255,.09)); border-radius: 22px; color: var(--np-ink,#f6f8fc); box-shadow: var(--np-shadow-md,0 14px 40px rgba(2,6,18,.5)); position:relative; overflow:hidden; }
+.agent-topbar::before{ content:""; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--np-gold,#e8b84b),transparent); opacity:.7; }
+.agent-identity { display: flex; align-items: center; gap: 14px; }
+.agent-avatar { width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg,var(--np-gold-soft,#f3d486),var(--np-gold-deep,#b8862b)); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: #1a1206; border: 1px solid rgba(255,255,255,.25); box-shadow:var(--np-shadow-gold,0 10px 36px rgba(232,184,75,.28)); }
+.agent-name { font-size: 1.1rem; font-weight: 800; font-family:var(--np-font-display,"Segoe UI",sans-serif); }
+.agent-sub { font-size: .85rem; color:var(--np-ink-soft,#aab6ce); }
+.topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lang-pill { display: flex; gap: 4px; background: rgba(255,255,255,.07); border:1px solid var(--np-line,rgba(255,255,255,.09)); border-radius: 12px; padding: 4px; }
+.lang-pill a { padding: 6px 12px; border-radius: 9px; font-size: .82rem; font-weight: 700; color: var(--np-ink-soft,#aab6ce); text-decoration: none; transition: .15s; }
+.lang-pill a.active { background: rgba(232,184,75,.18); color: var(--np-gold-soft,#f3d486); }
+.service-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+.service-tab { padding: 10px 20px; border-radius: 999px; font-weight: 700; font-size: .9rem; border: 1px solid var(--np-line-strong,rgba(255,255,255,.16)); background: var(--np-bg-2,#111d36); color: var(--np-ink-soft,#aab6ce); cursor: pointer; text-decoration: none; transition: .18s; display: flex; align-items: center; gap: 8px; }
+.service-tab:hover { color: var(--np-ink,#f6f8fc); border-color: var(--np-gold-deep,#b8862b); }
+.service-tab.active { color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.service-tab .badge-count { background: rgba(255,255,255,.25); border-radius: 999px; padding: 1px 8px; font-size: .78rem; }
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.kpi-card { background: linear-gradient(160deg,var(--np-bg-2,#111d36),var(--np-bg-1,#0b1426)); border-radius: 18px; padding: 18px 16px; box-shadow: var(--np-shadow-sm,0 4px 14px rgba(2,6,18,.4)); border: 1px solid var(--np-line,rgba(255,255,255,.09)); text-align: center; }
+.kpi-val { font-size: 2rem; font-weight: 900; line-height: 1; color: var(--np-ink,#f6f8fc); font-family:var(--np-font-display,"Segoe UI",sans-serif); }
+.kpi-lbl { font-size: .78rem; font-weight: 600; color: var(--np-ink-faint,#6f7e9c); margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.kpi-card.waiting .kpi-val { color: var(--np-info,#60a5fa); }
+.kpi-card.served .kpi-val { color: var(--np-ok,#34d399); }
+.kpi-card.absent .kpi-val { color: var(--np-ink-faint,#6f7e9c); }
+.kpi-card.avg .kpi-val { color: var(--np-gold,#e8b84b); font-size: 1.6rem; }
+.agent-grid { display: grid; grid-template-columns: 360px 1fr; gap: 18px; }
+@@media (max-width: 900px) { .agent-grid { grid-template-columns: 1fr; } }
+.panel { background: linear-gradient(160deg,var(--np-bg-2,#111d36),var(--np-bg-1,#0b1426)); border-radius: 22px; box-shadow: var(--np-shadow-md,0 14px 40px rgba(2,6,18,.5)); border: 1px solid var(--np-line,rgba(255,255,255,.09)); overflow: hidden; }
+.panel-header { padding: 16px 20px; border-bottom: 1px solid var(--np-line,rgba(255,255,255,.09)); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,.03); }
+.panel-title { font-size: 1rem; font-weight: 800; color: var(--np-ink,#f6f8fc); }
+.panel-body { padding: 20px; }
+.current-ticket-display { text-align: center; padding: 24px 16px; }
+.ticket-number-large { font-size: clamp(52px, 8vw, 80px); font-weight: 900; line-height: 1; color: var(--np-gold-soft,#f3d486); letter-spacing: .02em; padding: 20px 30px; background: linear-gradient(135deg, rgba(232,184,75,.12), rgba(232,184,75,.04)); border-radius: 22px; display: inline-block; min-width: 180px; border: 2px solid rgba(232,184,75,.4); box-shadow: 0 8px 24px rgba(232,184,75,.18); font-family:var(--np-font-display,"Segoe UI",sans-serif); }
+.ticket-meta { display: flex; gap: 12px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.meta-pill { padding: 7px 16px; border-radius: 999px; font-size: .85rem; font-weight: 700; border:1px solid var(--np-line,rgba(255,255,255,.09)); }
+.meta-pill.counter { background: rgba(52,211,153,.14); color: var(--np-ok,#34d399); border-color:rgba(52,211,153,.35); }
+.meta-pill.service { background: rgba(96,165,250,.14); color: var(--np-info,#60a5fa); border-color:rgba(96,165,250,.35); }
+.meta-pill.time { background: rgba(232,184,75,.14); color: var(--np-gold-soft,#f3d486); border-color:rgba(232,184,75,.35); }
+.call-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.btn-call { width: 100%; padding: 14px; border-radius: 16px; font-size: 1.05rem; font-weight: 800; border: 1px solid var(--np-line-strong,rgba(255,255,255,.16)); cursor: pointer; transition: .18s; display: flex; align-items: center; justify-content: center; gap: 8px; font-family:var(--np-font-display,"Segoe UI",sans-serif); }
+.btn-call:hover { transform: translateY(-2px); filter:brightness(1.06); }
+.btn-call:active { transform: translateY(0) scale(.98); }
+.btn-call.primary { background: linear-gradient(135deg, var(--np-gold-soft,#f3d486), var(--np-gold,#e8b84b) 45%, var(--np-gold-deep,#b8862b)); color: #1a1206; border-color:rgba(255,255,255,.25); box-shadow: var(--np-shadow-gold,0 10px 36px rgba(232,184,75,.28)); }
+.btn-call.recall { background: rgba(232,184,75,.12); color: var(--np-gold-soft,#f3d486); }
+.btn-call.finish { background: rgba(52,211,153,.14); color: var(--np-ok,#34d399); }
+.btn-call.absent { background: rgba(255,255,255,.05); color: var(--np-ink-soft,#aab6ce); }
+.btn-call:disabled, .btn-call[disabled] { opacity:.4; cursor:not-allowed; filter:grayscale(.3); transform:none; }
+.btn-call:disabled:hover, .btn-call[disabled]:hover { transform:none; filter:grayscale(.3); }
+.call-hint { font-size:.78rem; line-height:1.4; color:var(--np-gold-soft,#f3d486); background:rgba(232,184,75,.10); border:1px solid rgba(232,184,75,.28); border-radius:12px; padding:9px 12px; margin-top:2px; text-align:center; }
+.empty-queue { text-align: center; padding: 40px 20px; color: var(--np-ink-faint,#6f7e9c); }
+.empty-queue svg { opacity: .35; margin-bottom: 12px; }
+.queue-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid var(--np-line,rgba(255,255,255,.09)); margin-bottom: 8px; transition: .18s; }
+.queue-item:hover { background: rgba(255,255,255,.06); border-color: var(--np-line-strong,rgba(255,255,255,.16)); }
+.queue-item.next-up { background: linear-gradient(90deg, rgba(232,184,75,.14), rgba(232,184,75,.05)); border-color: rgba(232,184,75,.45); }
+.queue-item.next-up .queue-pos { background: var(--np-gold,#e8b84b); color: #1a1206; }
+.queue-pos { width: 32px; height: 32px; border-radius: 10px; background: rgba(255,255,255,.08); color: var(--np-ink-soft,#aab6ce); font-weight: 800; font-size: .9rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.queue-num { font-size: 1.2rem; font-weight: 900; color: var(--np-ink,#f6f8fc); }
+.queue-time { font-size: .8rem; color: var(--np-ink-faint,#6f7e9c); margin-left: auto; }
+.queue-actions { display: flex; gap: 6px; }
+.btn-sm-action { padding: 5px 12px; border-radius: 10px; font-size: .78rem; font-weight: 700; border: 1.5px solid; cursor: pointer; background: transparent; transition: .15s; }
+.btn-sm-action:hover { opacity: .8; }
+.called-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--np-line,rgba(255,255,255,.09)); }
+.called-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(232,184,75,.08); border: 1px solid rgba(232,184,75,.25); margin-bottom: 6px; }
+.called-num { font-size: 1rem; font-weight: 800; color: var(--np-gold-soft,#f3d486); }
+.called-counter { font-size: .82rem; color: var(--np-ink-soft,#aab6ce); }
+.transfer-modal { display: none; position: fixed; inset: 0; background: rgba(2,6,18,.7); backdrop-filter:blur(6px); z-index: 9999; align-items: center; justify-content: center; }
+.transfer-modal.open { display: flex; }
+.transfer-box { background: linear-gradient(160deg,var(--np-bg-2,#111d36),var(--np-bg-1,#0b1426)); border:1px solid var(--np-line-strong,rgba(255,255,255,.16)); border-radius: 22px; padding: 28px; max-width: 380px; width: 90%; box-shadow: var(--np-shadow-lg,0 30px 80px rgba(2,6,18,.6)); color:var(--np-ink,#f6f8fc); }
+.transfer-box h3 { font-size: 1.1rem; font-weight: 800; margin: 0 0 16px 0; }
+.notif-bar { padding: 12px 18px; border-radius: 14px; font-weight: 700; font-size: .9rem; margin-bottom: 18px; animation: slideIn .3s ease; border:1px solid; }
+@@keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+.notif-success { background: rgba(52,211,153,.14); color: var(--np-ok,#34d399); border-color: rgba(52,211,153,.35); }
+.notif-warning { background: rgba(232,184,75,.14); color: var(--np-gold-soft,#f3d486); border-color: rgba(232,184,75,.35); }
+.notif-info { background: rgba(96,165,250,.14); color: var(--np-info,#60a5fa); border-color: rgba(96,165,250,.35); }
+.notif-secondary { background: rgba(255,255,255,.05); color: var(--np-ink-soft,#aab6ce); border-color: var(--np-line,rgba(255,255,255,.09)); }
+/* ── Ergonomie agent : tient en plein écran, sans ascenseur (v2.7.58) ──
+   Sur poste agent (écran large), tout doit être visible d'un coup d'œil :
+   en-tête + stats compacts en haut, et la file qui occupe le reste avec un
+   défilement INTERNE uniquement (jamais la page entière). Les boutons d'appel
+   restent toujours visibles. Sur petit écran, on revient au défilement normal. */
+@@media (min-width: 901px) {
+  html, body { height: 100%; margin: 0; padding: 0; }
+  body { overflow: hidden; }
+  .agent-shell {
+    height: 100vh; height: 100dvh;
+    display: flex; flex-direction: column;
+    padding-bottom: 12px; overflow: hidden;
+    box-sizing: border-box;
+  }
+  .agent-topbar { margin-bottom: 12px; padding: 12px 22px; flex-shrink: 0; }
+  .notif-bar { flex-shrink: 0; margin-bottom: 12px; }
+  .service-tabs { margin-bottom: 12px; flex-shrink: 0; }
+  .kpi-row { margin-bottom: 12px; gap: 10px; flex-shrink: 0; }
+  .kpi-card { padding: 11px 14px; }
+  .kpi-val { font-size: 1.55rem; }
+  .kpi-card.avg .kpi-val { font-size: 1.3rem; }
+  .agent-grid { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+  .agent-grid > .panel { display: flex; flex-direction: column; min-height: 0; }
+  .agent-grid > .panel > .panel-header { flex-shrink: 0; }
+  .agent-grid > .panel > .panel-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; max-height: none !important; }
+}
+</style>
+
+<div class="agent-shell">
+  <!-- Top Bar -->
+  <div class="agent-topbar">
+    <div class="agent-identity">
+      <div class="agent-avatar">@(agentName.Length > 0 ? agentName[0].ToString().ToUpper() : "A")</div>
+      <div>
+        <div class="agent-name">@agentName</div>
+        <div class="agent-sub">@agentCounter @(string.IsNullOrEmpty(agentService) ? "" : "— " + agentService)</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="lang-pill">
+        @foreach (var l in new[] { ("fr","FR"),("ar","AR"),("tz","TZ"),("en","EN") })
+        {
+          <a class="@(currentLanguage==l.Item1?"active":"")" href="@Url.Action("SetLanguage","Home",new{lang=l.Item1, returnUrl=Context.Request.Path+Context.Request.QueryString})" onclick="event.preventDefault(); noubaSetLanguage('@l.Item1');">@l.Item2</a>
+        }
+      </div>
+      <div id="agent-clock" style="font-family:monospace;font-size:.85rem;color:rgba(255,255,255,.7);min-width:80px;text-align:center"></div>
+      <form asp-action="Logout" method="post" style="margin:0">
+        @Html.AntiForgeryToken()
+        <button type="submit" style="padding:8px 18px;border-radius:12px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-weight:700;font-size:.85rem;cursor:pointer">@tLogout</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  @if (TempData["Message"] != null)
+  {
+    <div class="notif-bar notif-@msgType">@TempData["Message"]</div>
+  }
+
+  <!-- Service Tabs -->
+  <div class="service-tabs">
+    @foreach (var service in services)
+    {
+      var count = service.Id == selectedServiceId ? waitingCount : 0;
+      <a class="service-tab @(service.Id==selectedServiceId?"active":"")"
+         style="@(service.Id==selectedServiceId ? $"background:{service.ButtonColor};border-color:{service.ButtonColor};" : "")"
+         href="@Url.Action("Index", new { serviceId=service.Id })">
+        @if (!string.IsNullOrWhiteSpace(service.LogoUrl))
+        { <img src="@service.LogoUrl" style="width:22px;height:22px;object-fit:contain" /> }
+        @service.Name
+        @if (service.Id == selectedServiceId && waitingCount > 0)
+        { <span class="badge-count">@waitingCount</span> }
+      </a>
+    }
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card waiting">
+      <div class="kpi-val" id="liveWaiting">@waitingCount</div>
+      <div class="kpi-lbl">@tWaiting</div>
+    </div>
+    <div class="kpi-card served">
+      <div class="kpi-val">@servedToday</div>
+      <div class="kpi-lbl">@tServed</div>
+    </div>
+    <div class="kpi-card absent">
+      <div class="kpi-val">@absentToday</div>
+      <div class="kpi-lbl">@tAbsentStat</div>
+    </div>
+    <div class="kpi-card avg">
+      <div class="kpi-val">@avgWait <span style="font-size:1rem;font-weight:600">min</span></div>
+      <div class="kpi-lbl">Attente moy.</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val">@totalToday</div>
+      <div class="kpi-lbl">Total auj.</div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="agent-grid">
+    <!-- Left: Current + Actions -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Appel en cours</span>
+        @if (selectedService != null)
+        { <span style="font-size:.8rem;font-weight:600;color:#64748b">@selectedService.Name</span> }
+      </div>
+      <div class="panel-body">
+        <div class="current-ticket-display">
+          @if (currentCall is not null)
+          {
+            <div class="ticket-number-large">@currentCall.TicketNumber</div>
+            <div class="ticket-meta">
+              <span class="meta-pill counter">@currentCall.CounterName</span>
+              @if (!string.IsNullOrEmpty(currentCall.ServiceName))
+              { <span class="meta-pill service">@currentCall.ServiceName</span> }
+              <span class="meta-pill time">@currentCall.CalledAt.ToString("HH:mm")</span>
+            </div>
+          }
+          else
+          {
+            <div style="padding:20px 0;color:#94a3b8">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="display:block;margin:0 auto 12px"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+              Aucun appel en cours
+            </div>
+          }
+        </div>
+
+        <div class="call-actions">
+          @if (currentCall is not null)
+          {
+            <button type="button" class="btn-call primary" disabled title="@tCallNext">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+              @tCallNext
+            </button>
+            <div class="call-hint">@tCloseFirst</div>
+          }
+          else
+          {
+            <form asp-action="CallNext" method="post">
+              @Html.AntiForgeryToken()
+              <input type="hidden" name="serviceId" value="@selectedServiceId" />
+              <button type="submit" class="btn-call primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+                @tCallNext
+              </button>
+            </form>
+          }
+
+          @if (currentCall is not null)
+          {
+            var calledTicket = calledTickets.FirstOrDefault();
+            @if (calledTicket != null)
+            {
+              <form asp-action="Recall" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ticketId" value="@calledTicket.Id" />
+                <input type="hidden" name="serviceId" value="@selectedServiceId" />
+                <button type="submit" class="btn-call recall">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c4.4 0 8.2-2.8 9.5-6.8"/><path d="M22 12l-2 2-2-2"/><path d="M14 8v5l3 3"/></svg>
+                  @tRecall
+                </button>
+              </form>
+              <form asp-action="Finish" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ticketId" value="@calledTicket.Id" />
+                <input type="hidden" name="serviceId" value="@selectedServiceId" />
+                <button type="submit" class="btn-call finish">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  @tFinish
+                </button>
+              </form>
+              <form asp-action="MarkAbsent" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ticketId" value="@calledTicket.Id" />
+                <input type="hidden" name="serviceId" value="@selectedServiceId" />
+                <button type="submit" class="btn-call absent">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  @tAbsent
+                </button>
+              </form>
+            }
+          }
+        </div>
+
+        @if (calledTickets.Any())
+        {
+          <div class="called-section">
+            <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">En cours de traitement</div>
+            @foreach (var ct in calledTickets)
+            {
+              <div class="called-item">
+                <div class="called-num">@ct.Number</div>
+                <div class="called-counter">@(ct.Counter?.Name ?? "—")</div>
+                <div style="margin-left:auto;font-size:.78rem;color:#94a3b8">@(ct.CalledAt?.ToString("HH:mm") ?? "")</div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right: Queue List -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">File d'attente</span>
+        <span style="background:rgba(96,165,250,.16);color:var(--np-info,#60a5fa);border:1px solid rgba(96,165,250,.35);padding:5px 14px;border-radius:999px;font-size:.82rem;font-weight:800">@orderedTickets.Count ticket(s)</span>
+      </div>
+      <div class="panel-body" style="max-height:580px;overflow-y:auto">
+        @if (!orderedTickets.Any())
+        {
+          <div class="empty-queue">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.3"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+            <div style="font-size:1rem;font-weight:600">File vide</div>
+            <div style="font-size:.88rem">@tNoTicket</div>
+          </div>
+        }
+        else
+        {
+          @for (var i = 0; i < orderedTickets.Count; i++)
+          {
+            var item = orderedTickets[i];
+            <div class="queue-item @(i == 0 ? "next-up" : "")">
+              <div class="queue-pos">@(i + 1)</div>
+              <div class="queue-num">@item.Number</div>
+              <div class="queue-time">@item.CreatedAt.ToString("HH:mm")</div>
+              <div class="queue-actions">
+                <form asp-action="Finish" method="post" style="margin:0">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="ticketId" value="@item.Id" />
+                  <input type="hidden" name="serviceId" value="@selectedServiceId" />
+                  <button class="btn-sm-action" style="border-color:#16a34a;color:#16a34a" type="submit" title="@tFinish">✓</button>
+                </form>
+                <form asp-action="MarkAbsent" method="post" style="margin:0">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="ticketId" value="@item.Id" />
+                  <input type="hidden" name="serviceId" value="@selectedServiceId" />
+                  <button class="btn-sm-action" style="border-color:#94a3b8;color:#94a3b8" type="submit" title="@tAbsent">✗</button>
+                </form>
+                @if (services.Count > 1)
+                {
+                  <button class="btn-sm-action" style="border-color:#0284c7;color:#0284c7" type="button"
+                    onclick="openTransfer(@item.Id)" title="@tTransfer">↗</button>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="transfer-modal" id="transferModal">
+  <div class="transfer-box">
+    <h3>@tTransferTitle</h3>
+    <form asp-action="Transfer" method="post" id="transferForm">
+      @Html.AntiForgeryToken()
+      <input type="hidden" name="ticketId" id="transferTicketId" />
+      <input type="hidden" name="sourceServiceId" value="@selectedServiceId" />
+      <div style="margin-bottom:16px">
+        <label style="font-weight:600;display:block;margin-bottom:6px">Service cible</label>
+        <select name="targetServiceId" class="form-select" style="border-radius:12px;padding:10px">
+          @foreach (var s in services.Where(s => s.Id != selectedServiceId))
+          { <option value="@s.Id">@s.Name</option> }
+        </select>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button type="submit" style="flex:1;padding:12px;border-radius:12px;background:#0f766e;color:#fff;border:none;font-weight:700;cursor:pointer">@tTransfer</button>
+        <button type="button" onclick="closeTransfer()" style="flex:1;padding:12px;border-radius:12px;background:#f1f5f9;color:#374151;border:none;font-weight:700;cursor:pointer">@tCancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+@section Scripts {
+<script src="/lib/signalr/signalr.min.js" asp-append-version="true"
+        onerror="this.onerror=null;console.warn('[Nouba] SignalR client introuvable — fallback polling 7s.');"></script>
+<script>
+window.NOUBA_AGENT_ID = @(ViewBag.AgentId is int aId ? aId : 0);
+
+function noubaSetLanguage(lang){
+  // Persist the cookie then reload keeping serviceId so the agent stays on his service.
+  var svcId = @selectedServiceId;
+  fetch('/Home/SetLanguage?lang=' + encodeURIComponent(lang) + '&json=true', { credentials:'same-origin', cache:'no-store' })
+    .finally(function(){
+      window.location.href = '/Agent?lang=' + encodeURIComponent(lang) + (svcId ? '&serviceId=' + svcId : '');
+    });
+}
+function noubaApplyAdminLanguage(lang){
+  if (!lang) { window.location.reload(); return; }
+  var svcId = @selectedServiceId;
+  fetch('/Home/SetLanguage?lang=' + encodeURIComponent(lang) + '&json=true', { credentials:'same-origin', cache:'no-store' })
+    .finally(function(){
+      window.location.href = '/Agent?lang=' + encodeURIComponent(lang) + (svcId ? '&serviceId=' + svcId : '');
+    });
+}
+// ─── Refresh intelligent ───────────────────────────────────────────
+// Anciennement : window.location.reload() toutes les 5 s, qui détruisait
+// l'état UI (modale ouverte, scroll, sélection) et générait du trafic inutile.
+// Nouveau : SignalR push + watchdog AJAX léger toutes les 7 s qui ne recharge
+// la page que quand l'état réel a changé.
+(function(){
+  const serviceId = @selectedServiceId;
+  const stateUrl = '@Url.Action("State", "Agent")?serviceId=' + serviceId;
+  let lastSignature = '';
+  let busy = false;
+  let pendingReload = false;
+
+  function modalOpen(){ return document.getElementById('transferModal')?.classList.contains('open'); }
+
+  function softReload(){
+    if (modalOpen() || document.hidden) { pendingReload = true; return; }
+    window.location.reload();
+  }
+
+  async function checkState(){
+    if (busy || document.hidden || modalOpen()) return;
+    busy = true;
+    try {
+      const res = await fetch(stateUrl, { cache: 'no-store', credentials: 'same-origin' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const sig = JSON.stringify({
+        w: data.waiting?.map(t => t.id) || [],
+        c: data.called?.map(t => t.id) || [],
+        cur: data.currentCall?.ticketNumber || null,
+        st: data.stats
+      });
+      if (lastSignature && sig !== lastSignature) softReload();
+      lastSignature = sig;
+    } catch(e) { /* offline transitoire : on retentera */ }
+    finally { busy = false; }
+  }
+
+  // SignalR pour le push instantané (zéro latence quand un autre agent appelle).
+  function startSignalR(){
+    if (typeof signalR === 'undefined') return false;
+    try {
+      const conn = new signalR.HubConnectionBuilder()
+        .withUrl('/queueHub')
+        .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
+        .build();
+      conn.on('RefreshQueue', () => checkState());
+      conn.on('SettingsChanged', noubaApplyAdminLanguage);
+      // #10 — un service créé/modifié/supprimé : recharge pour rafraîchir les
+      // onglets de service (le serveur replace l'agent sur son service courant).
+      conn.on('ServicesChanged', () => { window.location.reload(); });
+      // Si l'admin réaffecte cet agent à un autre service/guichet, on
+      // recharge la page automatiquement → l'agent voit immédiatement
+      // sa nouvelle affectation, sans se déconnecter/reconnecter.
+      conn.on('AgentUpdated', (updatedAgentId) => {
+        if (updatedAgentId === window.NOUBA_AGENT_ID) {
+          window.location.reload();
+        }
+      });
+      // Filet de sécurité : sans ça, une coupure réseau un peu longue
+      // désactivait le push temps réel jusqu'au rechargement manuel de la
+      // page (le watchdog 3 s ci-dessous prend le relais, mais avec retard).
+      // On retente une nouvelle connexion toutes les 15 s indéfiniment.
+      conn.onclose(() => {
+        console.debug('[Nouba] SignalR Agent deconnecte definitivement, nouvelle tentative dans 15s.');
+        setTimeout(startSignalR, 15000);
+      });
+      conn.start().catch(err => console.debug('[Nouba] SignalR connect:', err));
+      return true;
+    } catch(e) { return false; }
+  }
+  startSignalR();
+
+  // Watchdog : prend la main si SignalR est down (CDN inaccessible offline).
+  // Toutes les 3 s : assez vite pour que l'agent voie un nouveau ticket borne
+  // sans rechargement manuel, sans pour autant marteler le serveur.
+  setInterval(checkState, 3000);
+
+  // ─── Détection changement d'affectation (bug 7) ─────────────────
+  // Si l'admin réaffecte cet agent à un autre service/guichet, on doit
+  // le voir SANS qu'il se déconnecte. SignalR.AgentUpdated le fait
+  // déjà ; ce polling de 4 s en plus est un filet de sécurité au cas
+  // où SignalR est down (CDN offline). Endpoint TRÈS léger côté serveur.
+  let lastAssignment = null;
+  async function checkAssignment(){
+    if (document.hidden || modalOpen()) return;
+    try {
+      const r = await fetch('/Agent/MyAssignment', { cache: 'no-store', credentials: 'same-origin' });
+      if (!r.ok) return;
+      const a = await r.json();
+      const sig = (a.serviceId || 0) + '|' + (a.counterId || 0) + '|' + (a.active ? 1 : 0);
+      if (lastAssignment !== null && sig !== lastAssignment) {
+        // Changement détecté : reload pour appliquer la nouvelle affectation.
+        window.location.reload();
+        return;
+      }
+      lastAssignment = sig;
+    } catch(_) { /* offline transitoire */ }
+  }
+  checkAssignment();
+  setInterval(checkAssignment, 4000);
+
+  // Reprise du focus : on vide le drapeau de reload différé.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && pendingReload && !modalOpen()) {
+      pendingReload = false;
+      softReload();
+    }
+  });
+
+  // Premier appel pour amorcer la signature.
+  checkState();
+})();
+
+// Transfer modal
+function openTransfer(ticketId) {
+  document.getElementById('transferTicketId').value = ticketId;
+  document.getElementById('transferModal').classList.add('open');
+}
+function closeTransfer() {
+  document.getElementById('transferModal').classList.remove('open');
+}
+document.getElementById('transferModal').addEventListener('click', function(e) {
+  if (e.target === this) closeTransfer();
+});
+
+// Live clock in topbar
+(function(){
+  function tickAgent(){
+    var el = document.getElementById('agent-clock');
+    if(!el) return;
+    var d = new Date();
+    el.textContent = d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+  tickAgent(); setInterval(tickAgent, 1000);
+})();
+
+// Remember service selection
+(function(){
+  const key = 'nouba_agent_service_id';
+  const url = new URL(window.location.href);
+  const hasQuery = url.searchParams.has('serviceId');
+  const saved = localStorage.getItem(key);
+  if (!hasQuery && saved) {
+    url.searchParams.set('serviceId', saved);
+    window.location.replace(url.toString());
+    return;
+  }
+  localStorage.setItem(key, '@selectedServiceId');
+})();
+</script>
+}

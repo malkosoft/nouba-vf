@@ -1,0 +1,190 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   NOUBA — SYSTÈME DE DESIGN PREMIUM UNIFIÉ (v2.7.28)
+   ───────────────────────────────────────────────────────────────────────
+   Une seule source de vérité pour l'identité visuelle de TOUT le produit :
+   Borne, Affichage TV, Agent, Admin, Suivi mobile, Login, Licence, Erreur.
+
+   Identité : OR (#e8b84b) sur BLEU NUIT profond. Ambiance sombre, haut de
+   gamme, institutionnelle (banques, administrations, cliniques privées).
+
+   Comment l'utiliser dans une vue :
+     <link rel="stylesheet" href="~/css/nouba-premium.css"/>
+   puis appliquer les classes .npx-* OU simplement consommer les variables
+   --np-* dans le CSS local de la vue.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Typographie 100% offline : pile système native (Segoe UI sous Windows,
+   avec prise en charge de l'arabe). Aucune police distante — rendu garanti
+   sans connexion Internet, ce qui est la promesse centrale du produit. */
+
+:root{
+  /* ── Couleurs de marque ── */
+  --np-gold:#e8b84b;
+  --np-gold-soft:#f3d486;
+  --np-gold-deep:#b8862b;
+  --np-gold-glow:rgba(232,184,75,.35);
+
+  /* ── Fonds (du plus profond au plus clair) ── */
+  --np-bg-0:#070d1c;   /* fond absolu */
+  --np-bg-1:#0b1426;   /* panneaux */
+  --np-bg-2:#111d36;   /* cartes */
+  --np-bg-3:#18274a;   /* surfaces actives / hover */
+
+  /* ── Texte ── */
+  --np-ink:#f6f8fc;
+  --np-ink-soft:#aab6ce;
+  --np-ink-faint:#6f7e9c;
+
+  /* ── Lignes & accents ── */
+  --np-line:rgba(255,255,255,.09);
+  --np-line-strong:rgba(255,255,255,.16);
+
+  /* ── Couleurs sémantiques ── */
+  --np-ok:#34d399;
+  --np-warn:#fbbf24;
+  --np-danger:#f87171;
+  --np-info:#60a5fa;
+
+  /* ── Ombres ── */
+  --np-shadow-sm:0 4px 14px rgba(2,6,18,.4);
+  --np-shadow-md:0 14px 40px rgba(2,6,18,.5);
+  --np-shadow-lg:0 30px 80px rgba(2,6,18,.6);
+  --np-shadow-gold:0 10px 36px rgba(232,184,75,.28);
+
+  /* ── Rayons ── */
+  --np-r-sm:12px;
+  --np-r:18px;
+  --np-r-lg:26px;
+  --np-r-xl:34px;
+
+  /* ── Typographie (offline, pile système) ── */
+  --np-font-display:"Segoe UI Semibold","Segoe UI",system-ui,-apple-system,Roboto,"Noto Sans Arabic",Tahoma,sans-serif;
+  --np-font-body:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,"Noto Sans Arabic",Tahoma,sans-serif;
+}
+
+/* ── Réinitialisation douce ── */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+/* ── Fond premium réutilisable : couches de halos + grain ── */
+.npx-bg{
+  background:
+    radial-gradient(circle at 16% 6%, rgba(232,184,75,.14), transparent 34%),
+    radial-gradient(circle at 84% 12%, rgba(96,165,250,.12), transparent 40%),
+    radial-gradient(circle at 50% 108%, rgba(232,184,75,.08), transparent 46%),
+    linear-gradient(150deg, var(--np-bg-0) 0%, var(--np-bg-1) 52%, var(--np-bg-2) 100%);
+  color:var(--np-ink);
+  font-family:var(--np-font-body);
+  -webkit-font-smoothing:antialiased;
+}
+/* Texture grain subtile (à poser sur ::before d'un conteneur en position:relative) */
+.npx-grain::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:
+    radial-gradient(circle at 25% 30%, rgba(255,255,255,.035) 0, transparent 1px),
+    radial-gradient(circle at 75% 70%, rgba(255,255,255,.028) 0, transparent 1px);
+  background-size:4px 4px, 5px 5px;
+}
+
+/* ── Titres ── */
+.npx-display{font-family:var(--np-font-display);font-weight:800;letter-spacing:-.01em;line-height:1.08}
+.npx-kicker{font-weight:800;letter-spacing:.26em;text-transform:uppercase;color:var(--np-gold);font-size:.72rem}
+
+/* ── Carte premium ── */
+.npx-card{
+  background:linear-gradient(160deg, var(--np-bg-2) 0%, var(--np-bg-1) 100%);
+  border:1px solid var(--np-line);
+  border-radius:var(--np-r-lg);
+  box-shadow:var(--np-shadow-md);
+  position:relative;overflow:hidden;
+}
+/* Filet doré en haut de carte */
+.npx-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--np-gold),transparent);opacity:.7;
+}
+
+/* ── Boutons ── */
+.npx-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.55em;
+  font-family:var(--np-font-display);font-weight:800;
+  border:1px solid var(--np-line-strong);
+  border-radius:var(--np-r);
+  padding:.85em 1.4em;font-size:1rem;line-height:1;
+  cursor:pointer;transition:transform .16s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, filter .2s, background .2s;
+  color:var(--np-ink);background:var(--np-bg-3);
+}
+.npx-btn:hover{transform:translateY(-2px);box-shadow:var(--np-shadow-md)}
+.npx-btn:active{transform:translateY(0) scale(.98);transition-duration:.07s}
+.npx-btn-gold{
+  background:linear-gradient(135deg,var(--np-gold-soft),var(--np-gold) 45%,var(--np-gold-deep));
+  color:#1a1206;border-color:rgba(255,255,255,.25);
+  box-shadow:var(--np-shadow-gold);
+}
+.npx-btn-gold:hover{filter:brightness(1.06);box-shadow:0 16px 44px rgba(232,184,75,.4)}
+.npx-btn-ghost{background:transparent;border-color:var(--np-line-strong);color:var(--np-ink-soft)}
+.npx-btn-ghost:hover{background:rgba(255,255,255,.05);color:var(--np-ink)}
+
+/* ── Champs de saisie ── */
+.npx-field{
+  width:100%;background:rgba(2,6,18,.55);
+  border:1.5px solid var(--np-line-strong);border-radius:var(--np-r);
+  color:var(--np-ink);font-family:var(--np-font-body);font-size:1.05rem;font-weight:600;
+  padding:.9em 1.1em;outline:none;transition:border-color .18s, box-shadow .18s;
+}
+.npx-field::placeholder{color:var(--np-ink-faint)}
+.npx-field:focus{border-color:var(--np-gold);box-shadow:0 0 0 4px var(--np-gold-glow)}
+
+/* ── Badges / pastilles ── */
+.npx-badge{
+  display:inline-flex;align-items:center;gap:.4em;
+  font-weight:800;font-size:.74rem;letter-spacing:.04em;
+  padding:.4em .8em;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid var(--np-line);color:var(--np-ink-soft);
+}
+.npx-badge-gold{background:rgba(232,184,75,.14);border-color:rgba(232,184,75,.4);color:var(--np-gold-soft)}
+.npx-badge-ok{background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.4);color:var(--np-ok)}
+.npx-badge-warn{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.4);color:var(--np-warn)}
+.npx-badge-danger{background:rgba(248,113,113,.14);border-color:rgba(248,113,113,.4);color:var(--np-danger)}
+
+/* ── Logo / monogramme doré réutilisable ── */
+.npx-mark{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:16px;
+  background:linear-gradient(135deg,var(--np-gold-soft),var(--np-gold-deep));
+  color:#1a1206;font-family:var(--np-font-display);font-weight:800;font-size:1.5rem;
+  box-shadow:var(--np-shadow-gold);
+}
+
+/* ── Animations d'entrée réutilisables ── */
+@keyframes npFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes npFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes npPop{0%{opacity:0;transform:scale(.85)}60%{transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+@keyframes npShimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.npx-in{animation:npFadeUp .55s cubic-bezier(.25,1,.4,1) both}
+.npx-in-1{animation-delay:.06s}.npx-in-2{animation-delay:.12s}.npx-in-3{animation-delay:.18s}
+.npx-in-4{animation-delay:.24s}.npx-in-5{animation-delay:.3s}.npx-in-6{animation-delay:.36s}
+
+/* Effet de brillance qui balaie (pour titres / accents premium) */
+.npx-shine{
+  background:linear-gradient(110deg,var(--np-ink) 40%,var(--np-gold-soft) 50%,var(--np-ink) 60%);
+  background-size:200% auto;-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;animation:npShimmer 4.5s linear infinite;
+}
+
+/* ── Barre de marque discrète (pied de page produit) ── */
+.npx-brandbar{
+  display:flex;align-items:center;gap:.5em;justify-content:center;
+  color:var(--np-ink-faint);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+}
+.npx-brandbar b{color:var(--np-gold);letter-spacing:.04em}
+
+/* ── Accessibilité : respect du mode mouvement réduit ── */
+@media (prefers-reduced-motion: reduce){
+  .npx-in,.npx-shine,[class*="npx-in-"]{animation:none !important}
+}
+
+/* ── Scrollbar discrète et premium ── */
+.npx-scroll::-webkit-scrollbar{width:10px;height:10px}
+.npx-scroll::-webkit-scrollbar-track{background:transparent}
+.npx-scroll::-webkit-scrollbar-thumb{background:var(--np-line-strong);border-radius:8px}
+.npx-scroll::-webkit-scrollbar-thumb:hover{background:var(--np-gold-deep)}
