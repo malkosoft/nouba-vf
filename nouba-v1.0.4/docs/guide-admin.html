@@ -325,52 +325,56 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <h2 id="cloudflare">Suivi depuis l'extérieur — Cloudflare Tunnel</h2>
 
 <div class="tunnel-box">
-  <h3>Pourquoi Cloudflare Tunnel ?</h3>
-  <p style="color:#bae6fd;margin-bottom:0">Le QR code contient l'adresse locale du serveur (<code>192.168.x.x</code>). Un client sur 4G ne peut pas l'atteindre. <strong>Cloudflare Tunnel</strong> crée un pont sécurisé entre internet et votre PC Nouba — sans ouvrir de port sur votre routeur, sans IP fixe.</p>
+  <h3>Fonctionnement automatique</h3>
+  <p style="color:#bae6fd;margin-bottom:8px">Le QR code contient normalement l'adresse locale du serveur (<code>192.168.x.x</code>) — inaccessible depuis une connexion 4G. Nouba Pro intègre un <strong>tunnel Cloudflare automatique</strong> : si le PC a internet et que <code>cloudflared.exe</code> est présent, le tunnel démarre tout seul au lancement de Nouba et les QR codes pointent automatiquement vers une URL publique.</p>
+  <p style="color:#bae6fd;margin-bottom:0"><strong>Aucune configuration n'est requise</strong> — il suffit de déposer un seul fichier.</p>
 </div>
 
+<h3>Mise en place (2 étapes)</h3>
 <div class="steps">
   <div class="step"><div class="step-body">
-    <h4>Télécharger cloudflared</h4>
+    <h4>Télécharger cloudflared.exe</h4>
     <p>Sur le PC Nouba, téléchargez <code>cloudflared-windows-amd64.exe</code> depuis :</p>
     <pre><code>https://github.com/cloudflare/cloudflared/releases/latest</code></pre>
-    <p>Renommez-le <code>cloudflared.exe</code> et placez-le dans <code>C:\Nouba\</code> ou sur le Bureau.</p>
+    <p>Renommez-le exactement <code>cloudflared.exe</code> et placez-le dans le <strong>même dossier que Nouba.exe</strong> ou dans <code>C:\Nouba\</code>.</p>
   </div></div>
   <div class="step"><div class="step-body">
-    <h4>Lancer le tunnel</h4>
-    <p>Ouvrez une invite de commandes dans le dossier où se trouve <code>cloudflared.exe</code> et tapez :</p>
-    <pre><code>cloudflared tunnel --url http://localhost:5000</code></pre>
-    <p>Après quelques secondes, une URL publique s'affiche dans la console, du type :</p>
-    <pre><code>https://abcd1234.trycloudflare.com</code></pre>
+    <h4>Redémarrer Nouba</h4>
+    <p>Au prochain démarrage, Nouba détecte <code>cloudflared.exe</code>, lance le tunnel et récupère automatiquement l'URL publique. Dans l'administration, le badge en haut à droite passe au vert :</p>
+    <p><span style="display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:10px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);font-size:.82rem;font-weight:600;color:#34d399"><span style="width:8px;height:8px;border-radius:50%;background:#34d399;display:inline-block"></span> QR internet actif</span></p>
+    <p>Tous les QR codes émis ensuite (imprimés sur le ticket et affichés sur la borne) contiennent l'URL publique. Un téléphone en 4G peut les scanner directement.</p>
   </div></div>
-  <div class="step"><div class="step-body">
-    <h4>Copier l'URL dans les paramètres Nouba</h4>
-    <p>Dans <strong>Admin → Paramètres → Suivi mobile → URL publique de suivi</strong>, collez l'URL (sans slash final) :</p>
-    <pre><code>https://abcd1234.trycloudflare.com</code></pre>
-    <p>Enregistrez. Les QR codes générés ensuite pointeront vers cette URL publique.</p>
-  </div></div>
-  <div class="step"><div class="step-body">
-    <h4>Tester depuis un smartphone en 4G</h4>
-    <p>Désactivez le Wi-Fi du téléphone (passez en 4G), demandez un ticket sur la borne et scannez le QR code. Le suivi doit fonctionner depuis n'importe quel réseau.</p>
-  </div></div>
+</div>
+
+<h3>Vérifier que le tunnel fonctionne</h3>
+<ol>
+  <li>Demandez un ticket sur la borne.</li>
+  <li>Désactivez le Wi-Fi de votre smartphone (passez en 4G).</li>
+  <li>Scannez le QR code imprimé sur le ticket.</li>
+  <li>La page de suivi doit s'ouvrir et afficher votre position dans la file.</li>
+</ol>
+
+<div class="note">
+  <strong>Badge dans l'admin</strong>
+  <table style="margin-top:8px;margin-bottom:0;font-size:.83rem">
+    <tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#34d399;display:inline-block"></span><strong style="color:#34d399">QR internet actif</strong></span></td><td>Tunnel actif — les clients 4G peuvent suivre leur ticket</td></tr>
+    <tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block"></span><strong style="color:#fbbf24">QR tunnel…</strong></span></td><td>Démarrage en cours (quelques secondes au lancement)</td></tr>
+    <tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#475569;display:inline-block"></span><strong style="color:#94a3b8">QR local</strong></span></td><td>cloudflared.exe absent ou pas d'internet — suivi Wi-Fi uniquement</td></tr>
+    <tr><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#f87171;display:inline-block"></span><strong style="color:#f87171">QR erreur</strong></span></td><td>cloudflared trouvé mais le tunnel a échoué (redémarre dans 30 s)</td></tr>
+  </table>
 </div>
 
 <div class="warn">
-  <strong>URL temporaire</strong> — Sans compte Cloudflare, l'URL change à chaque redémarrage de <code>cloudflared</code>. Pour une URL fixe :
+  <strong>URL temporaire</strong> — L'URL <code>xxxx.trycloudflare.com</code> change à chaque redémarrage de Nouba (ou du PC). Les QR codes imprimés avant le redémarrage deviennent invalides, mais les tickets n'ont de toute façon de valeur que pour la journée en cours. Pour une URL fixe et permanente :
   <ol style="margin-top:8px;margin-bottom:0;color:#fde68a">
     <li>Créez un compte gratuit sur <a href="https://cloudflare.com" style="color:#fbbf24">cloudflare.com</a> et ajoutez un domaine.</li>
-    <li>Dans le tableau de bord Cloudflare → <em>Zero Trust → Networks → Tunnels</em>, créez un tunnel nommé et copiez la commande de connexion.</li>
+    <li>Tableau de bord Cloudflare → <em>Zero Trust → Networks → Tunnels</em> → Créer un tunnel nommé.</li>
     <li>Configurez le tunnel pour pointer vers <code>http://localhost:5000</code>.</li>
-    <li>Votre URL fixe sera par exemple <code>https://suivi.votre-domaine.com</code>.</li>
+    <li>Dans <strong>Admin → Paramètres → Suivi mobile → URL publique</strong>, saisissez votre URL fixe. Elle prend la priorité sur le tunnel automatique.</li>
   </ol>
 </div>
 
-<h3>Démarrage automatique du tunnel</h3>
-<p>Pour que Cloudflare démarre avec Windows, installez-le comme service :</p>
-<pre><code>cloudflared service install</code></pre>
-<p>Le tunnel démarrera automatiquement à chaque démarrage du PC, avant même la connexion utilisateur.</p>
-
-<div class="tip"><strong>Alternative</strong> — Si votre routeur le permet, la <strong>redirection de port</strong> (port 5000 → PC Nouba) est plus simple et ne nécessite aucun logiciel tiers. Demandez à votre technicien réseau.</div>
+<div class="tip"><strong>Alternative sans logiciel</strong> — Si votre routeur supporte la redirection de port, ouvrez le port 5000 vers le PC Nouba. Renseignez l'URL <code>http://[votre-ip-publique]:5000</code> dans les paramètres. Demandez à votre technicien réseau.</div>
 
 <!-- ─── Sauvegardes ─── -->
 <h2 id="sauvegardes">Sauvegardes</h2>
