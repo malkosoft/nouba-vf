@@ -22,6 +22,12 @@
     var tab = (Context.Request.Query["tab"].FirstOrDefault() ?? "dashboard");
     // Sécurité : un client ne peut pas ouvrir un onglet technique via l'URL.
     if (!isProvider && (tab == "printer" || tab == "diagnostic")) { tab = "dashboard"; }
+
+    bool sysHasAlert    = (bool)(ViewBag.SystemHasAlert ?? false);
+    bool sysDiskWarn    = (bool)(ViewBag.SystemDiskWarn ?? false);
+    bool sysDbOk        = (bool)(ViewBag.SystemDbOk ?? true);
+    long sysDiskFreeMb  = (long)(ViewBag.SystemDiskFreeMb ?? 0L);
+    long sysDiskTotalMb = (long)(ViewBag.SystemDiskTotalMb ?? 0L);
 }
 <!DOCTYPE html>
 <html lang="fr">
@@ -529,6 +535,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             <a href="/Admin/ExportStats" class="topbar-btn primary"><i class="bi bi-download"></i> Export CSV</a>
         </div>
     </div>
+
+@if (sysHasAlert)
+{
+    <div id="sysAlertBanner" style="margin:12px 24px 0;padding:12px 18px;border-radius:12px;display:flex;align-items:flex-start;gap:12px;
+        background:@(sysDbOk ? "rgba(251,191,36,.08)" : "rgba(248,113,113,.08)");
+        border:1px solid @(sysDbOk ? "rgba(251,191,36,.35)" : "rgba(248,113,113,.35)");">
+        <i class="bi bi-exclamation-triangle-fill" style="color:@(sysDbOk ? "var(--warn)" : "var(--danger)");font-size:1.1rem;margin-top:2px;flex-shrink:0;"></i>
+        <div style="flex:1;font-size:.84rem;line-height:1.5;">
+            @if (!sysDbOk)
+            {
+                <strong style="color:var(--danger);">Base de données inaccessible</strong>
+                <span style="color:var(--muted)"> — Le fichier nouba.db ne répond pas. Vérifiez l'intégrité du disque.</span>
+            }
+            else if (sysDiskWarn)
+            {
+                var freeGb = Math.Round(sysDiskFreeMb / 1024.0, 1);
+                <strong style="color:var(--warn);">Espace disque faible : @freeGb GB libres</strong>
+                <span style="color:var(--muted)"> — Libérez de l'espace ou supprimez les anciennes sauvegardes pour éviter toute interruption.</span>
+            }
+        </div>
+        <button onclick="document.getElementById('sysAlertBanner').remove()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.1rem;padding:0 4px;line-height:1;">&times;</button>
+    </div>
+}
 
     <!-- Son d'alerte (court bip) embarqué en data-URI pour fonctionner offline -->
     <audio id="alertSound" preload="auto" style="display:none">

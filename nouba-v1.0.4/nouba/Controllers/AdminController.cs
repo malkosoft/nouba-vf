@@ -298,6 +298,18 @@ public class AdminController : Controller
         ViewBag.LastBackupFile = lastBackup?.Name ?? "Aucune sauvegarde";
         ViewBag.LastBackupDate = lastBackup != null ? lastBackup.CreationTime.ToString("dd/MM/yyyy HH:mm") : "—";
         ViewBag.BackupCount = backupDir.Exists ? backupDir.GetFiles("nouba_*.db").Length : 0;
+
+        // ── Santé système (alerte admin) ────────────────────────────
+        var (diskFreeMb, diskTotalMb, diskWarn) = HealthController.GetDiskInfo(_storagePaths.DataRoot);
+        bool dbOk;
+        try { dbOk = await _context.Database.CanConnectAsync(); }
+        catch { dbOk = false; }
+        ViewBag.SystemDiskFreeMb  = diskFreeMb;
+        ViewBag.SystemDiskTotalMb = diskTotalMb;
+        ViewBag.SystemDiskWarn    = diskWarn;
+        ViewBag.SystemDbOk        = dbOk;
+        ViewBag.SystemHasAlert    = diskWarn || !dbOk;
+
         return View(services);
     }
 
