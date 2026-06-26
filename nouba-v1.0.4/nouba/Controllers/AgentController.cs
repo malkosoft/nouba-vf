@@ -412,8 +412,12 @@ public class AgentController : Controller
         }
         if (agentCounterId.HasValue)
         {
+            // Filtre par service ET guichet : un ticket appelé sur un autre service
+            // ne doit pas bloquer l'agent sur ce service-ci.
             var hasOpenTicket = await _context.Tickets.AsNoTracking().AnyAsync(
-                t => t.CounterId == agentCounterId.Value && t.Status == TicketStatus.Called, ct);
+                t => t.CounterId == agentCounterId.Value
+                  && t.ServiceTypeId == serviceId
+                  && t.Status == TicketStatus.Called, ct);
             if (hasOpenTicket)
             {
                 TempData["Message"] = "Terminez, marquez absent ou transférez le ticket en cours avant d'appeler le suivant.";
