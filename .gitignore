@@ -32,3 +32,9 @@ appsettings.Development.json
 # Binaire Piper TTS
 **/tts/piper/piper.exe
 **/tts/piper/piper
+
+# Cache TTS (WAV générés au runtime, régénérés automatiquement)
+**/tts/cache/
+
+# Sortie de publication (dotnet publish)
+**/publish/
