@@ -38,7 +38,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>@ViewData["Title"]</title>
 <link rel="icon" type="image/png" href="~/images/favicon.png"/>
-<link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css"/>
+<link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" asp-append-version="true"/>
 <style>
 :root{
   --sidebar-w:260px;
@@ -2818,7 +2818,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 </div>
 
 <!-- SignalR client (local — fonctionne sans Internet) -->
-<script src="~/lib/signalr/signalr.min.js"></script>
+<script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
 <script>
 // ── Animation blink du voyant en alerte ──
 var __style = document.createElement('style');
