@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nouba Pro — Guide Agent</title>
+<style>
+:root{--gold:#e8b84b;--bg:#060d1a;--surface:#0b1426;--surface2:#111d36;--border:rgba(255,255,255,.1);--text:#f0f4fc;--muted:#8fa3c0;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:"Segoe UI",system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+a{color:var(--gold);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:Consolas,monospace;background:rgba(255,255,255,.06);padding:2px 7px;border-radius:5px;font-size:.88em;color:#93c5fd}
+pre{background:#020917;border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:240px;min-width:240px;background:var(--surface);border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto;padding:0 0 32px}
+.content{flex:1;max-width:800px;padding:48px 56px;margin:0 auto}
+@media(max-width:780px){.layout{flex-direction:column}.sidebar{width:100%;height:auto;position:relative}.content{padding:28px 20px}}
+.sb-brand{padding:24px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-brand .logo{width:36px;height:36px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#060d1a}
+.sb-brand .name{font-weight:700;font-size:1rem;color:#fff}
+.sb-brand .sub{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sb-section{padding:16px 16px 4px;font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.sb-link{display:block;padding:8px 20px;font-size:.85rem;color:var(--muted);border-left:3px solid transparent;transition:all .15s}
+.sb-link:hover{color:var(--gold);border-left-color:var(--gold);background:rgba(232,184,75,.06);text-decoration:none}
+.doc-header{border-bottom:2px solid rgba(232,184,75,.3);padding-bottom:24px;margin-bottom:40px}
+.doc-header h1{font-size:2rem;font-weight:800;color:#fff}
+.doc-header .meta{font-size:.82rem;color:var(--muted);margin-top:6px}
+h2{font-size:1.3rem;font-weight:700;color:var(--gold);margin:44px 0 14px;padding-top:14px;border-top:1px solid var(--border)}
+h2:first-of-type{border-top:none;margin-top:0}
+h3{font-size:1rem;font-weight:700;color:#e2e8f0;margin:22px 0 8px}
+p{margin-bottom:14px;color:#c8d8ec}
+ul,ol{padding-left:22px;margin-bottom:14px;color:#c8d8ec}
+li{margin-bottom:6px}
+strong{color:#e2e8f0}
+.tip,.warn,.note{border-radius:var(--radius);padding:14px 18px;margin:16px 0;border-left:4px solid}
+.tip{background:rgba(52,211,153,.06);border-color:var(--success);color:#a7f3d0}
+.tip strong{color:var(--success)}
+.warn{background:rgba(251,191,36,.06);border-color:var(--warn);color:#fde68a}
+.warn strong{color:var(--warn)}
+.note{background:rgba(147,197,253,.06);border-color:#93c5fd;color:#bfdbfe}
+.note strong{color:#93c5fd}
+
+/* Action card */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+@media(max-width:600px){.action-grid{grid-template-columns:1fr}}
+.action-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;gap:14px;align-items:flex-start}
+.action-icon{font-size:1.6rem;flex-shrink:0;line-height:1}
+.action-card h4{font-size:.92rem;font-weight:700;color:#e2e8f0;margin-bottom:4px}
+.action-card p{margin:0;font-size:.83rem;color:var(--muted)}
+
+/* Status badge */
+.status{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;font-size:.78rem;font-weight:700}
+.status-wait{background:rgba(251,191,36,.12);color:var(--warn)}
+.status-called{background:rgba(52,211,153,.12);color:var(--success)}
+.status-done{background:rgba(148,163,184,.1);color:#94a3b8}
+.status-absent{background:rgba(248,113,113,.12);color:var(--danger)}
+
+/* Keyboard shortcut */
+kbd{display:inline-block;padding:2px 7px;border-radius:5px;background:var(--surface2);border:1px solid rgba(255,255,255,.2);font-size:.8em;font-family:Consolas,monospace;color:#e2e8f0}
+
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.88rem}
+th{background:var(--surface2);color:var(--gold);padding:9px 14px;text-align:left;border-bottom:2px solid var(--border)}
+td{padding:9px 14px;border-bottom:1px solid var(--border);color:#c8d8ec;vertical-align:top}
+
+@media print{
+  body{background:#fff;color:#111}
+  .sidebar{display:none}
+  .content{max-width:100%;padding:20px}
+  h2{color:#1e3a5f}
+  code{background:#f3f4f6;color:#1e3a5f}
+  a{color:#1e3a5f}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="logo">N</div>
+    <div><div class="name">Nouba Pro</div><div class="sub">Guide Agent</div></div>
+  </div>
+  <div class="sb-section">Prise en main</div>
+  <a class="sb-link" href="#connexion">Se connecter</a>
+  <a class="sb-link" href="#interface">L'interface</a>
+  <div class="sb-section">Opérations</div>
+  <a class="sb-link" href="#appel">Appeler un ticket</a>
+  <a class="sb-link" href="#rappel">Rappeler / Absent</a>
+  <a class="sb-link" href="#prioritaire">Ticket prioritaire</a>
+  <a class="sb-link" href="#statuts">Statuts des tickets</a>
+  <div class="sb-section">Fin de service</div>
+  <a class="sb-link" href="#deconnexion">Se déconnecter</a>
+  <div style="padding:20px;margin-top:auto;font-size:.75rem;color:var(--muted);border-top:1px solid var(--border)">
+    Voir aussi :<br/>
+    <a href="guide-installation.html">Guide d'installation</a><br/>
+    <a href="guide-admin.html">Guide Administrateur</a>
+  </div>
+</aside>
+
+<main class="content">
+
+<div class="doc-header">
+  <h1>Guide Agent</h1>
+  <div class="meta">Nouba Pro v1.0.4 &nbsp;·&nbsp; À remettre à chaque agent</div>
+</div>
+
+<!-- ─── Connexion ─── -->
+<h2 id="connexion">Se connecter</h2>
+
+<p>Depuis votre PC ou tablette, ouvrez un navigateur et entrez l'adresse communiquée par votre administrateur :</p>
+<pre><code>http://[adresse-du-serveur]:5000/Agent/Login</code></pre>
+
+<p>Saisissez votre <strong>identifiant</strong> et votre <strong>mot de passe</strong> puis cliquez <em>Se connecter</em>.</p>
+
+<div class="tip"><strong>Conseil</strong> — Ajoutez cette page à vos favoris ou à votre écran d'accueil (mobile/tablette) pour un accès rapide chaque matin.</div>
+
+<div class="warn"><strong>Compte bloqué ?</strong> — Après 5 tentatives incorrectes, l'accès est bloqué 15 minutes. Contactez votre administrateur si vous avez oublié votre mot de passe.</div>
+
+<!-- ─── Interface ─── -->
+<h2 id="interface">L'interface agent</h2>
+
+<p>Une fois connecté, vous voyez votre tableau de bord d'appel :</p>
+
+<ul>
+  <li><strong>Numéro de ticket en cours</strong> — le ticket actuellement à votre guichet (s'il y en a un).</li>
+  <li><strong>File d'attente de votre service</strong> — nombre de clients qui attendent.</li>
+  <li><strong>Dernier ticket appelé</strong> — affiché pour référence.</li>
+  <li><strong>Bouton principal</strong> — <em>Appeler le suivant</em> (grande zone cliquable).</li>
+</ul>
+
+<!-- ─── Appel ─── -->
+<h2 id="appel">Appeler un ticket</h2>
+
+<div class="action-grid">
+  <div class="action-card">
+    <div class="action-icon">▶</div>
+    <div>
+      <h4>Appeler le suivant</h4>
+      <p>Clique sur le bouton principal. Le prochain ticket de votre file est appelé et s'affiche sur l'écran TV avec l'annonce vocale.</p>
+    </div>
+  </div>
+  <div class="action-card">
+    <div class="action-icon">🔢</div>
+    <div>
+      <h4>Appeler un numéro précis</h4>
+      <p>Saisissez un numéro dans le champ de recherche et cliquez <em>Appeler ce ticket</em>. Utile pour les tickets prioritaires ou les rappels manuels.</p>
+    </div>
+  </div>
+</div>
+
+<div class="note"><strong>Annonce vocale</strong> — Lorsque vous appelez un ticket, l'écran Display émet automatiquement une annonce audio dans la langue configurée (français, arabe, tamazight, anglais). Assurez-vous que le volume du PC Display est audible.</div>
+
+<!-- ─── Rappel / Absent ─── -->
+<h2 id="rappel">Rappeler — Marquer absent</h2>
+
+<p>Si un client ne répond pas au premier appel, vous disposez de deux options :</p>
+
+<div class="action-grid">
+  <div class="action-card">
+    <div class="action-icon">🔔</div>
+    <div>
+      <h4>Rappeler</h4>
+      <p>Ré-émet l'annonce vocale pour le même ticket. L'écran TV affiche à nouveau ce numéro. À utiliser une fois avant de le marquer absent.</p>
+    </div>
+  </div>
+  <div class="action-card">
+    <div class="action-icon">✗</div>
+    <div>
+      <h4>Marquer absent</h4>
+      <p>Le ticket est clôturé comme <em>Absent</em> et passe au suivant automatiquement. Le client peut revenir demander un nouveau ticket à la borne.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Prioritaire ─── -->
+<h2 id="prioritaire">Ticket prioritaire</h2>
+
+<p>Les tickets prioritaires (personnes à mobilité réduite, femmes enceintes, urgences…) sont marqués d'un badge <strong style="color:var(--warn)">PRIORITÉ</strong> dans la file.</p>
+
+<p>Ils passent automatiquement devant les tickets normaux dans la file. Nouba les appelle en premier lors d'un <em>Appeler le suivant</em>.</p>
+
+<p>Sur la borne, le client active lui-même l'option priorité sur l'écran de prise de ticket (si cette option est activée par l'administrateur).</p>
+
+<!-- ─── Statuts ─── -->
+<h2 id="statuts">Statuts des tickets</h2>
+
+<table>
+  <tr><th>Statut</th><th>Signification</th></tr>
+  <tr><td><span class="status status-wait">En attente</span></td><td>Le client attend dans la file, pas encore appelé.</td></tr>
+  <tr><td><span class="status status-called">Appelé</span></td><td>Ticket actuellement appelé à votre guichet — le client est en cours de service.</td></tr>
+  <tr><td><span class="status status-done">Terminé</span></td><td>Service rendu, ticket clôturé.</td></tr>
+  <tr><td><span class="status status-absent">Absent</span></td><td>Client non présent après appel et rappel.</td></tr>
+</table>
+
+<!-- ─── Déconnexion ─── -->
+<h2 id="deconnexion">Se déconnecter</h2>
+
+<p>En fin de service, cliquez sur le bouton <strong>Se déconnecter</strong> (icône en haut à droite ou dans le menu). Cela libère votre guichet et met fin à votre session.</p>
+
+<div class="warn"><strong>Ne fermez pas simplement l'onglet</strong> — Une simple fermeture d'onglet ne déconnecte pas la session. Utilisez toujours le bouton de déconnexion pour sécuriser votre accès.</div>
+
+<h3>En cas de problème</h3>
+
+<table>
+  <tr><th>Symptôme</th><th>À faire</th></tr>
+  <tr><td>La page ne charge pas</td><td>Vérifier la connexion réseau. Demander l'adresse du serveur à l'administrateur.</td></tr>
+  <tr><td>Compte bloqué</td><td>Attendre 15 minutes ou contacter l'administrateur pour réinitialiser.</td></tr>
+  <tr><td>L'annonce vocale ne se déclenche pas</td><td>Vérifier le volume de l'écran Display. Signaler à l'administrateur.</td></tr>
+  <tr><td>Impossible d'appeler (bouton grisé)</td><td>La file de votre service est vide — aucun client n'attend.</td></tr>
+</table>
+
+<div style="margin-top:48px;padding-top:24px;border-top:1px solid var(--border);font-size:.8rem;color:var(--muted)">
+  <strong style="color:var(--gold)">Nouba Pro</strong> — Support technique : <a href="mailto:support@nouba.dz">support@nouba.dz</a><br/>
+  © 2026 Nouba Software. Tous droits réservés.
+</div>
+
+</main>
+</div>
+</body>
+</html>

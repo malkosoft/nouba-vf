@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nouba Pro — Guide d'installation</title>
+<style>
+:root{--gold:#e8b84b;--gold2:#f3d486;--bg:#060d1a;--surface:#0b1426;--surface2:#111d36;--border:rgba(255,255,255,.1);--text:#f0f4fc;--muted:#8fa3c0;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:"Segoe UI",system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+a{color:var(--gold);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:Consolas,monospace;background:rgba(255,255,255,.06);padding:2px 7px;border-radius:5px;font-size:.88em;color:#93c5fd}
+pre{background:#020917;border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0;font-size:.9em;color:#93c5fd}
+
+/* Layout */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto;padding:0 0 32px}
+.content{flex:1;max-width:860px;padding:48px 56px;margin:0 auto}
+@media(max-width:860px){.layout{flex-direction:column}.sidebar{width:100%;height:auto;position:relative}.content{padding:28px 20px}}
+
+/* Sidebar */
+.sb-brand{padding:24px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-brand .logo{width:36px;height:36px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#060d1a}
+.sb-brand .name{font-weight:700;font-size:1rem;color:#fff}
+.sb-brand .sub{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sb-section{padding:16px 16px 4px;font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.sb-link{display:block;padding:8px 20px;font-size:.85rem;color:var(--muted);border-left:3px solid transparent;transition:all .15s}
+.sb-link:hover,.sb-link.active{color:var(--gold);border-left-color:var(--gold);background:rgba(232,184,75,.06);text-decoration:none}
+
+/* Content */
+.doc-header{border-bottom:2px solid rgba(232,184,75,.3);padding-bottom:24px;margin-bottom:40px}
+.doc-header h1{font-size:2rem;font-weight:800;color:#fff}
+.doc-header .meta{font-size:.82rem;color:var(--muted);margin-top:6px}
+h2{font-size:1.35rem;font-weight:700;color:var(--gold);margin:48px 0 16px;padding-top:16px;border-top:1px solid var(--border)}
+h2:first-of-type{border-top:none;margin-top:0}
+h3{font-size:1.05rem;font-weight:700;color:#e2e8f0;margin:28px 0 10px}
+p{margin-bottom:14px;color:#c8d8ec}
+ul,ol{padding-left:22px;margin-bottom:14px;color:#c8d8ec}
+li{margin-bottom:6px}
+strong{color:#e2e8f0}
+
+/* Callouts */
+.tip,.warn,.important,.step{border-radius:var(--radius);padding:14px 18px;margin:18px 0;border-left:4px solid}
+.tip{background:rgba(52,211,153,.06);border-color:var(--success);color:#a7f3d0}
+.tip strong{color:var(--success)}
+.warn{background:rgba(251,191,36,.06);border-color:var(--warn);color:#fde68a}
+.warn strong{color:var(--warn)}
+.important{background:rgba(248,113,113,.06);border-color:var(--danger);color:#fca5a5}
+.important strong{color:var(--danger)}
+
+/* Steps numbered */
+.steps{counter-reset:step;margin:20px 0}
+.step{counter-increment:step;display:flex;gap:16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px}
+.step::before{content:counter(step);min-width:28px;height:28px;border-radius:50%;background:var(--gold);color:#060d1a;font-weight:800;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-body h4{font-size:.95rem;font-weight:700;color:#e2e8f0;margin-bottom:4px}
+.step-body p{margin:0;font-size:.88rem;color:var(--muted)}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.72rem;font-weight:700;text-transform:uppercase}
+.badge-req{background:rgba(248,113,113,.15);color:#f87171}
+.badge-opt{background:rgba(52,211,153,.12);color:#34d399}
+
+/* Table */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.88rem}
+th{background:var(--surface2);color:var(--gold);padding:10px 14px;text-align:left;border-bottom:2px solid var(--border)}
+td{padding:9px 14px;border-bottom:1px solid var(--border);color:#c8d8ec;vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* Print */
+@media print{
+  body{background:#fff;color:#111}
+  .sidebar{display:none}
+  .content{max-width:100%;padding:20px}
+  h2{color:#1e3a5f;border-top:1px solid #ddd}
+  code{background:#f3f4f6;color:#1e3a5f}
+  .tip,.warn,.important{border-left:4px solid #888}
+  a{color:#1e3a5f}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="logo">N</div>
+    <div><div class="name">Nouba Pro</div><div class="sub">Guide d'installation</div></div>
+  </div>
+  <div class="sb-section">Démarrage</div>
+  <a class="sb-link" href="#prerequis">Prérequis</a>
+  <a class="sb-link" href="#installation">Installation</a>
+  <a class="sb-link" href="#premier-demarrage">Premier démarrage</a>
+  <a class="sb-link" href="#reseau">Configuration réseau</a>
+  <div class="sb-section">Postes</div>
+  <a class="sb-link" href="#display">Écran d'affichage (TV)</a>
+  <a class="sb-link" href="#borne">Borne billetterie</a>
+  <a class="sb-link" href="#agent">Poste agent</a>
+  <div class="sb-section">Périphériques</div>
+  <a class="sb-link" href="#imprimante">Imprimante thermique</a>
+  <a class="sb-link" href="#licence">Activation de licence</a>
+  <div class="sb-section">Maintenance</div>
+  <a class="sb-link" href="#sauvegarde">Sauvegardes</a>
+  <a class="sb-link" href="#mise-a-jour">Mise à jour</a>
+  <a class="sb-link" href="#depannage">Dépannage rapide</a>
+  <div style="padding:20px;margin-top:auto;font-size:.75rem;color:var(--muted);border-top:1px solid var(--border)">
+    Voir aussi :<br/>
+    <a href="guide-admin.html">Guide Administrateur</a><br/>
+    <a href="guide-agent.html">Guide Agent</a>
+  </div>
+</aside>
+
+<!-- Content -->
+<main class="content">
+
+<div class="doc-header">
+  <h1>Guide d'installation</h1>
+  <div class="meta">Nouba Pro v1.0.4 &nbsp;·&nbsp; Dernière mise à jour : juin 2026</div>
+</div>
+
+<!-- ─── Prérequis ─── -->
+<h2 id="prerequis">Prérequis système</h2>
+
+<table>
+  <tr><th>Composant</th><th>Minimum requis</th><th>Recommandé</th></tr>
+  <tr><td><strong>Système d'exploitation</strong></td><td>Windows 10 64-bit (v1903+)</td><td>Windows 11 64-bit</td></tr>
+  <tr><td><strong>Processeur</strong></td><td>Dual-core 1.6 GHz</td><td>Quad-core 2.5 GHz</td></tr>
+  <tr><td><strong>Mémoire RAM</strong></td><td>2 Go</td><td>4 Go</td></tr>
+  <tr><td><strong>Espace disque</strong></td><td>500 Mo libres</td><td>2 Go libres</td></tr>
+  <tr><td><strong>Runtime .NET</strong></td><td>.NET 8 Runtime (inclus)</td><td>—</td></tr>
+  <tr><td><strong>Réseau</strong></td><td>Wi-Fi ou Ethernet LAN</td><td>Ethernet 100 Mbps</td></tr>
+</table>
+
+<div class="tip"><strong>Connexion Internet</strong> — Non requise pour le fonctionnement de base (toutes les voix TTS sont embarquées). Utile pour la mise à jour et pour le suivi mobile depuis l'extérieur (voir <a href="guide-admin.html#cloudflare">Cloudflare Tunnel</a>).</div>
+
+<!-- ─── Installation ─── -->
+<h2 id="installation">Installation</h2>
+
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Télécharger l'installateur</h4>
+    <p>Récupérez le fichier <code>NoubaSetup.exe</code> fourni par votre revendeur ou depuis votre espace client.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Lancer l'installateur en tant qu'administrateur</h4>
+    <p>Clic droit sur <code>NoubaSetup.exe</code> → <em>Exécuter en tant qu'administrateur</em>. Suivez l'assistant (dossier d'installation, raccourcis, démarrage avec Windows).</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Autoriser le pare-feu Windows</h4>
+    <p>Au premier démarrage, Windows affiche une alerte de pare-feu. Cochez <strong>Réseaux privés</strong> et cliquez <em>Autoriser l'accès</em> pour que les TV et les postes agents puissent se connecter.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Vérifier le démarrage automatique</h4>
+    <p>Nouba Pro s'installe comme service Windows et démarre automatiquement avec l'ordinateur. Aucune action manuelle n'est nécessaire après un redémarrage.</p>
+  </div></div>
+</div>
+
+<div class="tip"><strong>Emplacement des données</strong> — Les données (base de données, sauvegardes, fichiers) sont stockées dans <code>C:\ProgramData\Nouba\</code>, séparé du dossier d'installation. Elles sont conservées lors d'une mise à jour.</div>
+
+<!-- ─── Premier démarrage ─── -->
+<h2 id="premier-demarrage">Premier démarrage</h2>
+
+<p>Après installation, Nouba Pro est accessible depuis n'importe quel navigateur sur le PC serveur :</p>
+<pre><code>http://localhost:5000</code></pre>
+
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Ouvrir l'interface d'administration</h4>
+    <p>Naviguez vers <code>http://localhost:5000/Admin</code>. Au tout premier démarrage, Nouba affiche le formulaire de <strong>création du compte administrateur</strong>.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Créer le compte fournisseur</h4>
+    <p>Renseignez un nom, un identifiant et un mot de passe. Ce compte aura un accès technique complet (<em>rôle Fournisseur</em>). Conservez ces identifiants en lieu sûr.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Activer la licence</h4>
+    <p>Rendez-vous dans <strong>Admin → Système → Licence</strong> et entrez la clé fournie par Nouba Software. La licence détermine le nombre d'agents autorisés.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Créer les services, guichets et agents</h4>
+    <p>Configurez votre organisation via les onglets <strong>Services</strong>, <strong>Guichets</strong> et <strong>Agents</strong> du panneau d'administration. Consultez le <a href="guide-admin.html">Guide Administrateur</a> pour le détail.</p>
+  </div></div>
+</div>
+
+<!-- ─── Réseau ─── -->
+<h2 id="reseau">Configuration réseau</h2>
+
+<p>Nouba Pro écoute sur le port <strong>5000</strong> de toutes les interfaces réseau (<code>0.0.0.0:5000</code>). Tous les appareils sur le même réseau local peuvent s'y connecter.</p>
+
+<h3>Trouver l'adresse IP du serveur</h3>
+<p>Sur le PC Nouba, ouvrez une invite de commandes et tapez :</p>
+<pre><code>ipconfig</code></pre>
+<p>Notez l'adresse sous <em>Adresse IPv4</em>, par exemple <code>192.168.1.100</code>.</p>
+<p>Tous les appareils (TV, tablettes, postes agents) accèdent ensuite à Nouba via :</p>
+<pre><code>http://192.168.1.100:5000</code></pre>
+
+<div class="warn"><strong>Adresse IP fixe recommandée</strong> — Attribuez une adresse IP statique au PC Nouba dans les paramètres de votre box/routeur (ou dans les propriétés de la carte réseau Windows). Cela évite que l'adresse change après un redémarrage et casse les QR codes et les signets.</div>
+
+<h3>Changer le port (optionnel)</h3>
+<p>Pour utiliser le port 80 (URL sans numéro de port) ou un autre port, modifiez la variable d'environnement <code>NOUBA_URLS</code> dans les propriétés du service Windows :</p>
+<pre><code>NOUBA_URLS=http://0.0.0.0:80</code></pre>
+
+<!-- ─── Display ─── -->
+<h2 id="display">Écran d'affichage (TV)</h2>
+
+<p>L'écran d'affichage est la page publique qui s'affiche sur la TV en salle d'attente. Elle se met à jour en temps réel sans rechargement.</p>
+
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Connecter la TV au réseau</h4>
+    <p>Branchez la TV (ou un PC/mini-PC) sur le même réseau Wi-Fi ou Ethernet que le serveur Nouba.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Ouvrir l'URL Display dans le navigateur de la TV</h4>
+    <pre><code>http://192.168.1.100:5000/Display</code></pre>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Passer en plein écran</h4>
+    <p>Appuyez sur <strong>F11</strong> (ou le bouton plein écran intégré à la page) pour masquer la barre d'adresse. L'écran affichera automatiquement les tickets appelés avec annonce vocale.</p>
+  </div></div>
+</div>
+
+<div class="tip"><strong>TV sans clavier</strong> — Si votre TV a un navigateur intégré (Smart TV), entrez l'URL directement. Sinon, branchez un mini-PC (Raspberry Pi, NUC, clé HDMI…) qui démarrera automatiquement sur la page Display.</div>
+
+<!-- ─── Borne ─── -->
+<h2 id="borne">Borne billetterie</h2>
+
+<p>La borne est l'interface tactile (tablette, écran tactile ou PC) sur laquelle les clients retirent leur ticket.</p>
+
+<pre><code>http://192.168.1.100:5000/Borne</code></pre>
+
+<p>Recommandations :</p>
+<ul>
+  <li>Utilisez un navigateur en mode plein écran (F11 ou mode kiosk).</li>
+  <li>Sur Android/iOS, ajoutez la page à l'écran d'accueil pour un look application.</li>
+  <li>Désactivez le verrouillage d'écran automatique sur la tablette de borne.</li>
+  <li>Activez l'impression de ticket dans <strong>Admin → Paramètres → Imprimante</strong>.</li>
+</ul>
+
+<!-- ─── Poste agent ─── -->
+<h2 id="agent">Poste agent</h2>
+
+<p>Chaque agent accède à son interface depuis son PC, tablette ou smartphone :</p>
+<pre><code>http://192.168.1.100:5000/Agent/Login</code></pre>
+
+<p>Les identifiants agent sont créés par l'administrateur dans <strong>Admin → Agents</strong>.</p>
+
+<!-- ─── Imprimante ─── -->
+<h2 id="imprimante">Imprimante thermique ESC/POS</h2>
+
+<p>Nouba Pro supporte les imprimantes thermiques ESC/POS (tickets de caisse) en deux modes :</p>
+
+<table>
+  <tr><th>Mode</th><th>Connexion</th><th>Usage</th></tr>
+  <tr><td><strong>Réseau (TCP)</strong></td><td>Ethernet / Wi-Fi</td><td>Recommandé — l'imprimante a sa propre IP</td></tr>
+  <tr><td><strong>Série (COM)</strong></td><td>USB ou RS232</td><td>Pour les imprimantes sans carte réseau</td></tr>
+</table>
+
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Connecter l'imprimante au réseau</h4>
+    <p>Pour le mode TCP : reliez l'imprimante au même réseau que Nouba et notez son adresse IP (affiché au démarrage de l'imprimante ou dans son menu réseau). Port standard : <strong>9100</strong>.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Configurer dans l'admin</h4>
+    <p>Allez dans <strong>Admin → Paramètres → Imprimante</strong>. Activez l'impression, choisissez le mode, entrez l'IP et le port, puis cliquez <em>Tester l'imprimante</em>.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Vérifier le mode d'impression</h4>
+    <p><strong>QR Code</strong> : imprime le ticket avec QR code de suivi mobile. <strong>Standard</strong> : imprime le numéro de ticket uniquement.</p>
+  </div></div>
+</div>
+
+<div class="warn"><strong>Imprimante série (COM)</strong> — Vérifiez le numéro de port COM dans le Gestionnaire de périphériques Windows (<code>COM3</code>, <code>COM4</code>…) et le débit en bauds de votre modèle (généralement 115200).</div>
+
+<!-- ─── Licence ─── -->
+<h2 id="licence">Activation de licence</h2>
+
+<p>La licence Nouba Pro détermine le nombre maximal d'agents actifs simultanément. Sans licence valide, le système fonctionne en mode limité.</p>
+
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Ouvrir l'onglet Licence</h4>
+    <p>Dans l'admin (rôle Fournisseur), allez dans <strong>Système → Licence</strong>.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Noter l'identifiant machine</h4>
+    <p>Communiquez l'<strong>Identifiant Machine</strong> affiché à l'équipe Nouba Software pour obtenir votre clé de licence liée à ce poste.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Saisir et valider la clé</h4>
+    <p>Collez la clé de licence reçue dans le champ prévu et cliquez <em>Activer</em>. La page confirmera la date d'expiration et le nombre d'agents autorisés.</p>
+  </div></div>
+</div>
+
+<div class="important"><strong>Licence liée au matériel</strong> — La clé de licence est liée à l'identifiant matériel du PC serveur. En cas de changement de machine, contactez Nouba Software pour une nouvelle clé.</div>
+
+<!-- ─── Sauvegardes ─── -->
+<h2 id="sauvegarde">Sauvegardes automatiques</h2>
+
+<p>Nouba Pro effectue des sauvegardes automatiques quotidiennes de la base de données. Elles sont stockées dans :</p>
+<pre><code>C:\ProgramData\Nouba\backups\nouba_AAAAMMJJ_HHMMSS.db</code></pre>
+
+<p>Les 30 dernières sauvegardes sont conservées. Pour restaurer manuellement :</p>
+<ol>
+  <li>Arrêtez le service Nouba (Gestionnaire de services Windows → <em>Nouba Pro</em> → Arrêter).</li>
+  <li>Remplacez le fichier <code>C:\ProgramData\Nouba\nouba.db</code> par la sauvegarde choisie.</li>
+  <li>Redémarrez le service.</li>
+</ol>
+
+<div class="tip"><strong>Sauvegarde externe</strong> — Configurez une copie régulière du dossier <code>C:\ProgramData\Nouba\backups\</code> vers un NAS ou un disque externe via un script Windows ou un outil de synchronisation (FreeFileSync, robocopy…).</div>
+
+<!-- ─── Mise à jour ─── -->
+<h2 id="mise-a-jour">Mise à jour</h2>
+
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Effectuer une sauvegarde préalable</h4>
+    <p>Dans <strong>Admin → Système → Sauvegardes</strong>, cliquez <em>Sauvegarder maintenant</em> avant toute mise à jour.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Lancer le nouvel installateur</h4>
+    <p>Téléchargez et exécutez le nouveau <code>NoubaSetup.exe</code>. L'installateur arrête le service, met à jour les fichiers programme, et redémarre le service. Les données dans <code>C:\ProgramData\Nouba\</code> ne sont pas touchées.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Vérifier</h4>
+    <p>Ouvrez <code>http://localhost:5000/Admin</code> et vérifiez la version affichée dans la barre latérale.</p>
+  </div></div>
+</div>
+
+<!-- ─── Dépannage ─── -->
+<h2 id="depannage">Dépannage rapide</h2>
+
+<table>
+  <tr><th>Problème</th><th>Solution</th></tr>
+  <tr><td>Page inaccessible depuis la TV</td><td>Vérifier que le PC Nouba et la TV sont sur le même réseau. Vérifier l'autorisation pare-feu Windows pour Nouba.</td></tr>
+  <tr><td>Le service ne démarre pas</td><td>Consulter l'Observateur d'événements Windows (Source : Nouba). Vérifier que .NET 8 est installé.</td></tr>
+  <tr><td>Imprimante ne répond pas</td><td>Pinger l'IP de l'imprimante depuis cmd. Vérifier que le port 9100 n'est pas bloqué par un pare-feu.</td></tr>
+  <tr><td>Base de données corrompue</td><td>Arrêter le service, restaurer la dernière sauvegarde depuis <code>C:\ProgramData\Nouba\backups\</code>, redémarrer.</td></tr>
+  <tr><td>Disque plein</td><td>Supprimer les anciennes sauvegardes dans <code>C:\ProgramData\Nouba\backups\</code>. Libérer de l'espace disque. Le tableau de bord admin affiche une alerte quand l'espace est inférieur à 5 %.</td></tr>
+  <tr><td>Voix TTS muette</td><td>Vérifier que le volume du PC n'est pas coupé. Dans Admin → Paramètres → Annonces, vérifier que les voix sont activées et que les modèles Piper sont présents (<code>wwwroot/tts/piper/</code>).</td></tr>
+</table>
+
+<div style="margin-top:48px;padding-top:24px;border-top:1px solid var(--border);font-size:.8rem;color:var(--muted)">
+  <strong style="color:var(--gold)">Nouba Pro</strong> — Support technique : <a href="mailto:support@nouba.dz">support@nouba.dz</a><br/>
+  © 2026 Nouba Software. Tous droits réservés.
+</div>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nouba Pro — Guide Administrateur</title>
+<style>
+:root{--gold:#e8b84b;--gold2:#f3d486;--bg:#060d1a;--surface:#0b1426;--surface2:#111d36;--border:rgba(255,255,255,.1);--text:#f0f4fc;--muted:#8fa3c0;--success:#34d399;--warn:#fbbf24;--danger:#f87171;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:"Segoe UI",system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+a{color:var(--gold);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:Consolas,monospace;background:rgba(255,255,255,.06);padding:2px 7px;border-radius:5px;font-size:.88em;color:#93c5fd}
+pre{background:#020917;border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0;color:#93c5fd}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto;padding:0 0 32px}
+.content{flex:1;max-width:860px;padding:48px 56px;margin:0 auto}
+@media(max-width:860px){.layout{flex-direction:column}.sidebar{width:100%;height:auto;position:relative}.content{padding:28px 20px}}
+.sb-brand{padding:24px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-brand .logo{width:36px;height:36px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#060d1a}
+.sb-brand .name{font-weight:700;font-size:1rem;color:#fff}
+.sb-brand .sub{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sb-section{padding:14px 16px 4px;font-size:.63rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.sb-link{display:block;padding:7px 20px;font-size:.83rem;color:var(--muted);border-left:3px solid transparent;transition:all .15s}
+.sb-link:hover{color:var(--gold);border-left-color:var(--gold);background:rgba(232,184,75,.06);text-decoration:none}
+.doc-header{border-bottom:2px solid rgba(232,184,75,.3);padding-bottom:24px;margin-bottom:40px}
+.doc-header h1{font-size:2rem;font-weight:800;color:#fff}
+.doc-header .meta{font-size:.82rem;color:var(--muted);margin-top:6px}
+h2{font-size:1.3rem;font-weight:700;color:var(--gold);margin:48px 0 14px;padding-top:16px;border-top:1px solid var(--border)}
+h2:first-of-type{border-top:none;margin-top:0}
+h3{font-size:1.02rem;font-weight:700;color:#e2e8f0;margin:24px 0 10px}
+p{margin-bottom:14px;color:#c8d8ec}
+ul,ol{padding-left:22px;margin-bottom:14px;color:#c8d8ec}
+li{margin-bottom:6px}
+strong{color:#e2e8f0}
+.tip,.warn,.important,.note{border-radius:var(--radius);padding:14px 18px;margin:16px 0;border-left:4px solid}
+.tip{background:rgba(52,211,153,.06);border-color:var(--success);color:#a7f3d0}
+.tip strong{color:var(--success)}
+.warn{background:rgba(251,191,36,.07);border-color:var(--warn);color:#fde68a}
+.warn strong{color:var(--warn)}
+.important{background:rgba(248,113,113,.06);border-color:var(--danger);color:#fca5a5}
+.important strong{color:var(--danger)}
+.note{background:rgba(147,197,253,.06);border-color:#93c5fd;color:#bfdbfe}
+.note strong{color:#93c5fd}
+.steps{counter-reset:step;margin:20px 0}
+.step{counter-increment:step;display:flex;gap:16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px}
+.step::before{content:counter(step);min-width:28px;height:28px;border-radius:50%;background:var(--gold);color:#060d1a;font-weight:800;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-body h4{font-size:.95rem;font-weight:700;color:#e2e8f0;margin-bottom:4px}
+.step-body p{margin:0;font-size:.88rem;color:var(--muted)}
+.step-body pre{margin:8px 0 0}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.88rem}
+th{background:var(--surface2);color:var(--gold);padding:9px 14px;text-align:left;border-bottom:2px solid var(--border)}
+td{padding:9px 14px;border-bottom:1px solid var(--border);color:#c8d8ec;vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.02)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.card h4{font-size:.9rem;font-weight:700;color:var(--gold);margin-bottom:6px}
+.card p{margin:0;font-size:.84rem;color:var(--muted)}
+
+/* Tunnel highlight */
+.tunnel-box{background:linear-gradient(135deg,rgba(14,116,144,.12),rgba(79,70,229,.08));border:1px solid rgba(14,116,144,.4);border-radius:var(--radius);padding:24px;margin:20px 0}
+.tunnel-box h3{color:#38bdf8;margin-top:0}
+.tunnel-box code{color:#7dd3fc}
+
+@media print{
+  body{background:#fff;color:#111}
+  .sidebar{display:none}
+  .content{max-width:100%;padding:20px}
+  h2{color:#1e3a5f;border-top:1px solid #ddd}
+  code{background:#f3f4f6;color:#1e3a5f}
+  pre{background:#f8fafc;border:1px solid #ddd}
+  pre code{color:#1e3a5f}
+  .tip,.warn,.important,.note{border-left:4px solid #888;background:#f8fafc}
+  a{color:#1e3a5f}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="logo">N</div>
+    <div><div class="name">Nouba Pro</div><div class="sub">Guide Administrateur</div></div>
+  </div>
+  <div class="sb-section">Interface</div>
+  <a class="sb-link" href="#connexion">Connexion admin</a>
+  <a class="sb-link" href="#dashboard">Tableau de bord</a>
+  <a class="sb-link" href="#onglets">Onglets disponibles</a>
+  <div class="sb-section">Configuration</div>
+  <a class="sb-link" href="#services">Services</a>
+  <a class="sb-link" href="#guichets">Guichets</a>
+  <a class="sb-link" href="#agents">Agents</a>
+  <div class="sb-section">Paramètres</div>
+  <a class="sb-link" href="#display-settings">Écran Display (TV)</a>
+  <a class="sb-link" href="#borne-settings">Borne billetterie</a>
+  <a class="sb-link" href="#tts">Annonces vocales</a>
+  <a class="sb-link" href="#imprimante-settings">Imprimante</a>
+  <div class="sb-section">Suivi mobile</div>
+  <a class="sb-link" href="#qr">QR code & suivi</a>
+  <a class="sb-link" href="#cloudflare">Accès depuis internet</a>
+  <div class="sb-section">Système</div>
+  <a class="sb-link" href="#sauvegardes">Sauvegardes</a>
+  <a class="sb-link" href="#export">Export statistiques</a>
+  <a class="sb-link" href="#comptes">Comptes admin</a>
+  <a class="sb-link" href="#alertes">Alertes système</a>
+  <div class="sb-section">Référence</div>
+  <a class="sb-link" href="#faq">Questions fréquentes</a>
+  <div style="padding:20px;margin-top:auto;font-size:.75rem;color:var(--muted);border-top:1px solid var(--border)">
+    Voir aussi :<br/>
+    <a href="guide-installation.html">Guide d'installation</a><br/>
+    <a href="guide-agent.html">Guide Agent</a>
+  </div>
+</aside>
+
+<main class="content">
+
+<div class="doc-header">
+  <h1>Guide Administrateur</h1>
+  <div class="meta">Nouba Pro v1.0.4 &nbsp;·&nbsp; Dernière mise à jour : juin 2026</div>
+</div>
+
+<!-- ─── Connexion ─── -->
+<h2 id="connexion">Connexion administrateur</h2>
+
+<p>L'interface d'administration est accessible depuis n'importe quel navigateur sur le réseau :</p>
+<pre><code>http://[adresse-serveur]:5000/Admin</code></pre>
+
+<p>Il existe deux niveaux de compte admin :</p>
+<div class="grid2">
+  <div class="card">
+    <h4>Rôle Fournisseur</h4>
+    <p>Accès complet — configuration technique, licence, diagnostics, gestion des comptes admin. Créé lors de l'installation initiale.</p>
+  </div>
+  <div class="card">
+    <h4>Rôle Client</h4>
+    <p>Accès opérationnel — services, agents, paramètres d'affichage, statistiques. Compte créé par le fournisseur pour le responsable de l'établissement.</p>
+  </div>
+</div>
+
+<div class="warn"><strong>Sécurité</strong> — Après 5 tentatives de connexion échouées, l'accès est verrouillé 15 minutes. Utilisez un mot de passe fort pour le compte administrateur.</div>
+
+<!-- ─── Dashboard ─── -->
+<h2 id="dashboard">Tableau de bord</h2>
+
+<p>Le tableau de bord s'affiche dès la connexion et présente en temps réel :</p>
+<ul>
+  <li><strong>KPIs du jour</strong> — tickets émis, en attente, servis, absents, temps d'attente moyen.</li>
+  <li><strong>Comparaison J-1</strong> — évolution par rapport à la veille.</li>
+  <li><strong>Volume horaire</strong> — graphique de répartition des tickets sur la journée.</li>
+  <li><strong>Pic d'activité</strong> — heure la plus chargée de la journée.</li>
+  <li><strong>Performance par service</strong> — tableau de bord par service.</li>
+  <li><strong>Performance par agent</strong> — nombre d'appels et tickets servis par agent.</li>
+  <li><strong>Derniers appels</strong> — historique des 20 dernières annonces.</li>
+</ul>
+
+<div class="tip"><strong>Actualisation</strong> — Cliquez sur <em>Actualiser</em> (haut de page) pour recharger les statistiques. Le tableau de bord n'est pas temps réel : les chiffres correspondent au moment du dernier chargement.</div>
+
+<!-- ─── Onglets ─── -->
+<h2 id="onglets">Onglets disponibles</h2>
+
+<table>
+  <tr><th>Onglet</th><th>Contenu</th><th>Rôle requis</th></tr>
+  <tr><td><strong>Tableau de bord</strong></td><td>KPIs et statistiques du jour</td><td>Client + Fournisseur</td></tr>
+  <tr><td><strong>Services</strong></td><td>Créer/modifier les services de la file</td><td>Client + Fournisseur</td></tr>
+  <tr><td><strong>Guichets</strong></td><td>Gérer les guichets et leur affectation</td><td>Client + Fournisseur</td></tr>
+  <tr><td><strong>Agents</strong></td><td>Créer/modifier les comptes agents</td><td>Client + Fournisseur</td></tr>
+  <tr><td><strong>Paramètres</strong></td><td>Apparence, borne, TTS, imprimante, QR</td><td>Client + Fournisseur</td></tr>
+  <tr><td><strong>Système</strong></td><td>Sauvegardes, licence, diagnostics, comptes admin</td><td>Fournisseur uniquement</td></tr>
+  <tr><td><strong>Imprimante</strong></td><td>Config et test imprimante thermique</td><td>Fournisseur uniquement</td></tr>
+</table>
+
+<!-- ─── Services ─── -->
+<h2 id="services">Gérer les services</h2>
+
+<p>Un <strong>service</strong> représente un type de prestation (Accueil, Consultation, Paiement…). Chaque service a sa propre file de tickets.</p>
+
+<h3>Créer un service</h3>
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Aller dans l'onglet Services</h4>
+    <p>Cliquez sur <em>Ajouter un service</em>.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Remplir les informations</h4>
+    <p><strong>Nom</strong> (affiché sur la TV et la borne), <strong>Code</strong> (1-3 lettres, préfixe du numéro de ticket : "A" → A001, A002…), <strong>Couleur</strong> (bouton de la borne), <strong>Ordre d'affichage</strong>.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Noms multilingues (optionnel)</h4>
+    <p>Renseignez les noms en arabe, anglais et tamazight si votre borne est multilingue.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Activer le service</h4>
+    <p>Cochez <em>Actif</em> pour que le service apparaisse sur la borne. Un service inactif est masqué mais ses données sont conservées.</p>
+  </div></div>
+</div>
+
+<div class="warn"><strong>Code unique</strong> — Le code du service (ex. "A", "C", "P") doit être unique. Il ne peut pas être modifié après création car il fait partie des numéros de tickets déjà imprimés.</div>
+
+<!-- ─── Guichets ─── -->
+<h2 id="guichets">Gérer les guichets</h2>
+
+<p>Un <strong>guichet</strong> est le poste physique où un agent reçoit les clients. Chaque guichet est associé à un service.</p>
+
+<table>
+  <tr><th>Champ</th><th>Description</th></tr>
+  <tr><td><strong>Nom</strong></td><td>Ex. "Guichet 1", "Bureau 3"… Affiché sur la TV lors de l'appel.</td></tr>
+  <tr><td><strong>Service</strong></td><td>Le service que traite ce guichet. Un agent affecté à ce guichet ne traitera que les tickets de ce service.</td></tr>
+  <tr><td><strong>Actif</strong></td><td>Un guichet inactif n'est pas proposé lors de l'affectation des agents.</td></tr>
+</table>
+
+<!-- ─── Agents ─── -->
+<h2 id="agents">Gérer les agents</h2>
+
+<p>Un <strong>agent</strong> est un utilisateur qui se connecte à l'interface d'appel pour gérer sa file.</p>
+
+<h3>Créer un agent</h3>
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Onglet Agents → Ajouter un agent</h4>
+    <p>Renseignez le nom complet, l'identifiant de connexion et un mot de passe provisoire.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Affecter un guichet et un service</h4>
+    <p>Choisissez le guichet et le service correspondant. Un agent peut être réaffecté à tout moment.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Activer le compte</h4>
+    <p>Cochez <em>Compte actif</em>. Un compte inactif ne peut pas se connecter. Le nombre de comptes actifs est limité par votre licence.</p>
+  </div></div>
+</div>
+
+<div class="note"><strong>Limite de licence</strong> — Le nombre d'agents actifs simultanément est plafonné par la licence. Vous pouvez avoir autant de comptes inactifs que vous souhaitez.</div>
+
+<!-- ─── Display settings ─── -->
+<h2 id="display-settings">Paramètres — Écran Display (TV)</h2>
+
+<p>Ces paramètres contrôlent l'apparence de l'écran d'affichage visible par les clients en salle d'attente.</p>
+
+<table>
+  <tr><th>Paramètre</th><th>Description</th></tr>
+  <tr><td><strong>Titre / Sous-titre</strong></td><td>Texte affiché en haut de l'écran TV (nom de l'établissement, slogan…). Disponible en 4 langues.</td></tr>
+  <tr><td><strong>Logo</strong></td><td>URL ou image uploadée affichée en haut à gauche.</td></tr>
+  <tr><td><strong>Bandeau bas</strong></td><td>Message défilant ou fixe en bas de l'écran (horaires, messages d'information…).</td></tr>
+  <tr><td><strong>Couleurs</strong></td><td>Couleur principale, couleur des cartes tickets, couleur de l'historique.</td></tr>
+  <tr><td><strong>Disposition</strong></td><td>Standard (appels + historique côte à côte) ou autres mises en page.</td></tr>
+  <tr><td><strong>Fond</strong></td><td>Image ou vidéo d'arrière-plan (URL ou upload).</td></tr>
+  <tr><td><strong>QR général</strong></td><td>Afficher un QR code fixe sur l'écran TV pour accéder à la page de saisie de suivi.</td></tr>
+</table>
+
+<!-- ─── Borne settings ─── -->
+<h2 id="borne-settings">Paramètres — Borne billetterie</h2>
+
+<table>
+  <tr><th>Paramètre</th><th>Description</th></tr>
+  <tr><td><strong>Titre / Sous-titre</strong></td><td>Message d'accueil affiché sur la borne.</td></tr>
+  <tr><td><strong>Langues disponibles</strong></td><td>Langues proposées au client (fr, ar, en, tz). Décocher pour masquer.</td></tr>
+  <tr><td><strong>Langue par défaut</strong></td><td>Langue affichée en premier à l'ouverture de la borne.</td></tr>
+  <tr><td><strong>Tickets prioritaires</strong></td><td>Activer/désactiver l'option priorité sur la borne.</td></tr>
+  <tr><td><strong>Retour automatique</strong></td><td>Délai (secondes) avant retour à l'accueil après émission d'un ticket. 0 = désactivé.</td></tr>
+</table>
+
+<!-- ─── TTS ─── -->
+<h2 id="tts">Paramètres — Annonces vocales (TTS)</h2>
+
+<p>Nouba Pro utilise le moteur vocal <strong>Piper TTS</strong> embarqué (aucune connexion internet requise) pour annoncer les tickets en arabe, français, anglais et tamazight.</p>
+
+<table>
+  <tr><th>Paramètre</th><th>Description</th></tr>
+  <tr><td><strong>Activer les annonces</strong></td><td>Cocher pour que chaque appel déclenche une annonce audio sur la TV Display.</td></tr>
+  <tr><td><strong>Son de notification</strong></td><td>Son joué avant l'annonce ("dong", "bip", "gong"…). Testable depuis l'admin.</td></tr>
+  <tr><td><strong>Durée du son</strong></td><td>Durée en ms du son de notification avant la voix.</td></tr>
+</table>
+
+<div class="tip"><strong>Pré-chauffe automatique</strong> — La première annonce après un redémarrage peut prendre 1-2 secondes de plus (la voix Piper se charge en mémoire). Les annonces suivantes sont instantanées grâce au cache.</div>
+
+<!-- ─── Imprimante ─── -->
+<h2 id="imprimante-settings">Paramètres — Imprimante thermique</h2>
+
+<p>Accessible dans <strong>Paramètres → Imprimante</strong> (rôle Fournisseur) ou dans l'onglet <strong>Imprimante</strong> dédié.</p>
+
+<table>
+  <tr><th>Paramètre</th><th>Description</th></tr>
+  <tr><td><strong>Activer l'impression</strong></td><td>Si désactivé, la borne ne propose pas d'imprimer le ticket.</td></tr>
+  <tr><td><strong>Mode</strong></td><td><strong>QR Code</strong> : ticket avec QR de suivi mobile. <strong>Standard</strong> : numéro de ticket uniquement.</td></tr>
+  <tr><td><strong>Connexion</strong></td><td>TCP (réseau) ou Série (COM). Voir <a href="guide-installation.html#imprimante">Guide d'installation</a>.</td></tr>
+  <tr><td><strong>Adresse IP / Port</strong></td><td>Pour le mode TCP. Port par défaut : 9100.</td></tr>
+  <tr><td><strong>Port COM / Baud</strong></td><td>Pour le mode série. Vérifier dans le Gestionnaire de périphériques Windows.</td></tr>
+  <tr><td><strong>Coupe automatique</strong></td><td>Couper le papier après chaque ticket (si l'imprimante le supporte).</td></tr>
+  <tr><td><strong>Bip d'alerte</strong></td><td>Bip sonore si l'imprimante devient hors ligne.</td></tr>
+</table>
+
+<!-- ─── QR Code ─── -->
+<h2 id="qr">Suivi de ticket par QR code</h2>
+
+<p>La fonctionnalité de suivi permet au client de scanner le QR code imprimé sur son ticket et de suivre sa position dans la file depuis son smartphone.</p>
+
+<h3>Activer le suivi QR</h3>
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Paramètres → Suivi mobile → Activer</h4>
+    <p>Cochez <em>Activer le suivi de ticket par QR code</em>. Les QR codes apparaissent sur les tickets imprimés et en confirmation sur la borne.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Activer le mode d'impression QR</h4>
+    <p>Dans <strong>Paramètres → Imprimante → Mode</strong>, sélectionnez <em>QR Code</em>. Chaque ticket imprimé contiendra un QR code unique.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Tester depuis un smartphone</h4>
+    <p>Demandez un ticket sur la borne, imprimez-le, puis scannez le QR code depuis votre téléphone. Vous devez voir l'état du ticket en temps réel.</p>
+  </div></div>
+</div>
+
+<h3>Comment ça fonctionne</h3>
+<p>Chaque ticket reçoit un <strong>code public unique de 8 caractères</strong> (ex. <code>X7KP2MQ4</code>) généré aléatoirement. Le QR code pointe vers :</p>
+<pre><code>http://[serveur]:5000/suivi/X7KP2MQ4</code></pre>
+<p>Le téléphone du client rafraîchit l'état toutes les 5 secondes. Il voit sa position dans la file, le guichet auquel se présenter, et une notification visuelle quand son ticket est appelé.</p>
+
+<div class="note"><strong>Sur le même réseau Wi-Fi</strong> — Si votre borne et vos clients sont sur le même Wi-Fi que le PC Nouba, le suivi fonctionne automatiquement sans configuration supplémentaire.</div>
+
+<!-- ─── Cloudflare ─── -->
+<h2 id="cloudflare">Suivi depuis l'extérieur — Cloudflare Tunnel</h2>
+
+<div class="tunnel-box">
+  <h3>Pourquoi Cloudflare Tunnel ?</h3>
+  <p style="color:#bae6fd;margin-bottom:0">Le QR code contient l'adresse locale du serveur (<code>192.168.x.x</code>). Un client sur 4G ne peut pas l'atteindre. <strong>Cloudflare Tunnel</strong> crée un pont sécurisé entre internet et votre PC Nouba — sans ouvrir de port sur votre routeur, sans IP fixe.</p>
+</div>
+
+<div class="steps">
+  <div class="step"><div class="step-body">
+    <h4>Télécharger cloudflared</h4>
+    <p>Sur le PC Nouba, téléchargez <code>cloudflared-windows-amd64.exe</code> depuis :</p>
+    <pre><code>https://github.com/cloudflare/cloudflared/releases/latest</code></pre>
+    <p>Renommez-le <code>cloudflared.exe</code> et placez-le dans <code>C:\Nouba\</code> ou sur le Bureau.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Lancer le tunnel</h4>
+    <p>Ouvrez une invite de commandes dans le dossier où se trouve <code>cloudflared.exe</code> et tapez :</p>
+    <pre><code>cloudflared tunnel --url http://localhost:5000</code></pre>
+    <p>Après quelques secondes, une URL publique s'affiche dans la console, du type :</p>
+    <pre><code>https://abcd1234.trycloudflare.com</code></pre>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Copier l'URL dans les paramètres Nouba</h4>
+    <p>Dans <strong>Admin → Paramètres → Suivi mobile → URL publique de suivi</strong>, collez l'URL (sans slash final) :</p>
+    <pre><code>https://abcd1234.trycloudflare.com</code></pre>
+    <p>Enregistrez. Les QR codes générés ensuite pointeront vers cette URL publique.</p>
+  </div></div>
+  <div class="step"><div class="step-body">
+    <h4>Tester depuis un smartphone en 4G</h4>
+    <p>Désactivez le Wi-Fi du téléphone (passez en 4G), demandez un ticket sur la borne et scannez le QR code. Le suivi doit fonctionner depuis n'importe quel réseau.</p>
+  </div></div>
+</div>
+
+<div class="warn">
+  <strong>URL temporaire</strong> — Sans compte Cloudflare, l'URL change à chaque redémarrage de <code>cloudflared</code>. Pour une URL fixe :
+  <ol style="margin-top:8px;margin-bottom:0;color:#fde68a">
+    <li>Créez un compte gratuit sur <a href="https://cloudflare.com" style="color:#fbbf24">cloudflare.com</a> et ajoutez un domaine.</li>
+    <li>Dans le tableau de bord Cloudflare → <em>Zero Trust → Networks → Tunnels</em>, créez un tunnel nommé et copiez la commande de connexion.</li>
+    <li>Configurez le tunnel pour pointer vers <code>http://localhost:5000</code>.</li>
+    <li>Votre URL fixe sera par exemple <code>https://suivi.votre-domaine.com</code>.</li>
+  </ol>
+</div>
+
+<h3>Démarrage automatique du tunnel</h3>
+<p>Pour que Cloudflare démarre avec Windows, installez-le comme service :</p>
+<pre><code>cloudflared service install</code></pre>
+<p>Le tunnel démarrera automatiquement à chaque démarrage du PC, avant même la connexion utilisateur.</p>
+
+<div class="tip"><strong>Alternative</strong> — Si votre routeur le permet, la <strong>redirection de port</strong> (port 5000 → PC Nouba) est plus simple et ne nécessite aucun logiciel tiers. Demandez à votre technicien réseau.</div>
+
+<!-- ─── Sauvegardes ─── -->
+<h2 id="sauvegardes">Sauvegardes</h2>
+
+<p>Accessible dans <strong>Admin → Système → Sauvegardes</strong> (rôle Fournisseur).</p>
+
+<h3>Sauvegarde manuelle</h3>
+<p>Cliquez sur <em>Sauvegarder maintenant</em>. Un fichier <code>nouba_AAAAMMJJ_HHMMSS.db</code> est créé dans <code>C:\ProgramData\Nouba\backups\</code>.</p>
+
+<h3>Sauvegarde automatique</h3>
+<p>Nouba Pro effectue une sauvegarde quotidienne automatique. Les 30 derniers fichiers sont conservés, les plus anciens sont supprimés automatiquement.</p>
+
+<h3>Restauration</h3>
+<ol>
+  <li>Arrêtez le service Nouba (Gestionnaire de services Windows).</li>
+  <li>Remplacez <code>C:\ProgramData\Nouba\nouba.db</code> par le fichier de sauvegarde.</li>
+  <li>Redémarrez le service.</li>
+</ol>
+
+<div class="important"><strong>Avant toute mise à jour</strong> — Effectuez toujours une sauvegarde manuelle avant de mettre à jour Nouba Pro, même si la mise à jour est automatique.</div>
+
+<!-- ─── Export ─── -->
+<h2 id="export">Export statistiques CSV</h2>
+
+<p>Le bouton <strong>Export CSV</strong> (haut du tableau de bord) génère un fichier Excel-compatible contenant :</p>
+<ul>
+  <li>Tous les tickets de la journée (numéro, service, statut, heure de création, heure d'appel).</li>
+  <li>L'historique des appels (ticket, guichet, agent, heure).</li>
+  <li>Les statistiques par service et par agent.</li>
+</ul>
+
+<p>Le fichier est nommé <code>nouba_stats_AAAA-MM-JJ.csv</code>. Ouvrez-le avec Excel ou LibreOffice Calc.</p>
+
+<!-- ─── Comptes admin ─── -->
+<h2 id="comptes">Gérer les comptes administrateurs</h2>
+
+<p>Accessible dans <strong>Système → Comptes Admin</strong> (rôle Fournisseur uniquement).</p>
+
+<p>Il est recommandé de créer <strong>un compte de type Client</strong> pour le responsable de l'établissement. Ce compte a accès aux fonctions opérationnelles (services, agents, paramètres) mais pas aux fonctions techniques (licence, diagnostics).</p>
+
+<table>
+  <tr><th>Action</th><th>Comment</th></tr>
+  <tr><td>Créer un compte Client</td><td>Onglet Système → Comptes Admin → Nouveau compte → Rôle : Client</td></tr>
+  <tr><td>Changer le mot de passe</td><td>Sélectionner le compte → Modifier le mot de passe</td></tr>
+  <tr><td>Désactiver un compte</td><td>Décocher <em>Compte actif</em> — le compte ne peut plus se connecter mais son historique est conservé.</td></tr>
+</table>
+
+<!-- ─── Alertes système ─── -->
+<h2 id="alertes">Alertes système</h2>
+
+<p>Le tableau de bord affiche automatiquement une bannière d'alerte dans deux cas :</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4 style="color:var(--warn)">Disque presque plein</h4>
+    <p>Affiché si l'espace libre est inférieur à 500 Mo ou à 5 % du disque. Libérez de l'espace ou supprimez d'anciennes sauvegardes.</p>
+  </div>
+  <div class="card">
+    <h4 style="color:var(--danger)">Base de données inaccessible</h4>
+    <p>Affiché si SQLite ne répond pas. Vérifiez l'intégrité du disque et restaurez la dernière sauvegarde si nécessaire.</p>
+  </div>
+</div>
+
+<p>L'endpoint <code>/health</code> retourne également l'état du système en JSON (utile pour un monitoring externe) :</p>
+<pre><code>GET http://[serveur]:5000/health
+
+{
+  "status": "ok",
+  "version": "1.0.4",
+  "uptime_seconds": 86400,
+  "db": { "ok": true },
+  "disk": { "free_mb": 15000, "total_mb": 500000, "warn": false }
+}</code></pre>
+
+<!-- ─── FAQ ─── -->
+<h2 id="faq">Questions fréquentes</h2>
+
+<h3>Comment changer la langue de la borne ?</h3>
+<p>Allez dans <strong>Paramètres → Borne</strong>. Décochez les langues à masquer et définissez la langue par défaut. Les clients verront un sélecteur de langue si plusieurs sont activées.</p>
+
+<h3>Un agent peut-il gérer plusieurs services ?</h3>
+<p>Non — un agent est affecté à un service et un guichet. Pour qu'un agent traite plusieurs services, créez-lui plusieurs comptes ou réaffectez-le entre les services selon les besoins.</p>
+
+<h3>Comment réinitialiser la file en début de journée ?</h3>
+<p>La numérotation repart automatiquement à 001 chaque jour. Les tickets du jour précédent sont conservés dans la base pour les statistiques.</p>
+
+<h3>L'écran TV affiche les anciens tickets de la veille</h3>
+<p>L'écran Display n'affiche que les tickets <em>appelés</em> du jour en cours. Si vous voyez des tickets d'hier, vérifiez que l'horloge du PC serveur est correcte.</p>
+
+<h3>Comment savoir si l'imprimante est en ligne ?</h3>
+<p>Le widget imprimante dans la barre du haut (rôle Fournisseur) affiche un point vert (en ligne) ou rouge (hors ligne). Cliquez dessus pour accéder à la configuration.</p>
+
+<h3>Comment ajouter un logo sur les tickets imprimés ?</h3>
+<p>Allez dans <strong>Paramètres → Imprimante → Logo</strong> et uploadez une image BMP monochrome (les imprimantes ESC/POS n'impriment pas en couleur).</p>
+
+<h3>Les annonces vocales ne s'entendent pas</h3>
+<p>Vérifiez le volume du PC sur lequel tourne l'écran Display (pas le serveur Nouba, mais le PC branché à la TV). L'annonce est émise par le navigateur de ce PC.</p>
+
+<h3>Comment accéder à Nouba depuis un autre bâtiment ?</h3>
+<p>Si les deux bâtiments sont sur le même réseau (VPN ou MPLS), l'accès est direct via l'IP du serveur. Sinon, configurez un tunnel Cloudflare (voir <a href="#cloudflare">section ci-dessus</a>) ou une redirection de port sur votre routeur.</p>
+
+<h3>Comment voir les statistiques du mois ?</h3>
+<p>Utilisez l'<strong>export CSV</strong> quotidien et consolidez les fichiers dans Excel. Une future version intégrera des statistiques mensuelles directement dans l'admin.</p>
+
+<div style="margin-top:48px;padding-top:24px;border-top:1px solid var(--border);font-size:.8rem;color:var(--muted)">
+  <strong style="color:var(--gold)">Nouba Pro</strong> — Support technique : <a href="mailto:support@nouba.dz">support@nouba.dz</a><br/>
+  © 2026 Nouba Software. Tous droits réservés.
+</div>
+
+</main>
+</div>
+</body>
+</html>
