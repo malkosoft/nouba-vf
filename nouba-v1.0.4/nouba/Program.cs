@@ -283,3 +283,6 @@ _ = Task.Run(async () =>
 });
 
 app.Run();
+
+// Rend la classe Program accessible aux tests d'intégration (WebApplicationFactory)
+public partial class Program { }
