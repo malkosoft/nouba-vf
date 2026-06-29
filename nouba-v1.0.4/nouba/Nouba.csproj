@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Nouba</AssemblyName>
     <RootNamespace>Nouba</RootNamespace>
+    <ApplicationIcon>nouba.ico</ApplicationIcon>
 
     <!-- Métadonnées du produit (visibles dans les propriétés du fichier .exe Windows) -->
     <Product>Nouba Pro</Product>

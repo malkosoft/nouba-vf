@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using Nouba.Infrastructure;
 
 namespace Nouba.Services;
 
@@ -93,16 +94,30 @@ public sealed class PiperTtsService
     private readonly Dictionary<string, bool> _synthesisProbeCache = new(StringComparer.OrdinalIgnoreCase);
     private int _warmedUp;
 
-    public PiperTtsService(ILogger<PiperTtsService> logger, IWebHostEnvironment env)
+    public PiperTtsService(ILogger<PiperTtsService> logger, IWebHostEnvironment env, AppStoragePaths storagePaths)
     {
         _logger = logger;
         var webRoot = !string.IsNullOrEmpty(env.WebRootPath)
             ? env.WebRootPath
             : Path.Combine(env.ContentRootPath, "wwwroot");
 
+        // Les modèles + piper.exe sont lus depuis wwwroot (lecture seule OK).
         _piperDir = Path.Combine(webRoot, "tts", "piper");
-        _cacheDir = Path.Combine(webRoot, "tts", "cache");
-        try { Directory.CreateDirectory(_cacheDir); } catch { }
+
+        // CORRECTIF CRITIQUE : le cache TTS (où Piper ÉCRIT le WAV généré) doit
+        // être dans un dossier accessible en ÉCRITURE. En installation
+        // « Program Files », wwwroot est en lecture seule pour un utilisateur
+        // standard → Piper ne pouvait pas écrire son fichier de sortie et le
+        // logiciel basculait sur la voix du navigateur. On écrit donc le cache
+        // dans le DataRoot (ex. C:\ProgramData\Nouba), toujours accessible.
+        var cacheDir = Path.Combine(storagePaths.DataRoot, "tts-cache");
+        try { Directory.CreateDirectory(cacheDir); }
+        catch
+        {
+            cacheDir = Path.Combine(Path.GetTempPath(), "nouba-tts-cache");
+            try { Directory.CreateDirectory(cacheDir); } catch { }
+        }
+        _cacheDir = cacheDir;
     }
 
     /// <summary>
