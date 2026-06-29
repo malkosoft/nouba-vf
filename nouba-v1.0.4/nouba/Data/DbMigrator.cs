@@ -35,7 +35,7 @@ public static class DbMigrator
                 ("ShowCallTimeOnDisplay", "INTEGER", "1"),
                 ("DisplayHistoryRows", "INTEGER", "5"),
                 ("DisplayLayout", "TEXT", "'standard'"),
-                ("VoiceRepeatCount", "INTEGER", "2"),
+                ("VoiceRepeatCount", "INTEGER", "1"),
                 ("VoiceRate", "REAL", "0.9"),
                 ("VoicePitch", "REAL", "1.0"),
                 ("VoiceVolume", "REAL", "1.0"),

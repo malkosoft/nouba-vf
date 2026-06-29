@@ -131,7 +131,7 @@ public class AppDbContext : DbContext
                 ThemePreset = "hopital",
                 DefaultLanguage = "fr",
                 VoiceGender = "female",
-                VoiceRepeatCount = 2,
+                VoiceRepeatCount = 1,
                 VoiceRate = 0.90,
                 VoicePitch = 1.0,
                 VoiceVolume = 1.0,
