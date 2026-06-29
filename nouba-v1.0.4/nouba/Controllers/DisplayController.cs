@@ -38,6 +38,7 @@ public class DisplayController : Controller
         var ct = HttpContext.RequestAborted;
         var settings = await _settingsCache.GetAsync(ct);
         var selectedLang = ResolveLanguage(settings, lang);
+        await RefreshServiceNamesAsync(ct); // noms de service traduits (NameAr) à jour pour l'annonce
 
         // Projection SQL : on ne tire que les colonnes nécessaires + Take(30) avec index sur CalledAt.
         var rawHistory = await _context.CallHistories.AsNoTracking()
@@ -207,6 +208,7 @@ public class DisplayController : Controller
         var ct = HttpContext.RequestAborted;
         var settings = await _settingsCache.GetAsync(ct);
         var selectedLang = ResolveLanguage(settings, lang);
+        await RefreshServiceNamesAsync(ct); // noms de service traduits (NameAr) à jour dès le 1er rendu
 
         var rawHistory = await _context.CallHistories.AsNoTracking()
             .OrderByDescending(c => c.CalledAt)
@@ -328,10 +330,47 @@ public class DisplayController : Controller
         return string.Empty;
     }
 
+    // Cache des noms de service traduits SAISIS EN ADMIN (Name FR -> NameAr/En/Tz).
+    // Rafraîchi par RefreshServiceNamesAsync (appelé depuis State/Index). Sans ça,
+    // LocalizeServiceName retombait sur le français pour tout service hors des
+    // quelques mots-clés génériques → l'annonce arabe disait le nom en français.
+    private static volatile Dictionary<string, (string? Ar, string? En, string? Tz)> _svcNameMap
+        = new(StringComparer.OrdinalIgnoreCase);
+    private static DateTime _svcNameMapAtUtc = DateTime.MinValue;
+
+    private async Task RefreshServiceNamesAsync(CancellationToken ct)
+    {
+        if ((DateTime.UtcNow - _svcNameMapAtUtc) < TimeSpan.FromSeconds(15)) return;
+        try
+        {
+            var rows = await _context.Services.AsNoTracking()
+                .Select(s => new { s.Name, s.NameAr, s.NameEn, s.NameTz })
+                .ToListAsync(ct);
+            var map = new Dictionary<string, (string?, string?, string?)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var r in rows)
+            {
+                var n = (r.Name ?? string.Empty).Trim();
+                if (n.Length > 0) map[n] = (r.NameAr, r.NameEn, r.NameTz);
+            }
+            _svcNameMap = map;
+            _svcNameMapAtUtc = DateTime.UtcNow;
+        }
+        catch { /* on conserve l'ancienne map en cas d'erreur */ }
+    }
+
     public static string LocalizeServiceName(string? serviceName, string lang)
     {
         var name = (serviceName ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(name)) return string.Empty;
+
+        // 1) PRIORITÉ : nom traduit configuré par l'admin (NameAr/NameEn/NameTz).
+        if (_svcNameMap.TryGetValue(name, out var tr))
+        {
+            var configured = lang switch { "ar" => tr.Ar, "en" => tr.En, "tz" => tr.Tz, _ => (string?)null };
+            if (!string.IsNullOrWhiteSpace(configured)) return configured!.Trim();
+        }
+
+        // 2) REPLI : traductions génériques par mots-clés (services standards).
         var key = name.ToLowerInvariant();
         return lang switch
         {

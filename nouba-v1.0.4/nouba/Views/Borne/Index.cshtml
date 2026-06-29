@@ -645,7 +645,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"Segoe UI"
   window.noubaConfirmCfg = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(noubaConfirmCfg));
 </script>
 
-<script src="/lib/signalr/signalr.min.js" onerror="this.onerror=null;console.warn('[Nouba] SignalR client indisponible — fallback auto-refresh actif.');"></script>
+<script src="/lib/signalr/signalr.min.js" asp-append-version="true" onerror="this.onerror=null;console.warn('[Nouba] SignalR client indisponible — fallback auto-refresh actif.');"></script>
 <div class="borne-page theme-@settings.ThemePreset @(settings.EnableAnimations ? "premium-motion" : "")">
   <div class="borne-inner">
     <header class="topbar">

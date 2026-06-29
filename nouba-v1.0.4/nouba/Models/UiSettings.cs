@@ -66,7 +66,7 @@ public class UiSettings
     [StringLength(20)] public string ThemePreset { get; set; } = "clinique";
     [StringLength(10)] public string DefaultLanguage { get; set; } = "fr";
     [StringLength(10)] public string VoiceGender { get; set; } = "female";
-    public int VoiceRepeatCount { get; set; } = 2;
+    public int VoiceRepeatCount { get; set; } = 1;
     public double VoiceRate { get; set; } = 0.90;
     public double VoicePitch { get; set; } = 1.0;
     public double VoiceVolume { get; set; } = 1.0;
