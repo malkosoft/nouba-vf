@@ -62,9 +62,9 @@ public class AppDbContext : DbContext
 
         // ── Données par défaut (inchangées) ───────────────────────────────
         modelBuilder.Entity<ServiceType>().HasData(
-            new ServiceType { Id = 1, Name = "Accueil général", Code = "A", IsActive = true, DisplayOrder = 1, ButtonColor = "#1d4ed8", TextColor = "#ffffff", LogoUrl = null },
-            new ServiceType { Id = 2, Name = "Consultation", Code = "C", IsActive = true, DisplayOrder = 2, ButtonColor = "#0f766e", TextColor = "#ffffff", LogoUrl = null },
-            new ServiceType { Id = 3, Name = "Paiement", Code = "P", IsActive = true, DisplayOrder = 3, ButtonColor = "#b45309", TextColor = "#ffffff", LogoUrl = null }
+            new ServiceType { Id = 1, Name = "Accueil général", NameAr = "الاستقبال العام", NameEn = "General reception", NameTz = "Asefrak amatu", Code = "A", IsActive = true, DisplayOrder = 1, ButtonColor = "#1d4ed8", TextColor = "#ffffff", LogoUrl = null },
+            new ServiceType { Id = 2, Name = "Consultation", NameAr = "الاستشارة", NameEn = "Consultation", NameTz = "Tamsulta", Code = "C", IsActive = true, DisplayOrder = 2, ButtonColor = "#0f766e", TextColor = "#ffffff", LogoUrl = null },
+            new ServiceType { Id = 3, Name = "Paiement", NameAr = "الدفع", NameEn = "Payment", NameTz = "Lexlaṣ", Code = "P", IsActive = true, DisplayOrder = 3, ButtonColor = "#b45309", TextColor = "#ffffff", LogoUrl = null }
         );
 
         modelBuilder.Entity<Counter>().HasData(

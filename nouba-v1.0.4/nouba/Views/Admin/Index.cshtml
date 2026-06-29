@@ -1055,7 +1055,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
                 <div class="panel-body">
                     <form asp-action="AddService" method="post" enctype="multipart/form-data" class="vstack gap-3">
                         @Html.AntiForgeryToken()
-                        <div><label>Nom du service</label><input class="form-control" name="Name" placeholder="Ex: Consultation médicale" required/></div>
+                        <div><label>Nom du service <span style="color:var(--muted);font-weight:400">(français)</span></label><input class="form-control" name="Name" placeholder="Ex: Consultation médicale" required/></div>
+                        <div><label>Nom en arabe <span style="color:var(--muted);font-weight:400">— pour l'affichage et l'annonce vocale en arabe</span></label><input class="form-control" name="NameAr" dir="rtl" placeholder="مثال: استشارة طبية"/></div>
+                        <div class="grid-2" style="gap:12px;">
+                            <div><label>Nom en anglais <span style="color:var(--muted);font-weight:400">(optionnel)</span></label><input class="form-control" name="NameEn" placeholder="Ex: Medical consultation"/></div>
+                            <div><label>Nom en tamazight <span style="color:var(--muted);font-weight:400">(optionnel)</span></label><input class="form-control" name="NameTz" placeholder="Ex: Tamsulta"/></div>
+                        </div>
                         <div class="grid-2" style="gap:12px;">
                             <div><label>Code (1–3 lettres)</label><input class="form-control" name="Code" placeholder="C" maxlength="3" style="text-transform:uppercase" required/></div>
                             <div><label>Ordre d'affichage</label><input class="form-control" type="number" name="DisplayOrder" value="0"/></div>
