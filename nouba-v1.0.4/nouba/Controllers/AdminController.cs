@@ -264,6 +264,8 @@ public class AdminController : Controller
         ViewBag.LicenseValid     = licStatus.IsValid;
         ViewBag.LicenseMachineId = licStatus.MachineId;
         ViewBag.LicensePrimaryMac = licStatus.PrimaryMac ?? "Non détectée";
+        ViewBag.LicenseIsTrial   = licStatus.IsTrial;
+        ViewBag.LicenseTrialDays = licStatus.TrialDaysRemaining;
 
         // Détails du payload de licence pour affichage admin
         var licPayload = licStatus.Payload;

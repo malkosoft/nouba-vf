@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
@@ -140,21 +141,90 @@ x7iBH0FcJb6JKdAuPwGK+J0PlAbrx1jy1rHyRlIJX3UvPwApnn14c2v+1bILiJKr
     public static string GetLicensePath(AppStoragePaths paths)
         => Path.Combine(paths.DataRoot, LicenseFileName);
 
+    // ── Période d'essai gratuite (7 jours) ───────────────────────────────
+    // Sur une installation neuve sans licence activée, le logiciel fonctionne
+    // 7 jours, puis demande l'activation. La date de 1er lancement est signée
+    // (HMAC) pour empêcher de la modifier afin de prolonger l'essai.
+    public const int TrialDays = 7;
+    private const string TrialFileName = "trial.dat";
+    private const string TrialSecret = "NoubaPro|essai|v1|7j|s3cr3t-8f3a2c1d-anti-edit";
+
     public static LicenseStatus CheckLicense(AppStoragePaths paths)
     {
         var licPath = GetLicensePath(paths);
         var machineId = GetMachineId();
         var primaryMac = GetPrimaryMacAddress();
 
-        if (!File.Exists(licPath))
-            return new LicenseStatus(false, "Aucune licence trouvée.", machineId, null, primaryMac, null);
+        if (File.Exists(licPath))
+        {
+            var stored = File.ReadAllText(licPath).Trim();
+            var result = ValidateLicense(stored);
+            if (result.IsValid)
+                return new LicenseStatus(true, result.Message, machineId, stored, primaryMac, result.Payload);
+            // Licence présente mais invalide (expirée / autre machine) :
+            // on N'ouvre PAS l'essai (anti-contournement).
+            return new LicenseStatus(false, result.Message, machineId, null, primaryMac, result.Payload);
+        }
 
-        var stored = File.ReadAllText(licPath).Trim();
-        var result = ValidateLicense(stored);
-        if (result.IsValid)
-            return new LicenseStatus(true, result.Message, machineId, stored, primaryMac, result.Payload);
+        // Pas de licence activée → on bascule sur la période d'essai.
+        return CheckTrial(paths, machineId, primaryMac);
+    }
 
-        return new LicenseStatus(false, result.Message, machineId, null, primaryMac, result.Payload);
+    private static LicenseStatus CheckTrial(AppStoragePaths paths, string machineId, string? primaryMac)
+    {
+        var firstRunUtc = DateTime.UtcNow;
+        var path = Path.Combine(paths.DataRoot, TrialFileName);
+        try
+        {
+            if (File.Exists(path))
+            {
+                var raw = File.ReadAllText(path).Trim();
+                var parts = raw.Split('|');
+                if (parts.Length == 2
+                    && string.Equals(TrialSign(parts[0]), parts[1], StringComparison.OrdinalIgnoreCase)
+                    && DateTime.TryParse(parts[0], CultureInfo.InvariantCulture,
+                           DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var stored))
+                {
+                    firstRunUtc = stored;
+                }
+                else
+                {
+                    // Fichier d'essai trafiqué → essai considéré comme terminé.
+                    return new LicenseStatus(false, "Période d'essai invalide.", machineId, null, primaryMac, null);
+                }
+            }
+            else
+            {
+                paths.EnsureCreated();
+                WriteTrial(path, firstRunUtc);
+            }
+        }
+        catch { /* accès fichier impossible : on tolère l'essai */ }
+
+        var daysElapsed = (int)Math.Floor((DateTime.UtcNow.Date - firstRunUtc.Date).TotalDays);
+        var remaining = TrialDays - daysElapsed;
+        if (remaining >= 1)
+            return new LicenseStatus(true, $"Version d'essai — {remaining} jour(s) restant(s).",
+                machineId, null, primaryMac, null) { IsTrial = true, TrialDaysRemaining = remaining };
+
+        return new LicenseStatus(false, $"Période d'essai de {TrialDays} jours expirée.",
+            machineId, null, primaryMac, null) { IsTrial = false, TrialDaysRemaining = 0 };
+    }
+
+    private static void WriteTrial(string path, DateTime firstRunUtc)
+    {
+        try
+        {
+            var iso = firstRunUtc.ToString("o", CultureInfo.InvariantCulture);
+            File.WriteAllText(path, iso + "|" + TrialSign(iso));
+        }
+        catch { }
+    }
+
+    private static string TrialSign(string data)
+    {
+        using var h = new HMACSHA256(Encoding.UTF8.GetBytes(TrialSecret));
+        return Convert.ToHexString(h.ComputeHash(Encoding.UTF8.GetBytes(data)))[..16];
     }
 
     public static void SaveLicense(AppStoragePaths paths, string key)
@@ -245,4 +315,10 @@ public record LicenseStatus(
     string MachineId,
     string? Key = null,
     string? PrimaryMac = null,
-    LicensePayload? Payload = null);
+    LicensePayload? Payload = null)
+{
+    /// <summary>True si l'accès est autorisé via la période d'essai (pas une licence payante).</summary>
+    public bool IsTrial { get; init; }
+    /// <summary>Jours d'essai restants (0 si pas en essai ou essai terminé).</summary>
+    public int TrialDaysRemaining { get; init; }
+}

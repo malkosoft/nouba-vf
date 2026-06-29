@@ -555,6 +555,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
         </div>
     </div>
 
+@{
+    bool licIsTrial = (bool)(ViewBag.LicenseIsTrial ?? false);
+    int licTrialDays = (int)(ViewBag.LicenseTrialDays ?? 0);
+}
+@if (licIsTrial)
+{
+    <div style="margin:12px 24px 0;padding:12px 18px;border-radius:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+        background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.35);">
+        <i class="bi bi-hourglass-split" style="color:#a5b4fc;font-size:1.15rem;flex-shrink:0;"></i>
+        <div style="flex:1;font-size:.86rem;line-height:1.5;color:#e2e8f0;min-width:200px;">
+            <strong style="color:#c7d2fe;">Version d'essai</strong> — il reste
+            <strong style="color:#fff;">@licTrialDays jour@(licTrialDays > 1 ? "s" : "")</strong>
+            avant de devoir activer une licence.
+        </div>
+        <a href="/License/Activate" class="topbar-btn primary" style="text-decoration:none;"><i class="bi bi-key"></i> Activer maintenant</a>
+    </div>
+}
+
 @if (sysHasAlert)
 {
     <div id="sysAlertBanner" style="margin:12px 24px 0;padding:12px 18px;border-radius:12px;display:flex;align-items:flex-start;gap:12px;
