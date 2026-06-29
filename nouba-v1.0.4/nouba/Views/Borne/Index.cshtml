@@ -742,6 +742,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"Segoe UI"
     }
 
     <main class="services-grid">
+      @if (services.Count == 0)
+      {
+          var emptyTitle = currentLanguage switch { "ar" => "لا توجد خدمات بعد", "en" => "No services configured yet", "tz" => "Ulac tanfa akka", _ => "Aucun service configuré" };
+          var emptyText = currentLanguage switch { "ar" => "يرجى إضافة الخدمات من لوحة الإدارة لكي تظهر هنا للزبائن.", "en" => "Please add your services in the Admin panel so they appear here for customers.", "tz" => "Rnu tanfiwin-ik seg udbal.", _ => "Ajoutez vos services dans l'administration (page Admin) pour qu'ils apparaissent ici pour vos clients." };
+          <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:clamp(32px,6vh,80px) 24px;text-align:center;color:#fff;direction:@(isRtl ? "rtl" : "ltr")">
+            <div style="font-size:clamp(48px,8vw,84px);line-height:1">🛎️</div>
+            <div style="font-size:clamp(20px,2.6vw,36px);font-weight:800">@emptyTitle</div>
+            <div style="font-size:clamp(14px,1.5vw,22px);opacity:.85;max-width:640px;line-height:1.6">@emptyText</div>
+          </div>
+      }
       @foreach (var service in services)
       {
         <form class="service-form" asp-action="CreateTicket" method="post">

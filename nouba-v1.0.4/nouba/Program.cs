@@ -158,7 +158,15 @@ try
 }
 catch { /* garde-fou : Kestrel utilisera UseUrls ci-dessus */ }
 
-Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath, "images"));
+// WebRootPath peut être null si wwwroot n'est pas détecté selon le répertoire
+// de lancement (ex. lancement du .dll hors dossier projet). On retombe alors
+// sur ContentRoot/wwwroot et on ne crashe JAMAIS le démarrage pour ça.
+var webRootPath = app.Environment.WebRootPath;
+if (string.IsNullOrEmpty(webRootPath))
+{
+    webRootPath = Path.Combine(app.Environment.ContentRootPath ?? AppContext.BaseDirectory, "wwwroot");
+}
+try { Directory.CreateDirectory(Path.Combine(webRootPath, "images")); } catch { /* non bloquant */ }
 storagePaths.EnsureCreated();
 
 using (var scope = app.Services.CreateScope())
