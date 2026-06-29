@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nouba Pro — Manuel Utilisateur</title>
+<style>
+  :root{
+    --accent:#0f766e; --accent2:#c8a44d; --ink:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb; --soft:#f8fafc; --warn:#b45309; --danger:#b91c1c; --ok:#15803d;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{font-family:'Segoe UI',Calibri,Arial,sans-serif; color:var(--ink); line-height:1.6;
+       margin:0; background:#fff; font-size:11pt}
+  .page{max-width:820px; margin:0 auto; padding:24px 40px}
+  h1,h2,h3{color:var(--accent); line-height:1.25; font-weight:800}
+  h2{font-size:1.5rem; border-bottom:3px solid var(--accent2); padding-bottom:8px; margin-top:0}
+  h3{font-size:1.12rem; color:var(--ink); margin-top:1.6em}
+  p{margin:.5em 0}
+  ul,ol{margin:.4em 0 .8em; padding-left:1.4em}
+  li{margin:.25em 0}
+  table{border-collapse:collapse; width:100%; margin:1em 0; font-size:.95em}
+  th,td{border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top}
+  th{background:var(--accent); color:#fff; font-weight:700}
+  tr:nth-child(even) td{background:var(--soft)}
+  code{background:#f1f5f9; padding:2px 6px; border-radius:5px; font-family:Consolas,monospace; font-size:.92em; color:#0f172a}
+  .note,.warn,.tip{border-radius:10px; padding:12px 16px; margin:1em 0; border-left:5px solid}
+  .note{background:#eff6ff; border-color:#2563eb}
+  .warn{background:#fffbeb; border-color:var(--warn)}
+  .tip{background:#f0fdf4; border-color:var(--ok)}
+  .note b,.warn b,.tip b{display:block; margin-bottom:3px}
+  .kbd{background:#1f2937; color:#fff; border-radius:6px; padding:2px 8px; font-size:.85em; font-family:Consolas,monospace}
+
+  /* Page de garde */
+  .cover{height:100vh; min-height:980px; display:flex; flex-direction:column; justify-content:center;
+         align-items:center; text-align:center; background:linear-gradient(160deg,#0f766e,#0b3b38);
+         color:#fff; page-break-after:always}
+  .cover .logo{width:96px;height:96px;border-radius:26px;background:linear-gradient(135deg,#c8a44d,#e6c878);
+         display:flex;align-items:center;justify-content:center;font-size:54px;font-weight:900;color:#0b3b38;
+         box-shadow:0 18px 50px rgba(0,0,0,.35);margin-bottom:30px}
+  .cover h1{color:#fff; font-size:3.2rem; margin:0; letter-spacing:1px}
+  .cover .sub{color:#c8a44d; font-size:1.35rem; font-weight:700; margin-top:8px; letter-spacing:3px; text-transform:uppercase}
+  .cover .tag{color:#cbd5e1; font-size:1.05rem; margin-top:28px; max-width:520px; line-height:1.7}
+  .cover .meta{margin-top:48px; color:#94a3b8; font-size:.9rem; border-top:1px solid rgba(255,255,255,.2); padding-top:18px}
+
+  /* Sommaire */
+  .toc{page-break-after:always}
+  .toc ol{list-style:none; padding:0; counter-reset:ch}
+  .toc li{counter-increment:ch; padding:9px 0; border-bottom:1px dotted var(--line); display:flex; align-items:baseline}
+  .toc li::before{content:counter(ch); background:var(--accent); color:#fff; font-weight:700; border-radius:6px;
+         min-width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; margin-right:14px; font-size:.85em}
+  .toc a{color:var(--ink); text-decoration:none; font-weight:600}
+
+  .chapter{page-break-before:always}
+  .chapter-num{color:var(--accent2); font-weight:800; font-size:.85rem; letter-spacing:2px; text-transform:uppercase}
+
+  @media print{
+    .page{max-width:100%; padding:0 14mm}
+    body{font-size:10.5pt}
+    a{color:var(--ink); text-decoration:none}
+    .no-print{display:none}
+  }
+  @page{ margin:16mm 0 18mm; }
+</style>
+</head>
+<body>
+
+<!-- ====================== PAGE DE GARDE ====================== -->
+<section class="cover">
+  <div class="logo">N</div>
+  <h1>NOUBA&nbsp;PRO</h1>
+  <div class="sub">Manuel Utilisateur</div>
+  <div class="tag">Système professionnel de gestion de file d'attente — borne, écran d'affichage, annonces vocales. 100 % hors ligne.</div>
+  <div class="meta">Version 1.0.4 &nbsp;•&nbsp; Édition Windows 64 bits</div>
+</section>
+
+<div class="page">
+
+<!-- ====================== SOMMAIRE ====================== -->
+<section class="toc">
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#c1">Présentation de Nouba Pro</a></li>
+    <li><a href="#c2">Prérequis matériel</a></li>
+    <li><a href="#c3">Installation</a></li>
+    <li><a href="#c4">Premier démarrage &amp; compte administrateur</a></li>
+    <li><a href="#c5">Licence &amp; période d'essai</a></li>
+    <li><a href="#c6">Configuration : services, guichets, agents</a></li>
+    <li><a href="#c7">La borne tactile (client)</a></li>
+    <li><a href="#c8">L'écran d'affichage (TV)</a></li>
+    <li><a href="#c9">L'interface agent</a></li>
+    <li><a href="#c10">Réseau &amp; affichage multi-appareils</a></li>
+    <li><a href="#c11">Annonces vocales</a></li>
+    <li><a href="#c12">Impression des tickets</a></li>
+    <li><a href="#c13">Statistiques &amp; rapports</a></li>
+    <li><a href="#c14">Sauvegarde &amp; maintenance</a></li>
+    <li><a href="#c15">Dépannage (FAQ)</a></li>
+    <li><a href="#c16">Annexe : spécifications techniques</a></li>
+  </ol>
+</section>
+
+<!-- ====================== CH 1 ====================== -->
+<section class="chapter" id="c1">
+  <div class="chapter-num">Chapitre 1</div>
+  <h2>Présentation de Nouba Pro</h2>
+  <p>Nouba Pro est un logiciel professionnel de <b>gestion de file d'attente</b> conçu pour les agences, administrations, cliniques, banques et tout établissement recevant du public. Il organise le passage des clients par <b>tickets numérotés</b> et les appelle vers les guichets via un écran d'affichage et des <b>annonces vocales</b>.</p>
+  <p>Nouba fonctionne <b>entièrement hors ligne</b> : aucune connexion Internet n'est nécessaire. Toutes les voix d'annonce (français, anglais, arabe) sont incluses.</p>
+
+  <h3>Les 3 écrans de Nouba</h3>
+  <table>
+    <tr><th>Écran</th><th>Pour qui ?</th><th>Rôle</th></tr>
+    <tr><td><b>Borne</b></td><td>Le client</td><td>Écran tactile où le client choisit un service et reçoit son ticket numéroté.</td></tr>
+    <tr><td><b>Affichage</b></td><td>La salle d'attente</td><td>Écran TV affichant les numéros appelés et le guichet correspondant, avec annonce vocale.</td></tr>
+    <tr><td><b>Administration</b></td><td>Le gérant / l'agent</td><td>Configuration, appel des tickets, statistiques et rapports.</td></tr>
+  </table>
+
+  <h3>Fonctionnalités principales</h3>
+  <ul>
+    <li>Tickets par service, avec gestion des <b>priorités</b> (personnes prioritaires).</li>
+    <li><b>Annonces vocales</b> naturelles en français, anglais et arabe (voix de synthèse incluses).</li>
+    <li>Affichage TV <b>personnalisable</b> (couleurs, logo, bandeau, médias).</li>
+    <li><b>Multi-langues</b> à la borne (français, arabe, anglais, tamazight).</li>
+    <li><b>Impression</b> de tickets sur imprimante thermique (optionnel).</li>
+    <li><b>Suivi mobile par QR code</b> : le client suit l'avancement de la file depuis son téléphone.</li>
+    <li><b>Statistiques</b> et rapports journaliers (export CSV, rapport imprimable).</li>
+    <li>Fonctionne <b>100 % hors ligne</b>, données stockées localement.</li>
+  </ul>
+</section>
+
+<!-- ====================== CH 2 ====================== -->
+<section class="chapter" id="c2">
+  <div class="chapter-num">Chapitre 2</div>
+  <h2>Prérequis matériel</h2>
+  <p>Nouba s'installe sur <b>un seul PC</b> (le « PC serveur ») qui fait tourner le logiciel. Les autres appareils (TV, tablette borne, téléphones) s'y connectent simplement via le réseau local, avec un navigateur internet — <b>aucune installation</b> sur ces appareils.</p>
+
+  <h3>2.1 — PC serveur Nouba (obligatoire)</h3>
+  <p>C'est le cœur du système. Il doit rester allumé pendant les heures d'ouverture.</p>
+  <table>
+    <tr><th>Composant</th><th>Minimum</th><th>Recommandé (confort)</th></tr>
+    <tr><td>Système</td><td>Windows 10 64 bits</td><td>Windows 11 64 bits</td></tr>
+    <tr><td>Processeur</td><td>Double cœur (Intel Celeron / i3, ~2 GHz)</td><td>Intel Core i5 / AMD Ryzen 5</td></tr>
+    <tr><td>Mémoire vive (RAM)</td><td><b>4 Go</b></td><td><b>8 Go</b></td></tr>
+    <tr><td>Disque</td><td>2 Go libres (HDD)</td><td>4 Go libres sur <b>SSD</b></td></tr>
+    <tr><td>Carte graphique</td><td>Aucune dédiée requise (intégrée suffit)</td><td>—</td></tr>
+    <tr><td>Réseau</td><td>Wi-Fi ou Ethernet</td><td>Ethernet filaire (plus stable)</td></tr>
+  </table>
+  <div class="note"><b>Pourquoi 4 Go de RAM minimum ?</b>
+  Les voix d'annonce (synthèse vocale) sont chargées en mémoire pour des annonces instantanées. Avec 8 Go, le système reste fluide même avec plusieurs écrans connectés.</div>
+
+  <h3>2.2 — Tablette / écran de la borne (recommandé)</h3>
+  <p>Pour que le client prenne son ticket lui-même :</p>
+  <ul>
+    <li>Tablette <b>Android (8.0+)</b> ou <b>Windows</b>, écran <b>10 pouces ou plus</b>, avec navigateur récent (Chrome, Edge).</li>
+    <li>Ou un <b>écran tactile</b> branché au PC serveur, ou un PC tout-en-un tactile.</li>
+    <li>Doit être sur le <b>même réseau</b> que le PC serveur.</li>
+  </ul>
+  <div class="tip"><b>Astuce kiosque</b>
+  Mettez le navigateur de la tablette en <b>plein écran / mode kiosque</b> sur l'adresse de la borne pour empêcher la sortie de l'application.</div>
+
+  <h3>2.3 — Écran d'affichage TV (recommandé)</h3>
+  <ul>
+    <li>Une <b>Smart TV</b> avec navigateur internet intégré, <b>ou</b> un petit boîtier/mini-PC relié à une TV via <b>HDMI</b>.</li>
+    <li>Résolution <b>Full HD 1080p</b> recommandée.</li>
+    <li>Pour le <b>son</b> des annonces : la TV ou des haut-parleurs reliés à l'appareil d'affichage.</li>
+  </ul>
+
+  <h3>2.4 — Imprimante de tickets (optionnel)</h3>
+  <ul>
+    <li>Imprimante <b>thermique ESC/POS</b>, largeur papier <b>80 mm</b> (standard ticket).</li>
+    <li>Connexion <b>USB</b>, <b>réseau (IP)</b> ou <b>série (COM)</b>.</li>
+  </ul>
+  <div class="note"><b>Sans imprimante ?</b> Nouba fonctionne aussi en mode <b>« ticket à l'écran »</b> : le numéro s'affiche directement sur la borne, sans papier.</div>
+
+  <h3>2.5 — Réseau</h3>
+  <ul>
+    <li>Un <b>routeur Wi-Fi</b> ou un switch reliant tous les appareils sur le <b>même réseau local</b>.</li>
+    <li>Une connexion <b>Internet est optionnelle</b> : utile uniquement pour le suivi mobile par QR code depuis l'extérieur.</li>
+  </ul>
+
+  <h3>Schéma type d'installation</h3>
+  <table>
+    <tr><th>Appareil</th><th>Connexion</th><th>Affiche</th></tr>
+    <tr><td>PC serveur Nouba</td><td>Réseau local + alimentation</td><td>Administration</td></tr>
+    <tr><td>Tablette / écran tactile</td><td>Wi-Fi → PC serveur</td><td>Borne</td></tr>
+    <tr><td>TV salle d'attente</td><td>Wi-Fi/HDMI → PC serveur</td><td>Affichage</td></tr>
+    <tr><td>PC/écran agent</td><td>Réseau local → PC serveur</td><td>Interface agent</td></tr>
+  </table>
+</section>
+
+<!-- ====================== CH 3 ====================== -->
+<section class="chapter" id="c3">
+  <div class="chapter-num">Chapitre 3</div>
+  <h2>Installation</h2>
+  <p>L'installation se fait <b>uniquement sur le PC serveur</b>. Aucun logiciel (ni .NET, ni autre) n'est à installer : tout est inclus.</p>
+  <ol>
+    <li>Double-cliquez sur <code>Nouba-Pro-Setup-v1.0.4.exe</code>.</li>
+    <li>Windows demande une autorisation (contrôle de compte) → cliquez <b>Oui</b>.</li>
+    <li>Suivez l'assistant : <b>Bienvenue → Dossier d'installation → Raccourci Bureau → Installer</b>.</li>
+    <li>À la fin, laissez cochée la case <b>« Lancer Nouba Pro »</b> puis cliquez <b>Terminer</b>.</li>
+  </ol>
+  <div class="note"><b>Où sont installés les fichiers ?</b>
+  Le programme s'installe dans <code>C:\Program Files\Nouba Pro</code>. Les données (base, sauvegardes) sont stockées séparément dans <code>C:\ProgramData\Nouba</code> et <b>ne sont pas supprimées</b> en cas de désinstallation.</div>
+  <h3>Démarrer et arrêter Nouba</h3>
+  <ul>
+    <li><b>Démarrer</b> : double-cliquez sur le raccourci <b>« Nouba Pro »</b> du Bureau. Une fenêtre noire (le serveur) s'ouvre et le navigateur s'ouvre automatiquement sur Nouba.</li>
+    <li><b>Laissez la fenêtre noire ouverte</b> pendant toute l'utilisation.</li>
+    <li><b>Arrêter</b> : fermez la fenêtre noire.</li>
+  </ul>
+</section>
+
+<!-- ====================== CH 4 ====================== -->
+<section class="chapter" id="c4">
+  <div class="chapter-num">Chapitre 4</div>
+  <h2>Premier démarrage &amp; compte administrateur</h2>
+  <p>Au tout premier lancement, Nouba vous demande de créer votre <b>compte administrateur</b> :</p>
+  <ol>
+    <li>Saisissez votre <b>nom complet</b>, un <b>identifiant</b> de connexion et un <b>mot de passe</b>.</li>
+    <li>Validez. Ce compte vous donne accès à toute l'administration.</li>
+  </ol>
+  <div class="warn"><b>Important</b>
+  Conservez précieusement ces identifiants. Ils sont nécessaires pour accéder à la configuration et aux statistiques.</div>
+  <p>Vous accédez ensuite au <b>Tableau de bord</b>, point de départ de toute la configuration.</p>
+</section>
+
+<!-- ====================== CH 5 ====================== -->
+<section class="chapter" id="c5">
+  <div class="chapter-num">Chapitre 5</div>
+  <h2>Licence &amp; période d'essai</h2>
+  <h3>Période d'essai gratuite — 7 jours</h3>
+  <p>Dès l'installation, Nouba Pro fonctionne <b>immédiatement et gratuitement pendant 7 jours</b>, sans aucune activation. Vous pouvez tout tester. Un bandeau <b>« Version d'essai — X jours restants »</b> est affiché dans l'administration.</p>
+  <h3>Activation</h3>
+  <p>Après les 7 jours (ou à tout moment), l'activation d'une licence est demandée :</p>
+  <ol>
+    <li>La page d'activation affiche un <b>identifiant machine</b> unique à ce PC.</li>
+    <li>Communiquez cet identifiant à votre <b>fournisseur Nouba</b>.</li>
+    <li>Il vous transmet une <b>clé de licence</b>.</li>
+    <li>Entrez la clé <b>une seule fois</b> → le logiciel est activé définitivement sur ce PC.</li>
+  </ol>
+  <div class="note"><b>Licence liée au PC</b>
+  La clé de licence est valable uniquement pour le PC dont l'identifiant machine a été fourni. Si vous changez de PC, une nouvelle clé est nécessaire.</div>
+</section>
+
+<!-- ====================== CH 6 ====================== -->
+<section class="chapter" id="c6">
+  <div class="chapter-num">Chapitre 6</div>
+  <h2>Configuration : services, guichets, agents</h2>
+  <p>Avant l'ouverture au public, configurez vos services, guichets et agents depuis l'administration.</p>
+  <h3>6.1 — Services</h3>
+  <p>Un <b>service</b> est un motif de visite (ex. : <i>Accueil, Consultation, Paiement, Retrait…</i>). Pour chaque service :</p>
+  <ul>
+    <li>Nom (et <b>nom arabe / anglais</b> pour l'affichage et l'annonce multilingues).</li>
+    <li>Lettre de code (préfixe du ticket, ex. « C » pour Consultation → C-001).</li>
+    <li>Couleur, émoji/logo pour le bouton de la borne.</li>
+  </ul>
+  <div class="tip"><b>Nom arabe à l'annonce</b>
+  Pour que le nom du service soit prononcé en arabe lors d'une annonce arabe, renseignez bien le champ <b>« Nom arabe »</b> du service.</div>
+  <h3>6.2 — Guichets</h3>
+  <p>Un <b>guichet</b> (ou comptoir) est un poste où un agent reçoit les clients. Associez chaque guichet à un service.</p>
+  <h3>6.3 — Agents</h3>
+  <p>Les <b>agents</b> appellent les tickets depuis leur poste. Créez un agent par personne, avec identifiant et mot de passe, et affectez-le à un guichet/service.</p>
+</section>
+
+<!-- ====================== CH 7 ====================== -->
+<section class="chapter" id="c7">
+  <div class="chapter-num">Chapitre 7</div>
+  <h2>La borne tactile (client)</h2>
+  <p>La borne est l'écran que le client utilise pour <b>prendre son ticket</b>. Ouvrez l'adresse de la borne (voir chapitre 10) sur la tablette / l'écran tactile.</p>
+  <ul>
+    <li>Le client choisit sa <b>langue</b> (français, arabe, anglais, tamazight) si activé.</li>
+    <li>Il touche le <b>bouton du service</b> souhaité.</li>
+    <li>Son <b>ticket numéroté</b> est imprimé (ou affiché à l'écran).</li>
+    <li>Option <b>ticket prioritaire</b> pour les personnes à mobilité réduite, femmes enceintes, etc.</li>
+  </ul>
+  <p>Les titres, sous-titres et messages de la borne sont entièrement personnalisables (par langue) dans l'administration.</p>
+</section>
+
+<!-- ====================== CH 8 ====================== -->
+<section class="chapter" id="c8">
+  <div class="chapter-num">Chapitre 8</div>
+  <h2>L'écran d'affichage (TV)</h2>
+  <p>L'affichage est l'écran de la <b>salle d'attente</b>. Ouvrez l'adresse de l'affichage sur la TV (ou le mini-PC relié à la TV), puis passez en <b>plein écran</b>.</p>
+  <ul>
+    <li>Affiche le <b>dernier numéro appelé</b> et le <b>guichet</b> correspondant, en grand.</li>
+    <li>Historique des derniers appels.</li>
+    <li><b>Annonce vocale</b> à chaque appel (« Ticket C-005, veuillez vous présenter au guichet 2 »).</li>
+    <li><b>Effet visuel</b> attractif à l'appel, horloge, bandeau défilant, logo, image/vidéo de fond.</li>
+    <li>QR code de <b>suivi mobile</b> (le client suit la file depuis son téléphone).</li>
+  </ul>
+  <div class="warn"><b>Activer le son sur la TV</b>
+  Certaines TV bloquent le son tant qu'on n'a pas interagi avec l'écran. Au démarrage de l'affichage, appuyez une fois sur le bouton <b>« Son TV »</b> pour autoriser les annonces.</div>
+  <p>Couleurs, polices, médias et disposition sont réglables dans <b>Administration → Écran d'affichage → Apparence / Médias</b>.</p>
+</section>
+
+<!-- ====================== CH 9 ====================== -->
+<section class="chapter" id="c9">
+  <div class="chapter-num">Chapitre 9</div>
+  <h2>L'interface agent</h2>
+  <p>Chaque agent se connecte à l'interface agent depuis son poste pour gérer la file de son service.</p>
+  <ul>
+    <li><b>Appeler le suivant</b> : appelle le prochain ticket en attente (déclenche l'affichage + l'annonce).</li>
+    <li><b>Rappeler</b> : relance l'annonce du ticket en cours (si le client n'est pas venu).</li>
+    <li><b>Terminer / Absent</b> : clôture le ticket en cours et passe au suivant.</li>
+    <li>Voir le <b>nombre de personnes en attente</b> sur son service.</li>
+  </ul>
+</section>
+
+<!-- ====================== CH 10 ====================== -->
+<section class="chapter" id="c10">
+  <div class="chapter-num">Chapitre 10</div>
+  <h2>Réseau &amp; affichage multi-appareils</h2>
+  <p>Tous les écrans (borne, affichage, agents) s'ouvrent dans un simple navigateur, à des adresses du PC serveur.</p>
+  <h3>Sur le PC serveur lui-même</h3>
+  <table>
+    <tr><th>Écran</th><th>Adresse</th></tr>
+    <tr><td>Administration</td><td><code>http://localhost:5000/Admin</code></td></tr>
+    <tr><td>Borne</td><td><code>http://localhost:5000/Borne</code></td></tr>
+    <tr><td>Affichage</td><td><code>http://localhost:5000/Display</code></td></tr>
+  </table>
+  <h3>Sur les autres appareils (même réseau)</h3>
+  <p>Remplacez <code>localhost</code> par <b>l'adresse IP du PC serveur</b> (indiquée dans l'Administration). Exemple si l'IP est <code>192.168.1.50</code> :</p>
+  <table>
+    <tr><th>Appareil</th><th>Adresse à ouvrir</th></tr>
+    <tr><td>TV (affichage)</td><td><code>http://192.168.1.50:5000/Display</code></td></tr>
+    <tr><td>Tablette (borne)</td><td><code>http://192.168.1.50:5000/Borne</code></td></tr>
+    <tr><td>Poste agent</td><td><code>http://192.168.1.50:5000/Agent/Login</code></td></tr>
+  </table>
+  <div class="note"><b>Astuce</b> Au tout premier accès depuis le réseau, Windows peut demander d'autoriser Nouba dans le <b>pare-feu</b> : acceptez (réseaux privés).</div>
+  <h3>Suivi mobile par QR code</h3>
+  <p>Le client scanne le QR code affiché et suit l'avancement de sa file sur son téléphone. Sur le réseau local sans configuration ; depuis l'extérieur (réseau 4G du client) si le PC dispose d'Internet et du tunnel sécurisé activé.</p>
+</section>
+
+<!-- ====================== CH 11 ====================== -->
+<section class="chapter" id="c11">
+  <div class="chapter-num">Chapitre 11</div>
+  <h2>Annonces vocales</h2>
+  <p>Nouba intègre des <b>voix de synthèse naturelles</b>, incluses et fonctionnant hors ligne. Réglages dans <b>Administration → Écran d'affichage → Voix &amp; son TV</b>.</p>
+  <table>
+    <tr><th>Langue</th><th>Voix féminine</th><th>Voix masculine</th></tr>
+    <tr><td>Français</td><td colspan="2">Voix « upmc » (féminine et masculine)</td></tr>
+    <tr><td>Anglais</td><td>lessac</td><td>ryan</td></tr>
+    <tr><td>Arabe</td><td>dii</td><td>miro</td></tr>
+  </table>
+  <p>Réglages disponibles : activation des annonces, <b>genre</b> de voix, <b>nombre de répétitions</b>, volume, vitesse, et choix du <b>son d'appel</b> (carillon, ding, gong).</p>
+  <div class="tip"><b>Bon à savoir</b> Aucune voix n'est à télécharger : les 3 langues (6 voix) sont déjà dans le logiciel.</div>
+</section>
+
+<!-- ====================== CH 12 ====================== -->
+<section class="chapter" id="c12">
+  <div class="chapter-num">Chapitre 12</div>
+  <h2>Impression des tickets</h2>
+  <p>Réglages dans <b>Administration → Imprimante</b>.</p>
+  <ul>
+    <li><b>Mode d'impression</b> : imprimante thermique <b>ou</b> ticket à l'écran (sans papier).</li>
+    <li><b>Connexion</b> : USB, réseau (adresse IP + port), ou série (port COM).</li>
+    <li>Largeur papier (80 mm standard), coupe automatique, bip, logo et QR sur le ticket.</li>
+    <li>Bouton <b>« Test imprimante »</b> pour vérifier la configuration.</li>
+  </ul>
+  <div class="note"><b>Surveillance imprimante</b> Nouba peut surveiller l'état de l'imprimante en temps réel et alerter en cas de problème (hors ligne, plus de papier).</div>
+</section>
+
+<!-- ====================== CH 13 ====================== -->
+<section class="chapter" id="c13">
+  <div class="chapter-num">Chapitre 13</div>
+  <h2>Statistiques &amp; rapports</h2>
+  <p>Le <b>Tableau de bord</b> présente l'activité du jour : tickets émis, servis, en attente, absents, temps d'attente moyen, heure de pointe, service le plus demandé, comparaison avec la veille.</p>
+  <ul>
+    <li><b>Export CSV</b> : exporte les statistiques et tickets du jour (ouvrable dans Excel).</li>
+    <li><b>Rapport journalier imprimable</b> : rapport complet (KPIs, détail par service, ticket par ticket), imprimable ou exportable en PDF.</li>
+    <li><b>Assistant IA</b> (hors ligne) : résumé intelligent et recommandations du jour.</li>
+  </ul>
+</section>
+
+<!-- ====================== CH 14 ====================== -->
+<section class="chapter" id="c14">
+  <div class="chapter-num">Chapitre 14</div>
+  <h2>Sauvegarde &amp; maintenance</h2>
+  <ul>
+    <li><b>Données</b> : toutes les données (base, configuration, logos) sont dans <code>C:\ProgramData\Nouba</code>.</li>
+    <li><b>Sauvegarde</b> : copiez régulièrement le dossier <code>C:\ProgramData\Nouba</code> sur une clé USB ou un disque externe.</li>
+    <li><b>Mise à jour</b> : installez la nouvelle version par-dessus ; vos données sont conservées.</li>
+    <li><b>Désinstallation</b> : Panneau de configuration → Programmes → Nouba Pro → Désinstaller. Les données client ne sont pas supprimées.</li>
+  </ul>
+  <div class="warn"><b>Réinitialisation quotidienne</b> Les numéros de tickets repartent à zéro chaque jour automatiquement. L'historique est conservé pour les statistiques.</div>
+</section>
+
+<!-- ====================== CH 15 ====================== -->
+<section class="chapter" id="c15">
+  <div class="chapter-num">Chapitre 15</div>
+  <h2>Dépannage (FAQ)</h2>
+
+  <h3>La page ne s'affiche pas sur un autre appareil</h3>
+  <ul>
+    <li>Vérifiez que l'appareil est sur le <b>même réseau Wi-Fi</b> que le PC serveur.</li>
+    <li>Vérifiez l'<b>adresse IP</b> du PC (indiquée dans l'Administration) et que la fenêtre noire du serveur est ouverte.</li>
+    <li>Autorisez Nouba dans le <b>pare-feu Windows</b> (réseaux privés).</li>
+  </ul>
+
+  <h3>Pas de son sur la TV</h3>
+  <ul>
+    <li>Appuyez une fois sur le bouton <b>« Son TV »</b> de l'écran d'affichage pour débloquer l'audio.</li>
+    <li>Vérifiez le volume de la TV / des haut-parleurs.</li>
+    <li>Vérifiez que les annonces vocales sont activées dans l'Administration.</li>
+  </ul>
+
+  <h3>Les icônes s'affichent comme des carrés</h3>
+  <ul>
+    <li>Faites un <b>rechargement forcé</b> de la page : <span class="kbd">Ctrl + F5</span>.</li>
+  </ul>
+
+  <h3>L'imprimante n'imprime pas</h3>
+  <ul>
+    <li>Utilisez le bouton <b>« Test imprimante »</b> dans l'Administration.</li>
+    <li>Vérifiez la connexion (USB/IP/COM) et que l'imprimante est allumée et a du papier.</li>
+  </ul>
+
+  <h3>« Période d'essai expirée »</h3>
+  <ul>
+    <li>Procédez à l'activation (chapitre 5) : transmettez l'identifiant machine à votre fournisseur.</li>
+  </ul>
+</section>
+
+<!-- ====================== CH 16 ====================== -->
+<section class="chapter" id="c16">
+  <div class="chapter-num">Annexe</div>
+  <h2>Annexe : spécifications techniques</h2>
+  <table>
+    <tr><th>Élément</th><th>Détail</th></tr>
+    <tr><td>Plateforme</td><td>Windows 64 bits (10 / 11)</td></tr>
+    <tr><td>Installation</td><td>Autonome — aucun composant externe requis</td></tr>
+    <tr><td>Fonctionnement</td><td>100 % hors ligne (Internet optionnel)</td></tr>
+    <tr><td>Base de données</td><td>Locale, fichier unique (<code>C:\ProgramData\Nouba</code>)</td></tr>
+    <tr><td>Adresse par défaut</td><td>Port 5000 (réseau local)</td></tr>
+    <tr><td>Langues borne</td><td>Français, Arabe, Anglais, Tamazight</td></tr>
+    <tr><td>Voix d'annonce</td><td>FR (♀/♂), EN (♀/♂), AR (♀/♂) — incluses</td></tr>
+    <tr><td>Imprimante</td><td>Thermique ESC/POS 80 mm (USB / réseau / série) — optionnel</td></tr>
+    <tr><td>Licence</td><td>Essai 7 jours, puis activation liée au PC</td></tr>
+  </table>
+
+  <div class="note" style="margin-top:30px;text-align:center">
+    <b>Nouba Pro</b>
+    Manuel utilisateur — Version 1.0.4<br>
+    © Nouba — Tous droits réservés
+  </div>
+</section>
+
+</div><!-- /page -->
+</body>
+</html>
