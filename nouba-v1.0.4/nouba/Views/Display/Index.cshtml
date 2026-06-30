@@ -790,7 +790,7 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
   let voiceRate = parseFloat(root.dataset.voiceRate) || 0.9;
   let voicePitch = parseFloat(root.dataset.voicePitch) || 1.0;
   let voiceVolume = parseFloat(root.dataset.voiceVolume) || 1.0;
-  let voiceRepeat = parseInt(root.dataset.voiceRepeat) || 2;
+  let voiceRepeat = parseInt(root.dataset.voiceRepeat) || 1; // annonce UNIQUE par défaut (évite le doublon)
   // data-lang est vide quand /Display est ouvert sans ?lang=... : dans ce cas,
   // l'écran suit automatiquement la langue choisie depuis l'admin.
   // Si /Display?lang=ar est utilisé, l'écran reste volontairement fixé en arabe.
@@ -1997,33 +1997,31 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
       // Voix IA Piper en priorité quand les modèles .onnx sont présents.
       // La voix navigateur ne sert que de secours si Piper est absent ou refuse.
       console.info('[Nouba TTS] Piper IA d abord, voix navigateur en secours.');
-      var firstOk = await playWithPiper(text, lang);
-      if (firstOk) {
-        console.info('[Nouba TTS] ✓ Piper IA a parle.');
-      } else {
-        // Un seul retry rapide de Piper : couvre les ratés ponctuels
-        // (latence réseau, modèle qui vient juste de finir de charger).
-        console.info('[Nouba TTS] Piper KO → nouvel essai Piper avant fallback.');
+      // Voix IA Piper en priorité. Plusieurs essais ESPACÉS dans la MÊME annonce :
+      // au tout 1er appel après l'ouverture de l'écran, l'élément <audio> peut être
+      // encore verrouillé (politique autoplay du navigateur) → l'essai échoue. En
+      // réessayant après une courte pause, l'audio se débloque et Piper parle en
+      // ARABE dès CETTE annonce, au lieu de basculer sur une voix de secours.
+      // C'est ce qui corrige le « 1er appel en français/anglais puis 2e en arabe ».
+      var firstOk = false;
+      for (var attempt = 1; attempt <= 3 && !firstOk; attempt++) {
+        if (attempt > 1) { await new Promise(function(r){ setTimeout(r, 450); }); }
         firstOk = await playWithPiper(text, lang);
-        if (firstOk) {
-          console.info('[Nouba TTS] ✓ Piper IA a parle au 2e essai.');
+        console.info('[Nouba TTS] Piper essai ' + attempt + '/3 → ' + (firstOk ? 'OK' : 'KO'));
+      }
+      if (!firstOk) {
+        // ⚠️ RÈGLE ABSOLUE : on n'annonce JAMAIS dans une autre langue que l'écran.
+        // Un écran arabe lu en français (ancien repli) sonnait cassé et donnait la
+        // « 1ère annonce en français puis 2e en arabe ». On ne bascule sur la voix
+        // navigateur QUE si elle existe dans la MÊME langue ; sinon on reste muet
+        // (les modèles Piper .onnx sont livrés : il réussira au prochain appel).
+        var sameLangVoiceOk = (lang === 'ar') ? browserHasArabicVoice() : true;
+        if (sameLangVoiceOk) {
+          firstOk = await playWithSpeechSynthesis(text, lang);
+          if (firstOk) console.info('[Nouba TTS] ✓ Web Speech a parle en secours (même langue).');
         } else {
-          console.info('[Nouba TTS] Piper KO ×2 → fallback voix navigateur.');
-          // Cas Air Algérie : écran en arabe, mais Piper absent ET aucune voix
-          // arabe installée sur le poste → une voix latine ne peut pas dire le
-          // texte arabe (silence). On annonce alors en français (compris en
-          // Algérie) plutôt que de rester muet. Pour une VRAIE voix arabe,
-          // installer les modèles Piper .onnx (voix locale offline).
-          var browserText = text, browserLang = lang;
-          if ((lang === 'ar') && !browserHasArabicVoice()) {
-            try {
-              var frParts = buildAnnouncement(ticketNumber, counterName, serviceName, 'fr');
-              if (frParts && frParts.length) { browserText = frParts[0]; browserLang = 'fr'; }
-            } catch(_){}
-            console.warn('[Nouba TTS] Aucune voix arabe navigateur → annonce de secours en français.');
-          }
-          firstOk = await playWithSpeechSynthesis(browserText, browserLang);
-          if (firstOk) console.info('[Nouba TTS] ✓ Web Speech a parle en secours.');
+          console.warn('[Nouba TTS] Pas de voix navigateur ' + lang + ' → on reste muet (jamais une autre langue).');
+          firstOk = false;
         }
       }
 

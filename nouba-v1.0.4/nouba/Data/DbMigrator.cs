@@ -90,9 +90,28 @@ public static class DbMigrator
                 // ── Borne : sélecteur de langue (#14) ──
                 ("BorneShowLanguageSwitcher", "INTEGER", "1"),
                 ("BorneEnabledLanguages", "TEXT", "'fr,ar,tz,en'"),
+                // ── Marqueur de reset unique annonce vocale (v3) ──
+                ("VoiceRepeatResetV3", "INTEGER", "0"),
             };
             foreach (var (name, type, defaultVal) in newColumns)
                 if (!cols.Contains(name)) ExecAlter(cmd, uiTable, name, type, defaultVal);
+
+            // ── Reset UNIQUE du nombre de répétitions vocales ────────────────
+            // Bases antérieures : VoiceRepeatCount = 2 → l'annonce était jouée
+            // 2 fois ; combiné à un échec Piper « à froid » au 1er passage, cela
+            // produisait le défaut signalé « 1ère annonce en français puis 2e en
+            // arabe ». On force une annonce UNIQUE, mais une SEULE fois : le
+            // marqueur VoiceRepeatResetV3 (absent sur les bases antérieures,
+            // présent dès ce démarrage) évite d'écraser un futur choix admin.
+            if (!cols.Contains("VoiceRepeatResetV3"))
+            {
+                try
+                {
+                    cmd.CommandText = $"UPDATE \"{uiTable}\" SET \"VoiceRepeatCount\" = 1 WHERE \"VoiceRepeatCount\" > 1;";
+                    cmd.ExecuteNonQuery();
+                }
+                catch { }
+            }
         }
 
         var svcTable = allTables.FirstOrDefault(t => t.Equals("ServiceType", StringComparison.OrdinalIgnoreCase) || t.Equals("Services", StringComparison.OrdinalIgnoreCase));

@@ -603,15 +603,17 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"Segoe UI"
     string btnConfirm = currentLanguage switch { "ar" => "تأكيد", "en" => "Confirm", _ => "Confirmer" };
 }
 
-<!-- ── Bouton plein écran / kiosque (#7) ── -->
-<button id="borneFsBtn" title="Plein écran"
+<!-- ── Bouton « Mode kiosque » : plein écran SANS barre du navigateur (#7) ──
+     Au clic, la Borne passe en plein écran et CE BOUTON DISPARAÎT (rendu pro).
+     On quitte le kiosque avec la touche Échap (ou F11). -->
+<button id="borneFsBtn" title="Afficher la Borne en plein écran (mode kiosque)"
         style="position:fixed;bottom:16px;right:16px;z-index:9999;
-               background:rgba(0,0,0,.45);border:none;border-radius:50%;
-               width:44px;height:44px;display:flex;align-items:center;justify-content:center;
-               color:#fff;font-size:1.1rem;cursor:pointer;backdrop-filter:blur(6px);
-               box-shadow:0 2px 8px rgba(0,0,0,.4);transition:.2s;"
-        aria-label="Basculer le plein écran">
-  <i class="bi bi-fullscreen"></i>
+               background:rgba(0,0,0,.55);border:none;border-radius:24px;
+               height:46px;padding:0 20px;display:flex;align-items:center;gap:9px;
+               color:#fff;font-size:.98rem;font-weight:600;cursor:pointer;backdrop-filter:blur(6px);
+               box-shadow:0 2px 10px rgba(0,0,0,.45);transition:.2s;"
+        aria-label="Afficher la Borne en mode kiosque plein écran">
+  <i class="bi bi-fullscreen"></i><span id="borneFsLabel">Mode kiosque</span>
 </button>
 
 <!-- ── Overlay « Création du ticket… » : feedback instantané au submit ── -->
@@ -1028,22 +1030,23 @@ setTimeout(function(){ if (!document.hidden) window.location.reload(); }, 60000)
 (function(){
   var btn = document.getElementById('borneFsBtn');
   if (!btn) return;
-  function updateIcon(){
-    btn.innerHTML = document.fullscreenElement
-      ? '<i class="bi bi-fullscreen-exit"></i>'
-      : '<i class="bi bi-fullscreen"></i>';
-    btn.title = document.fullscreenElement ? 'Quitter le plein écran' : 'Plein écran';
+  function isFs(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function syncBtn(){
+    // En mode kiosque (plein écran), le bouton DISPARAÎT pour un rendu pro.
+    // Il réapparaît si l'on quitte le plein écran (Échap / F11).
+    btn.style.display = isFs() ? 'none' : 'flex';
   }
   btn.addEventListener('click', function(){
-    if (!document.fullscreenElement) {
-      (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen || function(){}).call(document.documentElement);
+    if (!isFs()) {
+      var el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
     } else {
       (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
     }
   });
-  document.addEventListener('fullscreenchange', updateIcon);
-  document.addEventListener('webkitfullscreenchange', updateIcon);
-  updateIcon();
+  document.addEventListener('fullscreenchange', syncBtn);
+  document.addEventListener('webkitfullscreenchange', syncBtn);
+  syncBtn();
 })();
 </script>
 </body>
