@@ -203,9 +203,8 @@
   Le programme s'installe dans <code>C:\Program Files\Nouba Pro</code>. Les données (base, sauvegardes) sont stockées séparément dans <code>C:\ProgramData\Nouba</code> et <b>ne sont pas supprimées</b> en cas de désinstallation.</div>
   <h3>Démarrer et arrêter Nouba</h3>
   <ul>
-    <li><b>Démarrer</b> : double-cliquez sur le raccourci <b>« Nouba Pro »</b> du Bureau. Une fenêtre noire (le serveur) s'ouvre et le navigateur s'ouvre automatiquement sur Nouba.</li>
-    <li><b>Laissez la fenêtre noire ouverte</b> pendant toute l'utilisation.</li>
-    <li><b>Arrêter</b> : fermez la fenêtre noire.</li>
+    <li><b>Démarrer</b> : double-cliquez sur le raccourci <b>« Nouba Pro »</b> du Bureau. Nouba démarre <b>en arrière-plan</b> (sans aucune fenêtre) et le navigateur s'ouvre automatiquement sur Nouba.</li>
+    <li><b>Arrêter</b> : menu Démarrer → Nouba Pro → <b>« Arrêter Nouba Pro »</b>.</li>
   </ul>
 </section>
 
@@ -327,7 +326,12 @@
   </table>
   <div class="note"><b>Astuce</b> Au tout premier accès depuis le réseau, Windows peut demander d'autoriser Nouba dans le <b>pare-feu</b> : acceptez (réseaux privés).</div>
   <h3>Suivi mobile par QR code</h3>
-  <p>Le client scanne le QR code affiché et suit l'avancement de sa file sur son téléphone. Sur le réseau local sans configuration ; depuis l'extérieur (réseau 4G du client) si le PC dispose d'Internet et du tunnel sécurisé activé.</p>
+  <p>Le client scanne le QR code de son ticket et suit l'avancement de sa file sur son téléphone.</p>
+  <ul>
+    <li><b>En réseau local</b> : fonctionne sans configuration sur le même Wi-Fi (le pare-feu est ouvert automatiquement à l'installation). Le QR pointe vers l'adresse IP réelle du PC.</li>
+    <li><b>Depuis l'extérieur (4G)</b> : si le PC dispose d'Internet, le QR fonctionne aussi hors de l'agence, via un <b>tunnel sécurisé automatique</b>. Pour la sécurité, seules les pages de suivi sont exposées sur Internet ; l'administration reste injoignable depuis l'extérieur. <i>L'adresse externe change à chaque redémarrage du PC.</i></li>
+    <li><b>Alertes</b> : sur la page de suivi, le client appuie une fois sur <b>« Activer les alertes »</b> ; il est ensuite prévenu par <b>vibration et son</b> quand son tour approche, puis quand c'est à lui.</li>
+  </ul>
 </section>
 
 <!-- ====================== CH 11 ====================== -->
@@ -392,8 +396,8 @@
   <h3>La page ne s'affiche pas sur un autre appareil</h3>
   <ul>
     <li>Vérifiez que l'appareil est sur le <b>même réseau Wi-Fi</b> que le PC serveur.</li>
-    <li>Vérifiez l'<b>adresse IP</b> du PC (indiquée dans l'Administration) et que la fenêtre noire du serveur est ouverte.</li>
-    <li>Autorisez Nouba dans le <b>pare-feu Windows</b> (réseaux privés).</li>
+    <li>Vérifiez l'<b>adresse IP</b> du PC (indiquée dans l'Administration) et que Nouba est bien démarré.</li>
+    <li>Le <b>pare-feu</b> est ouvert automatiquement à l'installation. Si le routeur isole les clients Wi-Fi (réseau « invité »), désactivez cette option.</li>
   </ul>
 
   <h3>Pas de son sur la TV</h3>

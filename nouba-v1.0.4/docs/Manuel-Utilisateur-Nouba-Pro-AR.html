@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نوبة برو — دليل المستخدم</title>
+<style>
+  :root{
+    --accent:#0f766e; --accent2:#c8a44d; --ink:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb; --soft:#f8fafc; --warn:#b45309; --danger:#b91c1c; --ok:#15803d;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+  body{font-family:'Segoe UI','Noto Sans Arabic',Tahoma,Arial,sans-serif; color:var(--ink); line-height:1.8;
+       margin:0; background:#fff; font-size:12pt; direction:rtl; text-align:right}
+  .page{max-width:820px; margin:0 auto; padding:24px 40px}
+  h1,h2,h3{color:var(--accent); line-height:1.4; font-weight:800}
+  h2{font-size:1.6rem; border-bottom:3px solid var(--accent2); padding-bottom:8px; margin-top:0}
+  h3{font-size:1.18rem; color:var(--ink); margin-top:1.6em}
+  p{margin:.5em 0}
+  ul,ol{margin:.4em 0 .8em; padding-right:1.5em; padding-left:0}
+  li{margin:.35em 0}
+  table{border-collapse:collapse; width:100%; margin:1em 0; font-size:.97em}
+  th,td{border:1px solid var(--line); padding:9px 12px; text-align:right; vertical-align:top}
+  th{background:var(--accent); color:#fff; font-weight:700}
+  tr:nth-child(even) td{background:var(--soft)}
+  code{background:#f1f5f9; padding:2px 6px; border-radius:5px; font-family:Consolas,monospace; font-size:.92em; color:#0f172a; direction:ltr; display:inline-block}
+  .note,.warn,.tip{border-radius:10px; padding:12px 16px; margin:1em 0; border-right:5px solid}
+  .note{background:#eff6ff; border-color:#2563eb}
+  .warn{background:#fffbeb; border-color:var(--warn)}
+  .tip{background:#f0fdf4; border-color:var(--ok)}
+  .note b,.warn b,.tip b{display:block; margin-bottom:3px}
+  .kbd{background:#1f2937; color:#fff; border-radius:6px; padding:2px 8px; font-size:.85em; font-family:Consolas,monospace; direction:ltr; display:inline-block}
+
+  .cover{height:100vh; min-height:980px; display:flex; flex-direction:column; justify-content:center;
+         align-items:center; text-align:center; background:linear-gradient(160deg,#0f766e,#0b3b38);
+         color:#fff; page-break-after:always}
+  .cover h1{color:#fff; font-size:3.4rem; margin:0; letter-spacing:1px}
+  .cover .sub{color:#c8a44d; font-size:1.5rem; font-weight:700; margin-top:10px}
+  .cover .tag{color:#cbd5e1; font-size:1.15rem; margin-top:28px; max-width:560px; line-height:1.9}
+  .cover .meta{margin-top:48px; color:#94a3b8; font-size:.95rem; border-top:1px solid rgba(255,255,255,.2); padding-top:18px}
+
+  .toc{page-break-after:always}
+  .toc ol{list-style:none; padding:0; counter-reset:ch}
+  .toc li{counter-increment:ch; padding:9px 0; border-bottom:1px dotted var(--line); display:flex; align-items:baseline}
+  .toc li::before{content:counter(ch); background:var(--accent); color:#fff; font-weight:700; border-radius:6px;
+         min-width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; margin-left:14px; font-size:.85em}
+  .toc a{color:var(--ink); text-decoration:none; font-weight:600}
+
+  .chapter{page-break-before:always}
+  .chapter-num{color:var(--accent2); font-weight:800; font-size:.9rem; letter-spacing:1px}
+
+  @media print{ .page{max-width:100%; padding:0 14mm} body{font-size:11.5pt} a{color:var(--ink); text-decoration:none} }
+  @page{ margin:16mm 0 18mm; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <img src="file:///D:/Nouba/VF/nouba-v1.0.4/nouba/wwwroot/images/nouba-icon-256.png" alt="Nouba" style="width:140px;height:140px;border-radius:30px;box-shadow:0 18px 50px rgba(0,0,0,.35);margin-bottom:30px;display:block;background:#fff">
+  <h1>نوبة&nbsp;برو</h1>
+  <div class="sub">دليل المستخدم</div>
+  <div class="tag">نظام احترافي لإدارة طابور الانتظار — كشك، شاشة عرض، نداءات صوتية. يعمل 100% بدون إنترنت.</div>
+  <div class="meta">الإصدار 1.0.4 &nbsp;•&nbsp; نسخة ويندوز 64 بت</div>
+</section>
+
+<div class="page">
+
+<section class="toc">
+  <h2>الفهرس</h2>
+  <ol>
+    <li><a href="#c1">تقديم نوبة برو</a></li>
+    <li><a href="#c2">المتطلّبات المادية</a></li>
+    <li><a href="#c3">التثبيت</a></li>
+    <li><a href="#c4">أول تشغيل وحساب المسؤول</a></li>
+    <li><a href="#c5">الترخيص والفترة التجريبية</a></li>
+    <li><a href="#c6">الإعداد: الخدمات، الشبابيك، الأعوان</a></li>
+    <li><a href="#c7">الكشك اللمسي (الزبون)</a></li>
+    <li><a href="#c8">شاشة العرض (التلفاز)</a></li>
+    <li><a href="#c9">واجهة العون</a></li>
+    <li><a href="#c10">الشبكة والعرض على عدة أجهزة</a></li>
+    <li><a href="#c11">النداءات الصوتية</a></li>
+    <li><a href="#c12">طباعة التذاكر</a></li>
+    <li><a href="#c13">الإحصائيات والتقارير</a></li>
+    <li><a href="#c14">النسخ الاحتياطي والصيانة</a></li>
+    <li><a href="#c15">حلّ المشكلات (أسئلة شائعة)</a></li>
+    <li><a href="#c16">ملحق: المواصفات التقنية</a></li>
+  </ol>
+</section>
+
+<section class="chapter" id="c1">
+  <div class="chapter-num">الفصل 1</div>
+  <h2>تقديم نوبة برو</h2>
+  <p>نوبة برو برنامج احترافي لـ<b>إدارة طابور الانتظار</b>، مصمَّم للوكالات والإدارات والعيادات والبنوك وكل مؤسسة تستقبل الجمهور. ينظّم مرور الزبائن عبر <b>تذاكر مرقَّمة</b> وينادي عليهم نحو الشبابيك عبر شاشة عرض و<b>نداءات صوتية</b>.</p>
+  <p>يعمل نوبة <b>بالكامل بدون إنترنت</b>: لا حاجة لأي اتصال بالشبكة. كل أصوات النداء (الفرنسية، الإنجليزية، العربية) مُضمَّنة.</p>
+  <h3>شاشات نوبة الثلاث</h3>
+  <table>
+    <tr><th>الشاشة</th><th>لمن؟</th><th>الدور</th></tr>
+    <tr><td><b>الكشك</b></td><td>الزبون</td><td>شاشة لمسية يختار فيها الزبون خدمة ويحصل على تذكرته المرقَّمة.</td></tr>
+    <tr><td><b>العرض</b></td><td>قاعة الانتظار</td><td>شاشة تلفاز تعرض الأرقام المُناداة والشبّاك المقابل، مع نداء صوتي.</td></tr>
+    <tr><td><b>الإدارة</b></td><td>المسيّر / العون</td><td>الإعداد، نداء التذاكر، الإحصائيات والتقارير.</td></tr>
+  </table>
+  <h3>الميزات الرئيسية</h3>
+  <ul>
+    <li>تذاكر حسب الخدمة، مع تسيير <b>الأولويات</b> (ذوو الأولوية).</li>
+    <li><b>نداءات صوتية</b> طبيعية بالفرنسية والإنجليزية والعربية (أصوات مُضمَّنة).</li>
+    <li>عرض تلفاز <b>قابل للتخصيص</b> (الألوان، الشعار، الشريط، الوسائط).</li>
+    <li><b>متعدّد اللغات</b> في الكشك (الفرنسية، العربية، الإنجليزية، الأمازيغية).</li>
+    <li><b>طباعة</b> التذاكر على طابعة حرارية (اختياري).</li>
+    <li><b>متابعة عبر الهاتف برمز QR</b>: يتابع الزبون تقدّم الطابور من هاتفه.</li>
+    <li><b>إحصائيات</b> وتقارير يومية (تصدير CSV، تقرير قابل للطباعة).</li>
+    <li>يعمل <b>100% بدون إنترنت</b>، البيانات مخزَّنة محليًا.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="c2">
+  <div class="chapter-num">الفصل 2</div>
+  <h2>المتطلّبات المادية</h2>
+  <p>يُثبَّت نوبة على <b>حاسوب واحد</b> («الحاسوب الخادم») يشغّل البرنامج. تتصل به الأجهزة الأخرى (تلفاز، لوحة الكشك، الهواتف) عبر الشبكة المحلية، بمتصفّح إنترنت فقط — <b>دون أي تثبيت</b> على تلك الأجهزة.</p>
+  <h3>2.1 — الحاسوب الخادم (إلزامي)</h3>
+  <p>هو قلب النظام. يجب أن يبقى مشغّلًا خلال ساعات العمل.</p>
+  <table>
+    <tr><th>المكوّن</th><th>الحد الأدنى</th><th>المُوصى به</th></tr>
+    <tr><td>النظام</td><td>ويندوز 10 (64 بت)</td><td>ويندوز 11 (64 بت)</td></tr>
+    <tr><td>المعالج</td><td>ثنائي النواة (Celeron / i3، ~2 غ.هرتز)</td><td>Core i5 / Ryzen 5</td></tr>
+    <tr><td>الذاكرة (RAM)</td><td><b>4 غيغابايت</b></td><td><b>8 غيغابايت</b></td></tr>
+    <tr><td>القرص</td><td>2 غ. حرّة</td><td>4 غ. حرّة على <b>SSD</b></td></tr>
+    <tr><td>الشبكة</td><td>Wi-Fi أو إيثرنت</td><td>إيثرنت سلكي (أكثر استقرارًا)</td></tr>
+  </table>
+  <div class="note"><b>لماذا 4 غ. كحد أدنى؟</b> أصوات النداء تُحمَّل في الذاكرة لنداءات فورية. مع 8 غ. يبقى النظام سلسًا حتى مع عدة شاشات متصلة.</div>
+  <h3>2.2 — لوحة / شاشة الكشك (مُوصى به)</h3>
+  <ul>
+    <li>لوحة <b>أندرويد (8.0+)</b> أو <b>ويندوز</b>، شاشة <b>10 بوصات أو أكثر</b>، بمتصفّح حديث (Chrome، Edge).</li>
+    <li>أو <b>شاشة لمسية</b> موصولة بالحاسوب الخادم.</li>
+    <li>يجب أن تكون على <b>نفس الشبكة</b> مثل الحاسوب الخادم.</li>
+  </ul>
+  <h3>2.3 — شاشة العرض (التلفاز) (مُوصى به)</h3>
+  <ul>
+    <li><b>تلفاز ذكي</b> بمتصفّح مدمج، <b>أو</b> صندوق/حاسوب مصغّر موصول بتلفاز عبر <b>HDMI</b>.</li>
+    <li>دقة <b>Full HD 1080p</b> مُوصى بها.</li>
+    <li>لـ<b>صوت</b> النداءات: التلفاز أو مكبّرات موصولة بجهاز العرض.</li>
+  </ul>
+  <h3>2.4 — طابعة التذاكر (اختياري)</h3>
+  <ul>
+    <li>طابعة <b>حرارية ESC/POS</b>، عرض الورق <b>80 ملم</b>.</li>
+    <li>اتصال <b>USB</b> أو <b>شبكة (IP)</b> أو <b>تسلسلي (COM)</b>.</li>
+  </ul>
+  <div class="note"><b>بدون طابعة؟</b> يعمل نوبة أيضًا في وضع <b>«التذكرة على الشاشة»</b>: يظهر الرقم مباشرة على الكشك، بلا ورق.</div>
+  <h3>2.5 — الشبكة</h3>
+  <ul>
+    <li><b>موجّه Wi-Fi</b> أو محوّل يربط كل الأجهزة على <b>نفس الشبكة المحلية</b>.</li>
+    <li>اتصال <b>الإنترنت اختياري</b>: مفيد فقط للمتابعة عبر الهاتف برمز QR من الخارج.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="c3">
+  <div class="chapter-num">الفصل 3</div>
+  <h2>التثبيت</h2>
+  <p>يتم التثبيت <b>على الحاسوب الخادم فقط</b>. لا برنامج آخر (لا .NET ولا غيره) للتثبيت: كل شيء مُضمَّن.</p>
+  <ol>
+    <li>انقر نقرًا مزدوجًا على <code>Nouba-Pro-Setup-v1.0.4.exe</code>.</li>
+    <li>يطلب ويندوز إذنًا (التحكّم بالحساب) ← انقر <b>نعم</b>.</li>
+    <li>اتبع المُعِين: <b>ترحيب ← مجلّد التثبيت ← اختصار سطح المكتب ← تثبيت</b>.</li>
+    <li>في النهاية، اترك خانة <b>«تشغيل نوبة برو»</b> مُحدَّدة ثم انقر <b>إنهاء</b>.</li>
+  </ol>
+  <div class="note"><b>أين تُثبَّت الملفات؟</b> يُثبَّت البرنامج في <code>C:\Program Files\Nouba Pro</code>. أما البيانات (القاعدة، النسخ الاحتياطية) فمخزَّنة منفصلة في <code>C:\ProgramData\Nouba</code> و<b>لا تُحذف</b> عند إلغاء التثبيت.</div>
+  <h3>تشغيل نوبة وإيقافه</h3>
+  <ul>
+    <li><b>التشغيل</b>: انقر نقرًا مزدوجًا على اختصار <b>«Nouba Pro»</b> على سطح المكتب. يبدأ نوبة <b>في الخلفية</b> (بدون أي نافذة) ويفتح المتصفّح تلقائيًا على نوبة.</li>
+    <li><b>الإيقاف</b>: قائمة ابدأ ← Nouba Pro ← <b>«Arreter Nouba Pro»</b>.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="c4">
+  <div class="chapter-num">الفصل 4</div>
+  <h2>أول تشغيل وحساب المسؤول</h2>
+  <p>عند أول تشغيل، يطلب نوبة إنشاء <b>حساب المسؤول</b>:</p>
+  <ol>
+    <li>أدخل <b>اسمك الكامل</b>، <b>مُعرّف</b> دخول و<b>كلمة مرور</b>.</li>
+    <li>أكِّد. يمنحك هذا الحساب الوصول إلى كل الإدارة.</li>
+  </ol>
+  <div class="warn"><b>مهم</b> احتفظ بهذه المعلومات بعناية. هي ضرورية للوصول إلى الإعداد والإحصائيات.</div>
+</section>
+
+<section class="chapter" id="c5">
+  <div class="chapter-num">الفصل 5</div>
+  <h2>الترخيص والفترة التجريبية</h2>
+  <h3>فترة تجريبية مجانية — 7 أيام</h3>
+  <p>بمجرّد التثبيت، يعمل نوبة برو <b>فورًا ومجانًا لمدة 7 أيام</b>، بدون أي تفعيل. يمكنك تجربة كل شيء. يظهر شريط <b>«نسخة تجريبية — X أيام متبقية»</b> في الإدارة.</p>
+  <h3>التفعيل</h3>
+  <p>بعد 7 أيام (أو في أي وقت)، يُطلب تفعيل الترخيص:</p>
+  <ol>
+    <li>تعرض صفحة التفعيل <b>معرّف جهاز</b> فريدًا لهذا الحاسوب.</li>
+    <li>أرسِل هذا المعرّف إلى <b>مزوّد نوبة</b>.</li>
+    <li>يرسل لك <b>مفتاح ترخيص</b>.</li>
+    <li>أدخِل المفتاح <b>مرة واحدة</b> ← يُفعَّل البرنامج نهائيًا على هذا الحاسوب.</li>
+  </ol>
+  <div class="note"><b>الترخيص مرتبط بالحاسوب</b> مفتاح الترخيص صالح فقط للحاسوب الذي قُدِّم معرّفه. عند تغيير الحاسوب، يلزم مفتاح جديد.</div>
+</section>
+
+<section class="chapter" id="c6">
+  <div class="chapter-num">الفصل 6</div>
+  <h2>الإعداد: الخدمات، الشبابيك، الأعوان</h2>
+  <p>قبل الفتح للجمهور، أعِدّ خدماتك وشبابيكك وأعوانك من الإدارة.</p>
+  <h3>6.1 — الخدمات</h3>
+  <p>الـ<b>خدمة</b> هي سبب الزيارة (مثل: <i>الاستقبال، الاستشارة، الدفع، السحب…</i>). لكل خدمة:</p>
+  <ul>
+    <li>الاسم (و<b>الاسم بالعربية / الإنجليزية</b> للعرض والنداء متعدّد اللغات).</li>
+    <li>حرف رمز (بادئة التذكرة، مثل «C» للاستشارة ← C-001).</li>
+    <li>اللون، الرمز التعبيري/الشعار لزر الكشك.</li>
+  </ul>
+  <div class="tip"><b>الاسم بالعربية في النداء</b> لكي يُنطَق اسم الخدمة بالعربية في نداء عربي، املأ جيدًا حقل <b>«الاسم بالعربية»</b> للخدمة.</div>
+  <h3>6.2 — الشبابيك</h3>
+  <p>الـ<b>شبّاك</b> هو موضع يستقبل فيه عون الزبائن. اربط كل شبّاك بخدمة.</p>
+  <h3>6.3 — الأعوان</h3>
+  <p>الـ<b>أعوان</b> ينادون التذاكر من مواضعهم. أنشئ عونًا لكل شخص، بمُعرّف وكلمة مرور، واربطه بشبّاك/خدمة.</p>
+</section>
+
+<section class="chapter" id="c7">
+  <div class="chapter-num">الفصل 7</div>
+  <h2>الكشك اللمسي (الزبون)</h2>
+  <p>الكشك هو الشاشة التي يستخدمها الزبون لـ<b>أخذ تذكرته</b>. افتح عنوان الكشك (انظر الفصل 10) على اللوحة / الشاشة اللمسية.</p>
+  <ul>
+    <li>يختار الزبون <b>لغته</b> (الفرنسية، العربية، الإنجليزية، الأمازيغية) إن كانت مُفعَّلة.</li>
+    <li>يلمس <b>زر الخدمة</b> المطلوبة.</li>
+    <li>تُطبَع <b>تذكرته المرقَّمة</b> (أو تظهر على الشاشة).</li>
+    <li>خيار <b>تذكرة ذات أولوية</b> لذوي الاحتياجات الخاصة، الحوامل، إلخ.</li>
+  </ul>
+  <div class="tip"><b>وضع الكشك (ملء الشاشة)</b> على الكشك، انقر زر <b>«Mode kiosque»</b> (أسفل اليمين) للانتقال إلى ملء الشاشة بدون شريط المتصفّح؛ يختفي الزر عندئذٍ. للخروج: مفتاح <span class="kbd">Échap</span>.</div>
+</section>
+
+<section class="chapter" id="c8">
+  <div class="chapter-num">الفصل 8</div>
+  <h2>شاشة العرض (التلفاز)</h2>
+  <p>العرض هو شاشة <b>قاعة الانتظار</b>. افتح عنوان العرض على التلفاز ثم انتقل إلى <b>ملء الشاشة</b>.</p>
+  <ul>
+    <li>تعرض <b>آخر رقم مُنادى</b> والـ<b>شبّاك</b> المقابل، بحجم كبير.</li>
+    <li>سجلّ آخر النداءات.</li>
+    <li><b>نداء صوتي</b> عند كل نداء («التذكرة C-005، يُرجى التوجّه إلى الشبّاك 2»).</li>
+    <li><b>تأثير بصري</b> جذّاب عند النداء، ساعة، شريط متحرّك، شعار، صورة/فيديو خلفية.</li>
+    <li>رمز QR لـ<b>المتابعة عبر الهاتف</b>.</li>
+  </ul>
+  <div class="warn"><b>تفعيل الصوت على التلفاز</b> بعض أجهزة التلفاز تمنع الصوت قبل أي تفاعل. عند بدء العرض، اضغط مرة على زر <b>«Son TV»</b> للسماح بالنداءات.</div>
+</section>
+
+<section class="chapter" id="c9">
+  <div class="chapter-num">الفصل 9</div>
+  <h2>واجهة العون</h2>
+  <p>يتّصل كل عون بواجهة العون من موضعه لتسيير طابور خدمته.</p>
+  <ul>
+    <li><b>نداء التالي</b>: ينادي التذكرة التالية في الانتظار (يُشغّل العرض + النداء).</li>
+    <li><b>إعادة النداء</b>: يُعيد نداء التذكرة الحالية (إن لم يحضر الزبون).</li>
+    <li><b>إنهاء / غائب</b>: يُغلق التذكرة الحالية وينتقل إلى التالية.</li>
+    <li>رؤية <b>عدد المنتظرين</b> على خدمته.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="c10">
+  <div class="chapter-num">الفصل 10</div>
+  <h2>الشبكة والعرض على عدة أجهزة</h2>
+  <p>كل الشاشات تُفتح في متصفّح بسيط، على عناوين الحاسوب الخادم.</p>
+  <h3>على الحاسوب الخادم نفسه</h3>
+  <table>
+    <tr><th>الشاشة</th><th>العنوان</th></tr>
+    <tr><td>الإدارة</td><td><code>http://localhost:5000/Admin</code></td></tr>
+    <tr><td>الكشك</td><td><code>http://localhost:5000/Borne</code></td></tr>
+    <tr><td>العرض</td><td><code>http://localhost:5000/Display</code></td></tr>
+  </table>
+  <h3>على الأجهزة الأخرى (نفس الشبكة)</h3>
+  <p>استبدِل <code>localhost</code> بـ<b>عنوان IP للحاسوب الخادم</b> (مذكور في الإدارة). مثال إذا كان IP هو <code>192.168.1.50</code>:</p>
+  <table>
+    <tr><th>الجهاز</th><th>العنوان</th></tr>
+    <tr><td>التلفاز (العرض)</td><td><code>http://192.168.1.50:5000/Display</code></td></tr>
+    <tr><td>اللوحة (الكشك)</td><td><code>http://192.168.1.50:5000/Borne</code></td></tr>
+  </table>
+  <h3>المتابعة عبر الهاتف برمز QR</h3>
+  <p>يمسح الزبون رمز QR لتذكرته ويتابع تقدّم طابوره على هاتفه.</p>
+  <ul>
+    <li><b>في الشبكة المحلية</b>: يعمل بدون إعداد على نفس Wi-Fi (يُفتَح الجدار الناري تلقائيًا عند التثبيت). يشير الرمز إلى عنوان IP الحقيقي للحاسوب.</li>
+    <li><b>من الخارج (4G)</b>: إذا توفّر الإنترنت على الحاسوب، يعمل الرمز أيضًا خارج الوكالة عبر <b>نفق آمن تلقائي</b>. للأمان، تُعرَض صفحات المتابعة فقط على الإنترنت؛ تبقى الإدارة غير قابلة للوصول من الخارج. <i>العنوان الخارجي يتغيّر عند كل إعادة تشغيل للحاسوب.</i></li>
+    <li><b>التنبيهات</b>: على صفحة المتابعة، يضغط الزبون مرة على <b>«تفعيل التنبيهات»</b>؛ يُنبَّه بعدها بـ<b>الاهتزاز والصوت</b> عندما يقترب دوره، ثم عندما يحين دوره.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="c11">
+  <div class="chapter-num">الفصل 11</div>
+  <h2>النداءات الصوتية</h2>
+  <p>يدمج نوبة <b>أصواتًا طبيعية</b>، مُضمَّنة وتعمل بدون إنترنت. الإعدادات في <b>الإدارة ← شاشة العرض ← الصوت</b>.</p>
+  <table>
+    <tr><th>اللغة</th><th>صوت أنثوي</th><th>صوت ذكوري</th></tr>
+    <tr><td>الفرنسية</td><td colspan="2">صوت «upmc» (أنثوي وذكوري)</td></tr>
+    <tr><td>الإنجليزية</td><td>lessac</td><td>ryan</td></tr>
+    <tr><td>العربية</td><td>dii</td><td>miro</td></tr>
+  </table>
+  <p>الإعدادات المتاحة: تفعيل النداءات، <b>جنس</b> الصوت، <b>عدد التكرارات</b>، مستوى الصوت، السرعة، واختيار <b>صوت النداء</b> (جرس، رنين).</p>
+  <div class="tip"><b>معلومة مفيدة</b> لا يوجد صوت للتنزيل: اللغات الثلاث (6 أصوات) موجودة سلفًا في البرنامج.</div>
+</section>
+
+<section class="chapter" id="c12">
+  <div class="chapter-num">الفصل 12</div>
+  <h2>طباعة التذاكر</h2>
+  <p>الإعدادات في <b>الإدارة ← الطابعة</b>.</p>
+  <ul>
+    <li><b>وضع الطباعة</b>: طابعة حرارية <b>أو</b> تذكرة على الشاشة (بلا ورق).</li>
+    <li><b>الاتصال</b>: USB، شبكة (عنوان IP + منفذ)، أو تسلسلي (منفذ COM).</li>
+    <li>عرض الورق (80 ملم)، القطع التلقائي، صفير، شعار ورمز QR على التذكرة.</li>
+    <li>زر <b>«اختبار الطابعة»</b> للتحقّق من الإعداد.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="c13">
+  <div class="chapter-num">الفصل 13</div>
+  <h2>الإحصائيات والتقارير</h2>
+  <p>تعرض <b>لوحة القيادة</b> نشاط اليوم: التذاكر المُصدَرة، المخدومة، المنتظرة، الغائبون، متوسّط وقت الانتظار، ساعة الذروة، الخدمة الأكثر طلبًا، ومقارنة مع الأمس.</p>
+  <ul>
+    <li><b>تصدير CSV</b>: يُصدّر إحصائيات وتذاكر اليوم (قابلة للفتح في Excel).</li>
+    <li><b>تقرير يومي قابل للطباعة</b>: تقرير كامل، قابل للطباعة أو التصدير PDF.</li>
+    <li><b>مساعد ذكاء اصطناعي</b> (بدون إنترنت): ملخّص ذكي وتوصيات اليوم.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="c14">
+  <div class="chapter-num">الفصل 14</div>
+  <h2>النسخ الاحتياطي والصيانة</h2>
+  <ul>
+    <li><b>البيانات</b>: كل البيانات (القاعدة، الإعداد، الشعارات) في <code>C:\ProgramData\Nouba</code>.</li>
+    <li><b>النسخ الاحتياطي</b>: انسخ بانتظام مجلّد <code>C:\ProgramData\Nouba</code> على مفتاح USB أو قرص خارجي.</li>
+    <li><b>التحديث</b>: ثبّت النسخة الجديدة فوق القديمة؛ بياناتك محفوظة.</li>
+    <li><b>إلغاء التثبيت</b>: لوحة التحكّم ← البرامج ← Nouba Pro ← إلغاء التثبيت. بيانات الزبون لا تُحذف.</li>
+  </ul>
+  <div class="warn"><b>إعادة التهيئة اليومية</b> تعود أرقام التذاكر إلى الصفر كل يوم تلقائيًا. يُحفظ السجلّ للإحصائيات.</div>
+</section>
+
+<section class="chapter" id="c15">
+  <div class="chapter-num">الفصل 15</div>
+  <h2>حلّ المشكلات (أسئلة شائعة)</h2>
+  <h3>الصفحة لا تظهر على جهاز آخر</h3>
+  <ul>
+    <li>تأكّد أن الجهاز على <b>نفس شبكة Wi-Fi</b> مثل الحاسوب الخادم.</li>
+    <li>تحقّق من <b>عنوان IP</b> للحاسوب (مذكور في الإدارة) وأن نوبة مُشغَّل.</li>
+    <li>الـ<b>جدار الناري</b> يُفتَح تلقائيًا عند التثبيت. إذا كان الموجّه يعزل عملاء Wi-Fi (شبكة «ضيف»)، عطّل هذا الخيار.</li>
+  </ul>
+  <h3>لا صوت على التلفاز</h3>
+  <ul>
+    <li>اضغط مرة على زر <b>«Son TV»</b> على شاشة العرض لإلغاء حظر الصوت.</li>
+    <li>تحقّق من مستوى صوت التلفاز / المكبّرات.</li>
+    <li>تأكّد أن النداءات الصوتية مُفعَّلة في الإدارة.</li>
+  </ul>
+  <h3>الرموز تظهر كمربّعات</h3>
+  <ul>
+    <li>أعِد تحميل الصفحة بالقوة: <span class="kbd">Ctrl + F5</span>.</li>
+  </ul>
+  <h3>«انتهت الفترة التجريبية»</h3>
+  <ul>
+    <li>قم بالتفعيل (الفصل 5): أرسِل معرّف الجهاز إلى مزوّدك.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="c16">
+  <div class="chapter-num">ملحق</div>
+  <h2>ملحق: المواصفات التقنية</h2>
+  <table>
+    <tr><th>العنصر</th><th>التفصيل</th></tr>
+    <tr><td>المنصّة</td><td>ويندوز 64 بت (10 / 11)</td></tr>
+    <tr><td>التثبيت</td><td>مستقل — لا مكوّنات خارجية مطلوبة</td></tr>
+    <tr><td>التشغيل</td><td>100% بدون إنترنت (الإنترنت اختياري)</td></tr>
+    <tr><td>قاعدة البيانات</td><td>محلية، ملف واحد (<code>C:\ProgramData\Nouba</code>)</td></tr>
+    <tr><td>الأصوات</td><td>6 أصوات (فرنسية، إنجليزية، عربية) مُضمَّنة</td></tr>
+    <tr><td>الطباعة</td><td>حرارية ESC/POS (USB / شبكة / تسلسلي) أو على الشاشة</td></tr>
+  </table>
+  <p style="text-align:center;margin-top:40px;color:var(--muted)">— نهاية الدليل —<br>نوبة برو 1.0.4</p>
+</section>
+
+</div>
+</body>
+</html>
