@@ -2005,7 +2005,14 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
       // C'est ce qui corrige le « 1er appel en français/anglais puis 2e en arabe ».
       var firstOk = false;
       for (var attempt = 1; attempt <= 3 && !firstOk; attempt++) {
-        if (attempt > 1) { await new Promise(function(r){ setTimeout(r, 450); }); }
+        if (attempt > 1) {
+          await new Promise(function(r){ setTimeout(r, 450); });
+          // Re-tente le déverrouillage de l'élément <audio> entre deux essais :
+          // au tout 1er appel il n'est parfois prêt qu'après le démarrage de
+          // l'AudioContext (carillon). Sans ça, les 3 essais échoueraient à
+          // l'identique et l'annonce arabe resterait muette le 1er coup.
+          if (!audioUnlocked) { try { await unlockAudio(); } catch(_){} }
+        }
         firstOk = await playWithPiper(text, lang);
         console.info('[Nouba TTS] Piper essai ' + attempt + '/3 → ' + (firstOk ? 'OK' : 'KO'));
       }
