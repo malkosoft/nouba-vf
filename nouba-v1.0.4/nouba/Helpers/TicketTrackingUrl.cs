@@ -27,7 +27,21 @@ public static class TicketTrackingUrl
 
         // Priorité 3 : URL locale (Wi-Fi interne, démos).
         if (currentRequest != null)
+        {
+            // Si l'opérateur a ouvert Nouba via localhost/127.0.0.1/0.0.0.0, l'hôte
+            // de la requête n'est PAS joignable depuis le téléphone du client. On le
+            // remplace alors par l'IP LAN réelle du PC (ex: 192.168.1.50) + le port.
+            if (NetworkHelper.IsLoopbackOrAny(currentRequest.Host.Host))
+            {
+                var lanIp = NetworkHelper.GetLanIp();
+                if (!string.IsNullOrEmpty(lanIp))
+                {
+                    var port = currentRequest.Host.Port ?? 5000;
+                    return $"http://{lanIp}:{port}/suivi/{publicId}";
+                }
+            }
             return $"{currentRequest.Scheme}://{currentRequest.Host.Value}/suivi/{publicId}";
+        }
 
         return $"/suivi/{publicId}";
     }

@@ -176,9 +176,17 @@ public class SuiviController : Controller
         var settings = await _settingsCache.GetAsync();
         if (!settings.QrFollowEnabled) return NotFound();
         var publicRoot = (settings.QrFollowPublicUrl ?? "").Trim().TrimEnd('/');
-        var url = !string.IsNullOrEmpty(publicRoot)
-            ? $"{publicRoot}/suivi"
-            : $"{Request.Scheme}://{Request.Host.Value}/suivi";
+        string baseUrl;
+        if (!string.IsNullOrEmpty(publicRoot))
+            baseUrl = publicRoot;
+        else if (!string.IsNullOrEmpty(_tunnel.TunnelUrl))
+            baseUrl = _tunnel.TunnelUrl!.TrimEnd('/');
+        else if (Nouba.Helpers.NetworkHelper.IsLoopbackOrAny(Request.Host.Host)
+                 && Nouba.Helpers.NetworkHelper.GetLanIp() is string lan && !string.IsNullOrEmpty(lan))
+            baseUrl = $"http://{lan}:{Request.Host.Port ?? 5000}";
+        else
+            baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+        var url = $"{baseUrl}/suivi";
         var px = Math.Clamp(size, 4, 20);
         var png = _qr.GeneratePng(url, px);
         return File(png, "image/png");
