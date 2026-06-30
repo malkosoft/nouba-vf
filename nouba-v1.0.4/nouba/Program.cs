@@ -235,6 +235,38 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+// ── Sécurité du tunnel public (suivi externe par QR) ─────────────
+// Quand Nouba est exposé sur Internet via le tunnel Cloudflare, on n'autorise
+// QUE les pages publiques de suivi client (/suivi). L'administration, l'agent,
+// la borne et l'affichage restent INJOIGNABLES depuis l'extérieur (accessibles
+// uniquement en réseau local). Les fichiers statiques nécessaires au suivi sont
+// déjà servis plus haut (UseStaticFiles), donc non concernés par ce filtre.
+var tunnelSvc = app.Services.GetRequiredService<CloudflareTunnelService>();
+app.Use(async (context, next) =>
+{
+    // Détection ROBUSTE d'une requête venue de l'extérieur : l'edge Cloudflare
+    // ajoute toujours l'en-tête Cf-Connecting-Ip (et Cf-Ray) aux requêtes qui
+    // passent par le tunnel ; les requêtes locales/LAN ne les ont jamais. On ne
+    // se fie PAS à l'en-tête Host (cloudflared peut le réécrire en localhost).
+    bool tunnelActive = !string.IsNullOrEmpty(tunnelSvc.TunnelUrl);
+    bool viaCloudflare = context.Request.Headers.ContainsKey("Cf-Connecting-Ip")
+                      || context.Request.Headers.ContainsKey("Cf-Ray");
+    if (tunnelActive && viaCloudflare)
+    {
+        var p = context.Request.Path.Value ?? "/";
+        bool allowed = p.StartsWith("/suivi", StringComparison.OrdinalIgnoreCase)
+                    || p.Equals("/health", StringComparison.OrdinalIgnoreCase)
+                    || p.Equals("/favicon.ico", StringComparison.OrdinalIgnoreCase);
+        if (!allowed)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsync("Acces restreint : seules les pages de suivi sont accessibles depuis l'exterieur.");
+            return;
+        }
+    }
+    await next();
+});
+
 app.UseRouting();
 app.UseSession();
 app.UseResponseCaching();
