@@ -794,7 +794,7 @@ public class AdminController : Controller
         // Voix
         var voiceGender = Str(nameof(input.VoiceGender), settings.VoiceGender, "female");
         settings.VoiceGender = voiceGender is "male" or "female" ? voiceGender : "female";
-        settings.VoiceRepeatCount = IntRange(nameof(input.VoiceRepeatCount), settings.VoiceRepeatCount, 1, 5, 2);
+        settings.VoiceRepeatCount = IntRange(nameof(input.VoiceRepeatCount), settings.VoiceRepeatCount, 1, 5, 1);
         settings.VoiceRate = DoubleRange(nameof(input.VoiceRate), settings.VoiceRate, 0.5, 2.0, 0.90);
         settings.VoicePitch = DoubleRange(nameof(input.VoicePitch), settings.VoicePitch, 0.5, 2.0, 1.0);
         settings.VoiceVolume = DoubleRange(nameof(input.VoiceVolume), settings.VoiceVolume, 0.1, 1.0, 1.0);

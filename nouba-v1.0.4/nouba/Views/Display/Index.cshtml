@@ -838,6 +838,10 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
 
   let lastTicket = '';
   let announcedTickets = [];
+  // Garde anti-double TEMPOREL : dernier instant d'annonce par ticket+guichet.
+  // Évite qu'un même appel soit annoncé 2 fois quand plusieurs déclencheurs
+  // (SignalR TicketCalled + RefreshQueue, ou polling) arrivent quasi en même temps.
+  let recentAnnounceAt = {};
   let voiceQueue = [];
   let voiceBusy = false;
   let allVoices = [];
@@ -2145,6 +2149,20 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
       window.NOUBA_DEBUG && console.warn('[Nouba DIAG] Son désactivé en admin — effet visuel seul.');
       return;
     }
+
+    // ── Garde anti-double TEMPOREL (filet de sécurité ultime) ─────────
+    // Un clic « Suivant »/« Rappeler » déclenche côté serveur DEUX messages
+    // SignalR (TicketCalled + RefreshQueue) → deux rafraîchissements → deux
+    // tentatives d'annonce quasi simultanées. Si CE ticket à CE guichet vient
+    // d'être annoncé il y a moins de 1,5 s, on ignore le doublon. Un rappel
+    // volontaire arrive toujours bien plus tard, donc reste autorisé.
+    const dedupeKey = (ticketNumber || '') + '|' + (counterName || '');
+    const nowMs = Date.now();
+    if (recentAnnounceAt[dedupeKey] && (nowMs - recentAnnounceAt[dedupeKey]) < 1500) {
+      window.NOUBA_DEBUG && console.info('[Nouba DIAG] SORTIE anti-double : même ticket annoncé il y a moins de 1,5 s');
+      return;
+    }
+    recentAnnounceAt[dedupeKey] = nowMs;
     if(hasAnnouncedSignature(callSignature)) { window.NOUBA_DEBUG && console.info('[Nouba DIAG] SORTIE : déjà annoncée'); return; }
 
     try {

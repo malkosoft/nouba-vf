@@ -63,6 +63,13 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
       <span id="statusText">Chargement…</span>
     </div>
 
+    <button id="alertBtn" type="button"
+            style="display:block;width:100%;margin:2px 0 16px 0;padding:13px 14px;border:none;border-radius:14px;
+                   background:linear-gradient(135deg,#22c55e,#16a34a);color:#06281a;font-weight:800;font-size:.95rem;
+                   cursor:pointer;box-shadow:0 8px 24px rgba(34,197,94,.3)">
+      🔔 Activer les alertes (son + vibration)
+    </button>
+
     @if (Model.IsPriority) {
       <div class="priority-tag">⭐ PRIORITAIRE</div>
     }
@@ -110,6 +117,51 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
   let pollMs = 5000;
   let isLive = true;
 
+  // ── Alertes (vibration + son) ────────────────────────────────────
+  // La politique des mobiles bloque le son/la vibration sans geste : on
+  // déverrouille au 1er tap (bouton « Activer les alertes » ou tap n'importe où).
+  // Ensuite : UNE alerte quand le tour APPROCHE, UNE quand C'EST AU CLIENT.
+  let alertsOn = false, audioCtx = null, lastAlert = '';
+  function vibrate(p){ if (navigator.vibrate) { try { navigator.vibrate(p); } catch(_){} } }
+  function beep(freq, dur, vol, delay){
+    if (!audioCtx) return;
+    setTimeout(function(){
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(vol || 0.25, audioCtx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.18));
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + (dur || 0.18) + 0.03);
+      } catch(_){}
+    }, delay || 0);
+  }
+  function alertApproaching(){ vibrate([120,60,120]); beep(660,0.16,0.25,0); beep(880,0.16,0.25,200); }
+  function alertYourTurn(){ vibrate([250,100,250,100,300]); beep(988,0.18,0.30,0); beep(988,0.18,0.30,260); beep(1320,0.22,0.32,520); }
+  function enableAlerts(){
+    if (alertsOn) return;
+    alertsOn = true;
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(_){}
+    vibrate([60]); beep(880,0.12,0.20,0);  // confirmation immédiate
+    var b = $('alertBtn');
+    if (b){ b.textContent = '🔔 Alertes activées ✓'; b.style.background = 'rgba(34,197,94,.15)'; b.style.color = '#86efac'; b.style.boxShadow = 'none'; b.style.cursor = 'default'; }
+  }
+  (function(){ var b = $('alertBtn'); if (b) b.addEventListener('click', enableAlerts); })();
+  document.addEventListener('click', enableAlerts);
+
+  function maybeAlert(d){
+    if (!alertsOn || !d) return;
+    if (d.status === 'called'){
+      if (lastAlert !== 'turn'){ alertYourTurn(); lastAlert = 'turn'; }
+    } else if (d.status === 'soon' || (d.status === 'waiting' && (d.peopleAhead || 99) <= 2)){
+      if (lastAlert === ''){ alertApproaching(); lastAlert = 'approach'; }
+    } else if (d.status === 'waiting'){
+      lastAlert = '';
+    }
+  }
+
   function setStatus(status, peopleAhead) {
     const badge = $('statusBadge');
     const txt = $('statusText');
@@ -125,6 +177,7 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
   function render(d) {
     if (!d) return;
     setStatus(d.status, d.peopleAhead);
+    maybeAlert(d);
     if (d.serviceName) $('serviceName').textContent = d.serviceName;
     // Position
     const positionBlock = $('positionBlock');
@@ -141,8 +194,6 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
       calledBanner.style.display = 'block';
       $('calledCounter').textContent = d.counterName ? ('Présentez-vous au ' + d.counterName) : 'Présentez-vous au guichet';
       $('calledTime').textContent = d.calledAt ? ('Appelé à ' + d.calledAt) : '';
-      // Vibration mobile (si supportée)
-      if (navigator.vibrate) { try { navigator.vibrate([200, 80, 200]); } catch(_){} }
     } else {
       calledBanner.style.display = 'none';
     }

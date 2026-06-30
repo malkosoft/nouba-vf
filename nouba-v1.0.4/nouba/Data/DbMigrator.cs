@@ -91,7 +91,7 @@ public static class DbMigrator
                 ("BorneShowLanguageSwitcher", "INTEGER", "1"),
                 ("BorneEnabledLanguages", "TEXT", "'fr,ar,tz,en'"),
                 // ── Marqueur de reset unique annonce vocale (v3) ──
-                ("VoiceRepeatResetV3", "INTEGER", "0"),
+                ("VoiceRepeatResetV4", "INTEGER", "0"),
             };
             foreach (var (name, type, defaultVal) in newColumns)
                 if (!cols.Contains(name)) ExecAlter(cmd, uiTable, name, type, defaultVal);
@@ -101,9 +101,9 @@ public static class DbMigrator
             // 2 fois ; combiné à un échec Piper « à froid » au 1er passage, cela
             // produisait le défaut signalé « 1ère annonce en français puis 2e en
             // arabe ». On force une annonce UNIQUE, mais une SEULE fois : le
-            // marqueur VoiceRepeatResetV3 (absent sur les bases antérieures,
+            // marqueur VoiceRepeatResetV4 (absent sur les bases antérieures,
             // présent dès ce démarrage) évite d'écraser un futur choix admin.
-            if (!cols.Contains("VoiceRepeatResetV3"))
+            if (!cols.Contains("VoiceRepeatResetV4"))
             {
                 try
                 {
