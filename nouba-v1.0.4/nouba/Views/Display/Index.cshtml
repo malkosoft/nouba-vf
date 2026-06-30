@@ -2546,12 +2546,18 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
       // TicketCalled : données du ticket directement dans SignalR → zéro latence
       // Le son et l'effet wow démarrent IMMÉDIATEMENT sans attendre le HTTP fetch.
       conn.on('TicketCalled', (ticketNumber, counterName, serviceName, lang, calledAtTicksStr) => {
-        const callLang = lang || uiLang;
-        const sig = (ticketNumber || '') + '|' + (counterName || '') + '|' + (calledAtTicksStr || '');
-        lastTicket = sig;
-        announceTicket(ticketNumber, counterName, serviceName, callLang, sig);
-        // Refresh du tableau avec un léger délai pour laisser la DB se stabiliser.
-        setTimeout(() => { lastEtag = ''; fetchState(); }, 180);
+        // ⚠️ ON N'ANNONCE PLUS DIRECTEMENT DEPUIS SIGNALR.
+        // Le hub diffuse le même message à TOUS les écrans quelle que soit leur
+        // langue : il envoie donc le nom de service BRUT (non traduit) et la
+        // langue PAR DÉFAUT. Sur un écran arabe, cela produisait une 1ère annonce
+        // avec le nom de service en français/anglais (lu par la voix arabe),
+        // suivie d'une 2e annonce issue du polling, elle entièrement en arabe.
+        // On déclenche désormais un simple rafraîchissement immédiat : l'annonce
+        // part de /State, qui localise le nom de service dans la langue de CET
+        // écran → UNE SEULE annonce, entièrement en arabe.
+        lastTicket = (ticketNumber || '') + '|' + (counterName || '') + '|' + (calledAtTicksStr || '');
+        lastEtag = '';
+        fetchState();
       });
       conn.on('RefreshQueue', () => { lastEtag = ''; fetchState(); });
       conn.on('SettingsChanged', () => {
