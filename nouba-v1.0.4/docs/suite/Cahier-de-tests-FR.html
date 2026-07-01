@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nouba Pro — Cahier de tests & non-régression</title>
+<link rel="stylesheet" href="file:///D:/Nouba/VF/nouba-v1.0.4/docs/suite/_doc-style.css">
+</head>
+<body>
+
+<section class="cover">
+  <img src="file:///D:/Nouba/VF/nouba-v1.0.4/nouba/wwwroot/images/nouba-icon-256.png" alt="Nouba">
+  <h1>Cahier de tests</h1>
+  <div class="sub">& Non-régression</div>
+  <div class="tag">Plan de tests, matrice de couverture et résultats de validation de Nouba Pro.</div>
+  <div class="meta">Nouba Pro 1.0.4 · Document interne fournisseur</div>
+</section>
+
+<div class="page">
+
+<h2>1. Objet &amp; portée</h2>
+<p>Ce cahier décrit les <b>scénarios de test</b> de Nouba Pro, la <b>matrice de couverture</b> par module, et sert de <b>procédure de non-régression</b> à rejouer avant chaque livraison. Objectif : garantir un logiciel <b>fiable, stable et sans régression</b>.</p>
+<p>Portée : borne, écran d'affichage, annonces vocales (TTS), suivi mobile par QR, administration, poste agent, licence, impression, thèmes, et intégrité de la base de données.</p>
+
+<h2>2. Environnement de test</h2>
+<table>
+<tr><th>Élément</th><th>Valeur</th></tr>
+<tr><td>Système</td><td>Windows 11 64 bits</td></tr>
+<tr><td>Version applicative</td><td>Nouba Pro 1.0.4 (publish autonome win-x64)</td></tr>
+<tr><td>Base</td><td>SQLite locale, base neuve et base migrée</td></tr>
+<tr><td>Réseau</td><td>Localhost, réseau LAN (Wi-Fi), tunnel Cloudflare (externe)</td></tr>
+<tr><td>Navigateurs</td><td>Edge / Chrome (bureau + mobile)</td></tr>
+</table>
+
+<h2>3. Matrice de tests par module</h2>
+<p>Légende résultat : <span class="pass">RÉUSSI</span> · <span class="fail">ÉCHEC</span>.</p>
+
+<h3>3.1 — Annonces vocales (TTS)</h3>
+<table>
+<tr><th>#</th><th>Scénario</th><th>Attendu</th><th>Résultat</th></tr>
+<tr><td>T-01</td><td>Voix FR / EN / AR (♀ et ♂)</td><td>Synthèse Piper locale, X-Piper=ok</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-02</td><td>Langue tamazight (pas de modèle)</td><td>HTTP 204, repli voix FR, pas de crash</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-03</td><td>Texte vide envoyé au moteur</td><td>HTTP 400 (rejeté proprement)</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-04</td><td>Langue invalide</td><td>HTTP 204, pas de crash</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-05</td><td>5 tickets appelés en rafale</td><td>Toutes annonces OK, serveur stable</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-06</td><td>Appel en arabe — nom de service</td><td>UNE annonce, entièrement en arabe (nom localisé)</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-07</td><td>Double annonce sur clic Suivant/Rappeler</td><td>Une seule annonce (voiceRepeat=1 + garde anti-double)</td><td class="pass">RÉUSSI</td></tr>
+</table>
+
+<h3>3.2 — Multilingue &amp; affichage</h3>
+<table>
+<tr><th>#</th><th>Scénario</th><th>Attendu</th><th>Résultat</th></tr>
+<tr><td>T-10</td><td>Borne FR / AR / EN / TZ (UI + noms de service)</td><td>Tout bascule dans la langue</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-11</td><td>Arabe : sens RTL, aucun caractère cassé</td><td>Rendu correct</td><td class="pass">RÉUSSI</td></tr>
+</table>
+
+<h3>3.3 — Suivi mobile par QR code</h3>
+<table>
+<tr><th>#</th><th>Scénario</th><th>Attendu</th><th>Résultat</th></tr>
+<tr><td>T-20</td><td>QR en réseau local</td><td>URL = IP LAN du PC (pas localhost), joignable au téléphone</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-21</td><td>Détection IP sur machine à cartes virtuelles</td><td>Choix de la vraie carte Wi-Fi</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-22</td><td>QR depuis l'extérieur (tunnel)</td><td>/suivi accessible (200) depuis Internet</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-23</td><td>Sécurité du tunnel</td><td>/Admin bloqué (404) depuis l'extérieur, accessible en local (200)</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-24</td><td>Alertes à 3 paliers (2 pers / 1 pers / appelé)</td><td>Vibration + son + notification distincts, une fois par palier</td><td class="pass">RÉUSSI</td></tr>
+</table>
+
+<h3>3.4 — Administration &amp; intégrité base</h3>
+<table>
+<tr><th>#</th><th>Scénario</th><th>Attendu</th><th>Résultat</th></tr>
+<tr><td>T-30</td><td>Création 1er admin + connexion</td><td>Accès à l'administration</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-31</td><td><b>Supprimer un service affecté à un agent</b></td><td><b>Jamais de 500</b> : réaffectation propre OU blocage avec message clair</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-32</td><td>Supprimer un guichet affecté</td><td>Idem : réaffectation ou blocage clair, aucune incohérence</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-33</td><td>Supprimer un agent ayant un historique</td><td>Suppression OK, historique préservé (nom conservé)</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-34</td><td>Admin client : champs cloud / clé API</td><td>Masqués au client (visibles fournisseur uniquement)</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-35</td><td>Section « Textes &amp; Langues »</td><td>Réorganisée, boutons explicites, reste dans l'admin</td><td class="pass">RÉUSSI</td></tr>
+</table>
+
+<h3>3.5 — Thèmes (Admin &amp; Agent)</h3>
+<table>
+<tr><th>#</th><th>Scénario</th><th>Attendu</th><th>Résultat</th></tr>
+<tr><td>T-40</td><td>Modes sombre / clair / auto (Windows) / contraste</td><td>Sélecteur présent, CSS/JS chargés, application immédiate</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-41</td><td>Préférences admin vs agent</td><td>Indépendantes (clés localStorage séparées)</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-42</td><td>Défaut sombre inchangé</td><td>Aucune régression sur l'existant</td><td class="pass">RÉUSSI</td></tr>
+</table>
+
+<h3>3.6 — Licence, exe &amp; déploiement</h3>
+<table>
+<tr><th>#</th><th>Scénario</th><th>Attendu</th><th>Résultat</th></tr>
+<tr><td>T-50</td><td>Installation fraîche (= client)</td><td>Essai 7 jours automatique (trial.dat), aucune licence embarquée</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-51</td><td>Lancement de l'exe</td><td>En arrière-plan, sans fenêtre console</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-52</td><td>Fonctionnement 100 % hors ligne</td><td>Aucune dépendance Internet requise</td><td class="pass">RÉUSSI</td></tr>
+<tr><td>T-53</td><td>Pare-feu (accès réseau local)</td><td>Règle ajoutée à l'installation</td><td class="pass">RÉUSSI</td></tr>
+</table>
+
+<h2>4. Procédure de non-régression (à rejouer avant livraison)</h2>
+<ol>
+<li><b>Build</b> : <code>dotnet build -c Release</code> → 0 erreur, 0 avertissement.</li>
+<li><b>Démarrage</b> : lancer l'exe, ouvrir <code>/health</code> → 200.</li>
+<li><b>Borne / Affichage</b> : prendre un ticket, l'appeler → affichage + <b>une seule</b> annonce dans la bonne langue.</li>
+<li><b>Multilingue</b> : basculer FR → AR → EN → TZ sur la borne, vérifier textes et noms de service.</li>
+<li><b>Suivi QR</b> : scanner le QR (Wi-Fi puis 4G), activer les alertes, vérifier les 3 paliers.</li>
+<li><b>Admin</b> : se connecter ; tester la suppression d'un service/guichet/agent affecté → <b>message clair, jamais de 500</b>.</li>
+<li><b>Thèmes</b> : basculer clair / sombre / auto / contraste dans l'admin et l'agent.</li>
+<li><b>Licence</b> : sur base neuve, vérifier l'essai 7 jours.</li>
+</ol>
+
+<h2>5. Résultat global</h2>
+<div class="ok"><b>Statut : <span class="pass">CONFORME</span></b><br>
+L'ensemble des scénarios ci-dessus est <b>réussi</b>. Aucune régression détectée sur les fonctions existantes (borne, affichage, TTS, multilingue, licence, impression) après l'ajout des thèmes, la refonte de l'admin client, la clarification des langues, la robustesse des suppressions et les alertes de suivi à 3 paliers.</div>
+
+<div class="note"><b>Traçabilité</b> — Chaque livraison est associée à un identifiant de commit Git. Ce cahier est mis à jour à chaque évolution fonctionnelle.</div>
+
+</div>
+</body>
+</html>

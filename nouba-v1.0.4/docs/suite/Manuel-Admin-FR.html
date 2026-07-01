@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nouba Pro — Manuel Administrateur</title>
+<link rel="stylesheet" href="file:///D:/Nouba/VF/nouba-v1.0.4/docs/suite/_doc-style.css">
+</head>
+<body>
+
+<section class="cover">
+  <img src="file:///D:/Nouba/VF/nouba-v1.0.4/nouba/wwwroot/images/nouba-icon-256.png" alt="Nouba">
+  <h1>Manuel Administrateur</h1>
+  <div class="sub">Nouba Pro</div>
+  <div class="tag">Configurer et piloter Nouba : services, guichets, agents, borne, affichage, langues, thèmes et statistiques.</div>
+  <div class="meta">Nouba Pro 1.0.4</div>
+</section>
+
+<div class="page">
+
+<h2>1. Accès &amp; tableau de bord</h2>
+<p>Ouvrez <code>http://localhost:5000/Admin</code> et connectez-vous. Le <b>tableau de bord</b> affiche l'activité du jour : tickets en attente, appelés, servis, absents, temps d'attente moyen, heure de pointe.</p>
+<div class="note"><b>Thème</b> — En haut à droite, choisissez le thème de l'administration : clair, sombre, auto (suit Windows) ou contraste élevé. Votre choix est mémorisé et indépendant du poste agent.</div>
+
+<h2>2. Services</h2>
+<p>Un <b>service</b> est un motif de visite (Accueil, Consultation, Paiement…). Pour chaque service :</p>
+<ul>
+<li><b>Nom</b> et <b>noms traduits</b> (arabe / anglais / tamazight) — utilisés pour l'affichage et l'annonce vocale multilingues.</li>
+<li>Lettre de code (préfixe du ticket, ex. « C » → C-001), couleur, emoji/logo du bouton borne.</li>
+</ul>
+<div class="tip"><b>Nom arabe à l'annonce</b> — Renseignez le champ « Nom arabe » pour que le service soit prononcé en arabe lors d'une annonce arabe.</div>
+
+<h2>3. Guichets</h2>
+<p>Un <b>guichet</b> est un poste d'accueil, rattaché à un service. Créez autant de guichets que de postes.</p>
+
+<h2>4. Agents</h2>
+<p>Créez un <b>agent</b> par personne (nom, identifiant, mot de passe) et affectez-le à un guichet/service. L'agent appelle les tickets depuis son poste.</p>
+<div class="warn"><b>Suppression protégée</b> — Un service ou un guichet <b>ne peut pas être supprimé</b> tant que des agents y sont affectés sans réaffectation possible : Nouba affiche un <b>message clair</b> et vous invite à réaffecter d'abord les agents. Aucune suppression ne peut créer d'incohérence.</div>
+
+<h2>5. Borne kiosque</h2>
+<p>Réglages de l'écran client : <b>titres et messages</b> (par langue), <b>langues proposées</b>, tickets prioritaires, retour automatique à l'accueil, fermeture de la prise de ticket, et <b>suivi mobile par QR code</b>.</p>
+<div class="note"><b>Admin métier</b> — Les paramètres techniques « cloud » (URL publique, identifiant et clé API) sont réservés au fournisseur et n'apparaissent pas dans l'admin client. Vous gérez simplement l'activation du suivi QR.</div>
+
+<h2>6. Écran d'affichage (TV)</h2>
+<p>Apparence (couleurs, logo, image/vidéo de fond), <b>bandeau</b> et titres (par langue), et réglages des <b>annonces vocales</b> : activation, genre de voix, nombre de répétitions, volume, vitesse, son d'appel.</p>
+
+<h2>7. Textes &amp; Langues</h2>
+<p>Cette section explique <b>où</b> se personnalise chaque texte (borne, écran TV, noms de services, langues). Les boutons ouvrent la section concernée <b>sans quitter l'administration</b>. Nouba est entièrement multilingue (FR/AR/EN/TZ).</p>
+
+<h2>8. Impression <span class="badge">Fournisseur</span></h2>
+<p>Mode d'impression (thermique ESC/POS ou ticket à l'écran), connexion (USB / réseau / série), largeur, coupe, logo et QR sur le ticket, test rapide et supervision de l'imprimante.</p>
+
+<h2>9. Statistiques &amp; rapports</h2>
+<ul>
+<li><b>Export CSV</b> des tickets et statistiques du jour.</li>
+<li><b>Rapport journalier imprimable</b> (KPIs, détail par service).</li>
+<li><b>Assistant IA</b> hors ligne : synthèse et recommandations.</li>
+</ul>
+
+<h2>10. Comptes &amp; licence</h2>
+<p>Gestion des comptes administrateurs (fournisseur / client), informations de licence (validité, agents autorisés, identifiant machine) et activation.</p>
+
+<h2>11. Sauvegarde</h2>
+<p>Copiez régulièrement le dossier <code>C:\ProgramData\Nouba</code> (base + configuration + logos) sur un support externe. Les mises à jour s'installent par-dessus sans perte de données.</p>
+
+</div>
+</body>
+</html>

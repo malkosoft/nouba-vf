@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nouba Pro — Manuel Fournisseur (technique)</title>
+<link rel="stylesheet" href="file:///D:/Nouba/VF/nouba-v1.0.4/docs/suite/_doc-style.css">
+</head>
+<body>
+
+<section class="cover">
+  <img src="file:///D:/Nouba/VF/nouba-v1.0.4/nouba/wwwroot/images/nouba-icon-256.png" alt="Nouba">
+  <h1>Manuel Fournisseur</h1>
+  <div class="sub">Documentation technique — Nouba Pro</div>
+  <div class="tag">Architecture, déploiement, licence, voix, tunnel et maintenance. Document confidentiel réservé au fournisseur.</div>
+  <div class="meta">Nouba Pro 1.0.4</div>
+</section>
+
+<div class="page">
+
+<div class="warn"><b>Confidentiel</b> — Ce document contient des informations techniques sensibles (mécanisme de licence, sécurité). À ne pas diffuser au client final.</div>
+
+<h2>1. Architecture</h2>
+<table>
+<tr><th>Élément</th><th>Détail</th></tr>
+<tr><td>Plateforme</td><td>ASP.NET Core 8 (MVC + Razor), publish autonome win-x64 (runtime .NET inclus)</td></tr>
+<tr><td>Base de données</td><td>SQLite locale (EF Core, EnsureCreated + migrations manuelles), mode WAL</td></tr>
+<tr><td>Temps réel</td><td>SignalR (hub <code>/queueHub</code>) + polling adaptatif de repli</td></tr>
+<tr><td>Voix</td><td>Piper TTS (offline), modèles .onnx + .onnx.json</td></tr>
+<tr><td>Écrans</td><td>Borne, Affichage (Display), Administration, Agent, Suivi mobile</td></tr>
+<tr><td>Écoute réseau</td><td><code>http://0.0.0.0:5000</code> (LAN) — surchargeable via <code>--urls</code> / <code>NOUBA_URLS</code></td></tr>
+</table>
+
+<h2>2. Emplacements &amp; données</h2>
+<ul>
+<li><b>Programme</b> : <code>C:\Program Files\Nouba Pro</code> (exe, wwwroot, voix, cloudflared, lanceurs).</li>
+<li><b>Données</b> : <code>C:\ProgramData\Nouba</code> (base <code>nouba.db</code>, <code>nouba.lic</code>, <code>trial.dat</code>, cache TTS, uploads). Persistantes à la désinstallation.</li>
+<li>Surcharge du dossier de données : variable <code>NOUBA_DATA_ROOT</code>.</li>
+</ul>
+
+<h2>3. Déploiement &amp; lanceurs</h2>
+<ul>
+<li>Installateur <b>Inno Setup 6</b> (<code>nouba.iss</code>). Ajoute une <b>règle de pare-feu</b> (autorise Nouba.exe entrant) et des raccourcis.</li>
+<li>Lancement <b>sans fenêtre console</b> : <code>Demarrer-Nouba.vbs</code> (exécute Nouba.exe caché + ouvre le navigateur). Arrêt : <code>Arreter-Nouba.vbs</code> (taskkill).</li>
+<li>Publication : <code>dotnet publish -c Release -r win-x64 --self-contained true</code>.</li>
+</ul>
+
+<h2>4. Licence (RSA, liée machine)</h2>
+<ul>
+<li>Format <code>NOUBA2-&lt;payload base64url&gt;.&lt;signature RSA-SHA256&gt;</code>. Le client contient <b>uniquement la clé publique</b>.</li>
+<li>Le payload lie la licence à un <b>identifiant machine</b> (dérivé de l'adresse MAC physique) : produit, expiration, nombre d'agents, client.</li>
+<li><b>Essai 7 jours</b> : <code>trial.dat</code> signé HMAC (anti-modification). Aucune licence n'est embarquée dans l'installateur → tout client démarre en essai.</li>
+<li><b>Générateur de clés</b> (clé privée RSA) : outil séparé, <b>à ne JAMAIS livrer</b> au client. Communiquer l'identifiant machine → générer la clé → le client la saisit une fois.</li>
+</ul>
+<div class="warn"><b>Sécurité critique</b> — La clé privée RSA et le générateur ne doivent jamais être inclus dans une livraison client (ni dans l'exe, ni dans le ZIP, ni dans Git public).</div>
+
+<h2>5. Voix (TTS Piper)</h2>
+<table>
+<tr><th>Langue</th><th>Modèles inclus</th></tr>
+<tr><td>Français</td><td>fr_FR-upmc-medium (2 locuteurs)</td></tr>
+<tr><td>Anglais</td><td>en_US-lessac-medium, en_US-ryan-medium</td></tr>
+<tr><td>Arabe</td><td>ar_SA-dii-medium (♀), ar_SA-miro-medium (♂)</td></tr>
+<tr><td>Tamazight</td><td>aucun modèle Piper → repli voix française</td></tr>
+</table>
+<ul>
+<li>Binaire <code>piper.exe</code> + <code>espeak-ng-data</code> + <code>libtashkeel</code> dans <code>wwwroot/tts/piper</code>.</li>
+<li>Cache des WAV dans <code>DataRoot/tts-cache</code> (jamais dans Program Files, en lecture seule).</li>
+<li>Annonce pilotée par <code>/State</code> (nom de service localisé) ; SignalR ne fait que déclencher un rafraîchissement (jamais annoncer directement).</li>
+</ul>
+
+<h2>6. Suivi QR : local &amp; externe</h2>
+<ul>
+<li>URL construite par ordre : <b>QrFollowPublicUrl</b> (domaine public) &gt; <b>tunnel Cloudflare</b> &gt; <b>IP LAN</b> réelle du PC (jamais localhost).</li>
+<li>Tunnel : <code>cloudflared.exe</code> bundlé, démarré automatiquement → URL <code>*.trycloudflare.com</code>. <b>Sécurité</b> : middleware qui, pour les requêtes venues du tunnel (en-tête <code>Cf-Connecting-Ip</code>), n'autorise que <code>/suivi</code>.</li>
+<li>Limite : l'URL du tunnel gratuit change à chaque redémarrage (usage « à la volée » ; pour du fixe, configurer QrFollowPublicUrl).</li>
+</ul>
+
+<h2>7. Maintenance &amp; dépannage</h2>
+<ul>
+<li><b>Migrations</b> : <code>DbMigrator</code> ajoute les colonnes manquantes + corrige les données (idempotent, marqueurs de reset ponctuels).</li>
+<li><b>Sauvegarde</b> : copier <code>C:\ProgramData\Nouba</code>.</li>
+<li><b>Réinitialiser un poste</b> : supprimer <code>nouba.lic</code> et <code>trial.dat</code> pour repasser en essai (tests).</li>
+<li><b>Éditeur inconnu</b> : l'exe n'est pas signé (certificat OV/EV requis pour supprimer l'avertissement Windows).</li>
+</ul>
+
+<h2>8. Limites connues</h2>
+<ul>
+<li>Pas de voix tamazight hors ligne (repli français).</li>
+<li>Prononciation arabe : qualité du moteur espeak (limite du 100 % offline).</li>
+<li>Tunnel gratuit : URL dynamique, service best-effort.</li>
+<li>Admin en français (back-office) ; les écrans client sont multilingues.</li>
+</ul>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nouba Pro — Guide d'installation</title>
+<link rel="stylesheet" href="file:///D:/Nouba/VF/nouba-v1.0.4/docs/suite/_doc-style.css">
+</head>
+<body>
+
+<section class="cover">
+  <img src="file:///D:/Nouba/VF/nouba-v1.0.4/nouba/wwwroot/images/nouba-icon-256.png" alt="Nouba">
+  <h1>Guide d'installation</h1>
+  <div class="sub">Nouba Pro</div>
+  <div class="tag">Installer, démarrer et connecter Nouba Pro en quelques minutes. 100 % hors ligne.</div>
+  <div class="meta">Nouba Pro 1.0.4 · Édition Windows 64 bits</div>
+</section>
+
+<div class="page">
+
+<h2>1. Avant de commencer</h2>
+<p>Nouba Pro s'installe sur <b>un seul PC</b> (le « PC serveur »). Les autres appareils (TV, tablette borne, téléphones) s'y connectent via un navigateur, sur le réseau local — <b>aucune installation</b> sur ces appareils.</p>
+<div class="note"><b>Aucun prérequis logiciel</b> : ni .NET, ni base de données, ni composant externe. Tout est inclus, y compris les voix d'annonce.</div>
+<h3>Configuration minimale du PC serveur</h3>
+<table>
+<tr><th>Élément</th><th>Minimum</th><th>Recommandé</th></tr>
+<tr><td>Système</td><td>Windows 10 64 bits</td><td>Windows 11 64 bits</td></tr>
+<tr><td>Processeur</td><td>Double cœur ~2 GHz</td><td>Core i5 / Ryzen 5</td></tr>
+<tr><td>Mémoire (RAM)</td><td>4 Go</td><td>8 Go</td></tr>
+<tr><td>Disque</td><td>2 Go libres</td><td>4 Go sur SSD</td></tr>
+<tr><td>Réseau</td><td>Wi-Fi ou Ethernet</td><td>Ethernet filaire</td></tr>
+</table>
+
+<h2>2. Installation (5 étapes)</h2>
+<ol>
+<li>Double-cliquez sur <code>Nouba-Pro-Setup-v1.0.4.exe</code>.</li>
+<li>Windows affiche « Contrôle de compte » → cliquez <b>Oui</b> <i>(c'est cette autorisation qui ouvre le pare-feu pour le réseau local)</i>.</li>
+<li>Suivez l'assistant : Bienvenue → Dossier → Raccourci Bureau → <b>Installer</b>.</li>
+<li>À la fin, laissez cochée « Lancer Nouba Pro » puis <b>Terminer</b>.</li>
+<li>Nouba démarre <b>en arrière-plan</b> (aucune fenêtre) et le navigateur s'ouvre automatiquement.</li>
+</ol>
+<div class="note"><b>Emplacements</b> — Programme : <code>C:\Program Files\Nouba Pro</code>. Données (base, sauvegardes) : <code>C:\ProgramData\Nouba</code> (conservées à la désinstallation).</div>
+
+<h2>3. Premier démarrage</h2>
+<p>À la première ouverture, créez votre <b>compte administrateur</b> (nom, identifiant, mot de passe). Conservez bien ces informations.</p>
+<h3>Démarrer / Arrêter</h3>
+<ul>
+<li><b>Démarrer</b> : raccourci « Nouba Pro » (Bureau) → démarre en arrière-plan + ouvre le navigateur.</li>
+<li><b>Arrêter</b> : menu Démarrer → Nouba Pro → « Arrêter Nouba Pro ».</li>
+</ul>
+
+<h2>4. Les 3 écrans</h2>
+<table>
+<tr><th>Écran</th><th>Adresse (sur le PC)</th></tr>
+<tr><td>Administration</td><td><code>http://localhost:5000/Admin</code></td></tr>
+<tr><td>Borne (client)</td><td><code>http://localhost:5000/Borne</code></td></tr>
+<tr><td>Affichage (TV)</td><td><code>http://localhost:5000/Display</code></td></tr>
+</table>
+
+<h2>5. Connecter les autres appareils</h2>
+<p>Tous sur le <b>même Wi-Fi</b> que le PC. Remplacez <code>localhost</code> par l'<b>adresse IP du PC</b> (indiquée dans l'Administration). Exemple si l'IP est <code>192.168.1.50</code> :</p>
+<table>
+<tr><th>Appareil</th><th>Adresse</th></tr>
+<tr><td>TV (affichage)</td><td><code>http://192.168.1.50:5000/Display</code></td></tr>
+<tr><td>Tablette (borne)</td><td><code>http://192.168.1.50:5000/Borne</code></td></tr>
+</table>
+<div class="tip"><b>Mode kiosque</b> — Sur la borne, le bouton « Mode kiosque » passe en plein écran sans barre du navigateur (sortie par Échap).</div>
+
+<h2>6. Suivi mobile par QR code</h2>
+<ul>
+<li><b>Réseau local</b> : le client scanne le QR du ticket → fonctionne sur le même Wi-Fi (pare-feu ouvert à l'installation).</li>
+<li><b>Extérieur (4G)</b> : si le PC a Internet, le QR fonctionne aussi hors de l'agence via un tunnel sécurisé automatique (seules les pages de suivi sont exposées).</li>
+</ul>
+
+<h2>7. Activation (après l'essai 7 jours)</h2>
+<ol>
+<li>La page d'activation affiche l'<b>identifiant machine</b> du PC.</li>
+<li>Communiquez-le à votre fournisseur Nouba.</li>
+<li>Entrez la <b>clé de licence</b> reçue → activé définitivement.</li>
+</ol>
+
+<h2>8. Dépannage rapide</h2>
+<table>
+<tr><th>Symptôme</th><th>Solution</th></tr>
+<tr><td>Page inaccessible depuis un autre appareil</td><td>Même Wi-Fi ? Bonne IP ? Nouba démarré ? (isolation « Wi-Fi invité » à désactiver côté routeur)</td></tr>
+<tr><td>Pas de son sur la TV</td><td>Appuyer une fois sur « Son TV » sur l'écran d'affichage</td></tr>
+<tr><td>Icônes en carrés</td><td>Recharger la page : Ctrl + F5</td></tr>
+</table>
+
+</div>
+</body>
+</html>

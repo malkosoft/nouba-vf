@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نوبة برو — دليل المزوّد (تقني)</title>
+<link rel="stylesheet" href="file:///D:/Nouba/VF/nouba-v1.0.4/docs/suite/_doc-style.css">
+<link rel="stylesheet" href="file:///D:/Nouba/VF/nouba-v1.0.4/docs/suite/_doc-rtl.css">
+</head>
+<body>
+
+<section class="cover">
+  <img src="file:///D:/Nouba/VF/nouba-v1.0.4/nouba/wwwroot/images/nouba-icon-256.png" alt="Nouba">
+  <h1>دليل المزوّد</h1>
+  <div class="sub">وثائق تقنية — نوبة برو</div>
+  <div class="tag">البنية، النشر، الترخيص، الأصوات، النفق والصيانة. وثيقة سرّية خاصة بالمزوّد.</div>
+  <div class="meta">نوبة برو 1.0.4</div>
+</section>
+
+<div class="page">
+
+<div class="warn"><b>سرّي</b> — تحتوي هذه الوثيقة على معلومات تقنية حسّاسة (آلية الترخيص، الأمان). لا تُوزَّع على العميل النهائي.</div>
+
+<h2>1. البنية</h2>
+<table>
+<tr><th>العنصر</th><th>التفصيل</th></tr>
+<tr><td>المنصّة</td><td>ASP.NET Core 8 (MVC + Razor)، نشر مستقل win-x64 (يشمل runtime .NET)</td></tr>
+<tr><td>قاعدة البيانات</td><td>SQLite محلية (EF Core، EnsureCreated + هجرات يدوية)، وضع WAL</td></tr>
+<tr><td>الزمن الحقيقي</td><td>SignalR (المحور <code>/queueHub</code>) + استطلاع تكيّفي احتياطي</td></tr>
+<tr><td>الأصوات</td><td>Piper TTS (بدون إنترنت)، نماذج .onnx + .onnx.json</td></tr>
+<tr><td>الاستماع الشبكي</td><td><code>http://0.0.0.0:5000</code> (LAN) — يُتجاوَز عبر <code>--urls</code> / <code>NOUBA_URLS</code></td></tr>
+</table>
+
+<h2>2. المواقع والبيانات</h2>
+<ul>
+<li><b>البرنامج</b>: <code>C:\Program Files\Nouba Pro</code> (exe، wwwroot، الأصوات، cloudflared، المشغّلات).</li>
+<li><b>البيانات</b>: <code>C:\ProgramData\Nouba</code> (<code>nouba.db</code>، <code>nouba.lic</code>، <code>trial.dat</code>، ذاكرة TTS، uploads). تبقى بعد إلغاء التثبيت.</li>
+<li>تجاوز مجلّد البيانات: المتغيّر <code>NOUBA_DATA_ROOT</code>.</li>
+</ul>
+
+<h2>3. النشر والمشغّلات</h2>
+<ul>
+<li>مُثبّت <b>Inno Setup 6</b> (<code>nouba.iss</code>). يضيف <b>قاعدة جدار ناري</b> (يسمح لـ Nouba.exe بالدخول) واختصارات.</li>
+<li>تشغيل <b>بلا نافذة</b>: <code>Demarrer-Nouba.vbs</code> (يشغّل Nouba.exe مخفيًا + يفتح المتصفّح). الإيقاف: <code>Arreter-Nouba.vbs</code>.</li>
+<li>النشر: <code>dotnet publish -c Release -r win-x64 --self-contained true</code>.</li>
+</ul>
+
+<h2>4. الترخيص (RSA، مرتبط بالجهاز)</h2>
+<ul>
+<li>الصيغة <code>NOUBA2-&lt;payload&gt;.&lt;توقيع RSA-SHA256&gt;</code>. يحتوي العميل على <b>المفتاح العام فقط</b>.</li>
+<li>يربط المحتوى الترخيص بـ<b>معرّف جهاز</b> (مشتقّ من عنوان MAC الفيزيائي): المنتج، الانتهاء، عدد الأعوان، العميل.</li>
+<li><b>تجربة 7 أيام</b>: <code>trial.dat</code> موقَّع HMAC (ضد التعديل). لا ترخيص مُضمَّن في المُثبّت ← كل عميل يبدأ تجريبيًا.</li>
+<li><b>مولّد المفاتيح</b> (المفتاح الخاص RSA): أداة منفصلة، <b>لا تُسلَّم أبدًا</b> للعميل.</li>
+</ul>
+<div class="warn"><b>أمان حرج</b> — يجب ألّا يُدرَج المفتاح الخاص RSA ومولّد المفاتيح في أي تسليم للعميل (لا في exe، لا في ZIP، لا في Git عام).</div>
+
+<h2>5. الأصوات (TTS Piper)</h2>
+<table>
+<tr><th>اللغة</th><th>النماذج المُضمَّنة</th></tr>
+<tr><td>الفرنسية</td><td>fr_FR-upmc-medium</td></tr>
+<tr><td>الإنجليزية</td><td>en_US-lessac، en_US-ryan</td></tr>
+<tr><td>العربية</td><td>ar_SA-dii (♀)، ar_SA-miro (♂)</td></tr>
+<tr><td>الأمازيغية</td><td>لا نموذج Piper ← رجوع للصوت الفرنسي</td></tr>
+</table>
+<ul>
+<li><code>piper.exe</code> + <code>espeak-ng-data</code> + <code>libtashkeel</code> في <code>wwwroot/tts/piper</code>.</li>
+<li>ذاكرة WAV في <code>DataRoot/tts-cache</code> (ليس في Program Files للقراءة فقط).</li>
+<li>النداء يُدار من <code>/State</code> (اسم خدمة مترجَم) ؛ SignalR يُطلق تحديثًا فقط (لا ينادي مباشرة).</li>
+</ul>
+
+<h2>6. متابعة QR: محلي وخارجي</h2>
+<ul>
+<li>يُبنى العنوان بالترتيب: <b>QrFollowPublicUrl</b> &gt; <b>نفق Cloudflare</b> &gt; <b>IP المحلي</b> الحقيقي للحاسوب (ليس localhost).</li>
+<li>النفق: <code>cloudflared.exe</code> مُضمَّن، يبدأ تلقائيًا. <b>الأمان</b>: وسيط لا يسمح إلا بـ <code>/suivi</code> للطلبات القادمة من النفق (ترويسة <code>Cf-Connecting-Ip</code>).</li>
+<li>حدّ: عنوان النفق المجاني يتغيّر عند كل إعادة تشغيل (استخدام «آني» ؛ للثابت، اضبط QrFollowPublicUrl).</li>
+</ul>
+
+<h2>7. الصيانة وحلّ المشكلات</h2>
+<ul>
+<li><b>الهجرات</b>: <code>DbMigrator</code> يضيف الأعمدة الناقصة + يصحّح البيانات (idempotent).</li>
+<li><b>النسخ الاحتياطي</b>: انسخ <code>C:\ProgramData\Nouba</code>.</li>
+<li><b>إعادة تهيئة جهاز</b>: احذف <code>nouba.lic</code> و<code>trial.dat</code> للعودة تجريبيًا (اختبارات).</li>
+<li><b>ناشر غير معروف</b>: exe غير موقَّع (شهادة OV/EV مطلوبة لإزالة تحذير ويندوز).</li>
+</ul>
+
+<h2>8. حدود معروفة</h2>
+<ul>
+<li>لا صوت أمازيغي بدون إنترنت (رجوع للفرنسي).</li>
+<li>النطق العربي: جودة محرّك espeak (حدّ الـ 100% بدون إنترنت).</li>
+<li>النفق المجاني: عنوان متغيّر، خدمة best-effort.</li>
+<li>الإدارة بالفرنسية (خلفية) ؛ شاشات العميل متعدّدة اللغات.</li>
+</ul>
+
+</div>
+</body>
+</html>

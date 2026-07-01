@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nouba Pro — Manuel Agent</title>
+<link rel="stylesheet" href="file:///D:/Nouba/VF/nouba-v1.0.4/docs/suite/_doc-style.css">
+</head>
+<body>
+
+<section class="cover">
+  <img src="file:///D:/Nouba/VF/nouba-v1.0.4/nouba/wwwroot/images/nouba-icon-256.png" alt="Nouba">
+  <h1>Manuel Agent</h1>
+  <div class="sub">Nouba Pro</div>
+  <div class="tag">Guide du poste agent : appeler, rappeler, terminer et transférer les tickets.</div>
+  <div class="meta">Nouba Pro 1.0.4</div>
+</section>
+
+<div class="page">
+
+<h2>1. Se connecter</h2>
+<p>Ouvrez l'adresse du poste agent dans un navigateur : <code>http://IP-DU-PC:5000/Agent/Login</code> (ou <code>http://localhost:5000/Agent/Login</code> sur le PC serveur). Saisissez l'<b>identifiant</b> et le <b>mot de passe</b> fournis par votre administrateur.</p>
+<div class="note">Chaque agent est associé à un <b>guichet</b> et un <b>service</b> par l'administrateur. Vous ne gérez que la file de votre service.</div>
+
+<h2>2. L'écran agent</h2>
+<p>En haut : votre nom, votre guichet, l'horloge, la <b>langue</b> et le <b>thème</b> (clair / sombre / auto / contraste). Au centre : le <b>ticket en cours</b> et la <b>file en attente</b>. En bas : vos statistiques du jour.</p>
+
+<h2>3. Les actions</h2>
+<table>
+<tr><th>Bouton</th><th>Effet</th></tr>
+<tr><td><b>Appeler le suivant</b></td><td>Appelle le prochain ticket en attente : l'écran d'affichage montre le numéro et votre guichet, et l'annonce vocale se déclenche.</td></tr>
+<tr><td><b>Rappeler</b></td><td>Relance l'annonce du ticket en cours (si le client n'est pas venu).</td></tr>
+<tr><td><b>Terminer</b></td><td>Clôture le ticket en cours (client servi) et libère le poste pour le suivant.</td></tr>
+<tr><td><b>Absent</b></td><td>Marque le client comme absent et passe au suivant.</td></tr>
+<tr><td><b>Transférer</b></td><td>Renvoie le ticket vers un autre service.</td></tr>
+</table>
+<div class="warn"><b>Un ticket à la fois</b> — Terminez, marquez absent ou transférez le ticket en cours <b>avant</b> d'appeler le suivant.</div>
+
+<h2>4. Bonnes pratiques</h2>
+<ul>
+<li>Vérifiez le <b>nombre de personnes en attente</b> affiché pour votre service.</li>
+<li>Si un client ne se présente pas après un <b>rappel</b>, marquez-le <b>Absent</b> pour ne pas bloquer la file.</li>
+<li>Choisissez votre <b>thème</b> (ex. clair en journée, sombre en soirée) — votre préférence est mémorisée sur ce poste, indépendamment de l'administration.</li>
+</ul>
+
+<h2>5. Se déconnecter</h2>
+<p>Bouton <b>Déconnexion</b> en haut à droite. À la fermeture du poste, déconnectez-vous pour protéger l'accès.</p>
+
+<div class="tip"><b>Astuce</b> — En cas de réaffectation de votre guichet par l'administrateur, votre écran se met à jour automatiquement, sans avoir à vous reconnecter.</div>
+
+</div>
+</body>
+</html>
