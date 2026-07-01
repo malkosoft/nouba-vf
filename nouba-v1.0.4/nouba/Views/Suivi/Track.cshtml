@@ -70,6 +70,8 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
       🔔 Activer les alertes (son + vibration)
     </button>
 
+    <div id="alertToast" style="display:none;margin:0 0 14px 0;padding:12px 14px;border-radius:12px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);color:#fcd34d;font-weight:800;font-size:.98rem"></div>
+
     @if (Model.IsPriority) {
       <div class="priority-tag">⭐ PRIORITAIRE</div>
     }
@@ -138,12 +140,23 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
       } catch(_){}
     }, delay || 0);
   }
-  function alertApproaching(){ vibrate([120,60,120]); beep(660,0.16,0.25,0); beep(880,0.16,0.25,200); }
-  function alertYourTurn(){ vibrate([250,100,250,100,300]); beep(988,0.18,0.30,0); beep(988,0.18,0.30,260); beep(1320,0.22,0.32,520); }
+  function alertApproaching(){ vibrate([120,60,120]); beep(620,0.16,0.22,0); beep(820,0.16,0.22,200); }
+  function alertReady(){ vibrate([180,80,180,80,180]); beep(760,0.16,0.28,0); beep(1010,0.18,0.28,220); beep(1010,0.18,0.28,440); }
+  function alertYourTurn(){ vibrate([250,100,250,100,300]); beep(988,0.18,0.32,0); beep(988,0.18,0.32,260); beep(1320,0.24,0.34,520); }
+
+  // Notification navigateur (si autorisée + contexte sécurisé, ex. via le tunnel
+  // HTTPS) + bandeau à l'écran. Aucun blocage si l'API n'est pas disponible.
+  function notify(title, body){
+    try { if ('Notification' in window && Notification.permission === 'granted') { new Notification(title, { body: body || '', tag: 'nouba-suivi', renotify: true }); } } catch(_){}
+    var t = $('alertToast');
+    if (t){ t.textContent = title + (body ? ' — ' + body : ''); t.style.display = 'block'; clearTimeout(window._toastTimer); window._toastTimer = setTimeout(function(){ t.style.display = 'none'; }, 8000); }
+  }
+
   function enableAlerts(){
     if (alertsOn) return;
     alertsOn = true;
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(_){}
+    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch(_){}
     vibrate([60]); beep(880,0.12,0.20,0);  // confirmation immédiate
     var b = $('alertBtn');
     if (b){ b.textContent = '🔔 Alertes activées ✓'; b.style.background = 'rgba(34,197,94,.15)'; b.style.color = '#86efac'; b.style.boxShadow = 'none'; b.style.cursor = 'default'; }
@@ -151,13 +164,20 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
   (function(){ var b = $('alertBtn'); if (b) b.addEventListener('click', enableAlerts); })();
   document.addEventListener('click', enableAlerts);
 
+  // Alertes à 3 PALIERS (item 5) — chaque palier une seule fois :
+  //   • 2 personnes avant vous            → « Bientôt à vous »
+  //   • 1 personne (ou vous êtes prochain) → « Préparez-vous »
+  //   • numéro appelé                      → « C'est votre tour »
   function maybeAlert(d){
     if (!alertsOn || !d) return;
+    var ahead = (typeof d.peopleAhead === 'number') ? d.peopleAhead : 99;
     if (d.status === 'called'){
-      if (lastAlert !== 'turn'){ alertYourTurn(); lastAlert = 'turn'; }
-    } else if (d.status === 'soon' || (d.status === 'waiting' && (d.peopleAhead || 99) <= 2)){
-      if (lastAlert === ''){ alertApproaching(); lastAlert = 'approach'; }
-    } else if (d.status === 'waiting'){
+      if (lastAlert !== 'turn'){ alertYourTurn(); notify("C'est votre tour !", d.counterName ? ('Présentez-vous au ' + d.counterName) : 'Présentez-vous au guichet'); lastAlert = 'turn'; }
+    } else if (d.status === 'soon' || ahead <= 1){
+      if (lastAlert !== 'ready' && lastAlert !== 'turn'){ alertReady(); notify('Préparez-vous', "C'est presque à vous (1 personne devant)."); lastAlert = 'ready'; }
+    } else if (ahead === 2){
+      if (lastAlert === ''){ alertApproaching(); notify('Bientôt à vous', '2 personnes avant vous.'); lastAlert = 'soon2'; }
+    } else if (d.status === 'waiting' && ahead > 2){
       lastAlert = '';
     }
   }

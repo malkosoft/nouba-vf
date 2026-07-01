@@ -40,6 +40,9 @@
     string tCloseFirst  = currentLanguage switch { "ar" => "أنهِ التذكرة الحالية، أو سجّلها كغائب أو حوّلها قبل استدعاء التالي.", "tz" => "Fak neɣ azen tikect-a send ad d-tsiwleḍ wayeḍ.", "en" => "Finish, mark absent or transfer the current ticket before calling the next one.", _ => "Terminez, marquez absent ou transférez le ticket en cours avant d'appeler le suivant." };
 }
 
+@* Système de thèmes (item 1) — portée « agent », indépendante de l'admin. *@
+<link rel="stylesheet" href="~/css/nouba-theme.css" asp-append-version="true"/>
+<script src="~/js/nouba-theme.js" data-theme-scope="agent" asp-append-version="true"></script>
 <style>
 /* ───────────────────────────────────────────────────────────────────
    AGENT — thème sombre OR / BLEU NUIT, cohérent avec Borne / Display /
@@ -166,6 +169,15 @@
         }
       </div>
       <div id="agent-clock" style="font-family:monospace;font-size:.85rem;color:rgba(255,255,255,.7);min-width:80px;text-align:center"></div>
+      <label class="nouba-theme-switch" title="Thème de l'interface agent" style="margin:0">
+        🎨
+        <select id="noubaThemeSelect" aria-label="Thème de l'interface">
+          <option value="dark">🌙 Sombre</option>
+          <option value="light">☀️ Clair</option>
+          <option value="auto">🖥️ Auto</option>
+          <option value="contrast">◐ Contraste</option>
+        </select>
+      </label>
       <form asp-action="Logout" method="post" style="margin:0">
         @Html.AntiForgeryToken()
         <button type="submit" style="padding:8px 18px;border-radius:12px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-weight:700;font-size:.85rem;cursor:pointer">@tLogout</button>

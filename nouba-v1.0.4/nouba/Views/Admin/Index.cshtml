@@ -39,6 +39,8 @@
 <title>@ViewData["Title"]</title>
 <link rel="icon" type="image/png" href="~/images/favicon.png"/>
 <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" asp-append-version="true"/>
+<link rel="stylesheet" href="~/css/nouba-theme.css" asp-append-version="true"/>
+<script src="~/js/nouba-theme.js" data-theme-scope="admin" asp-append-version="true"></script>
 <style>
 :root{
   --sidebar-w:260px;
@@ -524,6 +526,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="topbar">
         <div class="topbar-title" id="pageTitle">Tableau de bord</div>
         <div class="topbar-actions">
+            <!-- Sélecteur de thème (clair / sombre / auto Windows / contraste) — item 1.
+                 Préférence propre à l'ADMIN (indépendante de l'agent). -->
+            <label class="nouba-theme-switch" title="Thème de l'interface d'administration">
+                <i class="bi bi-palette-fill"></i>
+                <select id="noubaThemeSelect" aria-label="Thème de l'interface">
+                    <option value="dark">🌙 Sombre</option>
+                    <option value="light">☀️ Clair</option>
+                    <option value="auto">🖥️ Auto (Windows)</option>
+                    <option value="contrast">◐ Contraste élevé</option>
+                </select>
+            </label>
             <!-- Widget statut imprimante temps réel (fournisseur uniquement) -->
             @if (isProvider)
             {
@@ -1727,10 +1740,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
                                 <label for="qrFollowEnabled">Activer le suivi mobile par QR code</label>
                             </div>
 
+                            @* ── Paramètres CLOUD (techniques) : réservés au fournisseur ──
+                                 L'admin client ne voit pas ces champs (domaine, identifiant,
+                                 clé API cloud). Masqués = les valeurs configurées par le
+                                 fournisseur restent intactes (non postées = conservées). *@
+                            @if (isProvider)
+                            {
                             <hr class="divider"/>
 
                             <div>
-                                <label>URL publique du suivi <span style="color:var(--muted);font-weight:400">— optionnel</span></label>
+                                <label>URL publique du suivi <span style="color:var(--muted);font-weight:400">— optionnel (fournisseur)</span></label>
                                 <input class="form-control" name="QrFollowPublicUrl"
                                        value="@(settings.QrFollowPublicUrl ?? "")"
                                        placeholder="https://suivi.nouba.app"/>
@@ -1754,6 +1773,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
                                            placeholder="••••••••••••••••"/>
                                 </div>
                             </div>
+                            }
 
                             <hr class="divider"/>
 
@@ -1878,19 +1898,37 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <!-- ═══ TAB: TEXTES ═══ -->
     <div class="tab-pane @(tab=="texts"?"active":"")" id="tab-texts">
         <div class="panel">
-            <div class="panel-header"><h2><i class="bi bi-translate me-2" style="color:var(--accent)"></i>Personnalisation des textes par langue</h2></div>
+            <div class="panel-header"><h2><i class="bi bi-translate me-2" style="color:var(--accent)"></i>Textes &amp; Langues</h2></div>
             <div class="panel-body">
-                <p style="color:var(--muted);font-size:.85rem;margin-bottom:20px;">Titres de borne et fermeture : onglet <strong style="color:var(--text)">Borne kiosque</strong>. Bandeau et titres TV : onglet <strong style="color:var(--text)">Écran d'affichage</strong>.</p>
-                <div class="grid-2" style="gap:20px;">
-                    @foreach(var (lang,ico,name) in new[]{("Fr","🇫🇷","Français"),("Ar","🇩🇿","العربية"),("Tz","ⵣ","Tamazight"),("En","🇬🇧","English")})
-                    {
-                        <div class="qlink" style="flex-direction:column;align-items:flex-start;gap:8px;padding:16px;">
-                            <div style="font-size:1.5rem;">@ico</div>
-                            <div style="font-weight:700;color:#fff;">@name</div>
-                            <div style="font-size:.78rem;color:var(--muted);">Borne · Affichage · Fermeture · Bandeau</div>
-                            <button class="btn btn-ghost btn-sm" onclick="switchTab('borne')">Modifier →</button>
-                        </div>
-                    }
+                <div class="settings-help" style="margin-bottom:20px">
+                    <i class="bi bi-info-circle"></i>
+                    Nouba est <strong style="color:var(--text)">entièrement multilingue</strong> (Français 🇫🇷, Arabe 🇩🇿, Anglais 🇬🇧, Tamazight ⵣ). Chaque texte vu par le client se personnalise <strong style="color:var(--text)">dans chaque langue</strong>. Voici <strong style="color:var(--text)">où</strong> se trouve chaque type de texte — les boutons ouvrent la section concernée <em>sans quitter l'administration</em> et sans ouvrir la borne.
+                </div>
+                <div class="grid-2" style="gap:16px;align-items:stretch;">
+                    <div class="qlink" style="flex-direction:column;align-items:flex-start;gap:8px;padding:18px;">
+                        <div style="font-size:1.6rem;">🖥️</div>
+                        <div style="font-weight:800;color:#fff;">Textes de la Borne</div>
+                        <div style="font-size:.82rem;color:var(--muted);flex:1;">Titre, sous-titre et messages affichés au client sur la borne — dans chaque langue.</div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('borne')"><i class="bi bi-arrow-right-circle"></i> Ouvrir l'onglet « Borne kiosque »</button>
+                    </div>
+                    <div class="qlink" style="flex-direction:column;align-items:flex-start;gap:8px;padding:18px;">
+                        <div style="font-size:1.6rem;">📺</div>
+                        <div style="font-weight:800;color:#fff;">Textes de l'écran TV</div>
+                        <div style="font-size:.82rem;color:var(--muted);flex:1;">Titre de l'écran et bandeau défilant de l'affichage — dans chaque langue.</div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('display')"><i class="bi bi-arrow-right-circle"></i> Ouvrir l'onglet « Écran d'affichage »</button>
+                    </div>
+                    <div class="qlink" style="flex-direction:column;align-items:flex-start;gap:8px;padding:18px;">
+                        <div style="font-size:1.6rem;">🗂️</div>
+                        <div style="font-weight:800;color:#fff;">Noms des services par langue</div>
+                        <div style="font-size:.82rem;color:var(--muted);flex:1;">Nom arabe / anglais / tamazight de chaque service (affichage + annonce vocale).</div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('services')"><i class="bi bi-arrow-right-circle"></i> Ouvrir l'onglet « Services »</button>
+                    </div>
+                    <div class="qlink" style="flex-direction:column;align-items:flex-start;gap:8px;padding:18px;">
+                        <div style="font-size:1.6rem;">🌐</div>
+                        <div style="font-weight:800;color:#fff;">Langue par défaut &amp; langues de la borne</div>
+                        <div style="font-size:.82rem;color:var(--muted);flex:1;">Langue affichée par défaut et langues proposées au client à la prise de ticket.</div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('borne')"><i class="bi bi-arrow-right-circle"></i> Ouvrir l'onglet « Borne kiosque »</button>
+                    </div>
                 </div>
             </div>
         </div>

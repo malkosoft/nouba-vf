@@ -419,54 +419,71 @@ public class AdminController : Controller
     public async Task<IActionResult> DeleteService(int id, int? replacementServiceId)
     {
         if (!IsLoggedIn()) return RequireLogin();
-        var service = await _context.Services.FindAsync(id);
-        if (service is null) { TempData["Error"] = "Service introuvable."; return RedirectToIndexTab("tab-services"); }
-
-        // Politique : suppression du service, de ses tickets et de ses guichets,
-        // mais PRÉSERVATION des agents (réassignation ou désactivation).
-        var tickets = await _context.Tickets.Where(t => t.ServiceTypeId == id).ToListAsync();
-        var ticketIds = tickets.Select(t => t.Id).ToList();
-        var histories = await _context.CallHistories
-            .Where(h => ticketIds.Contains(h.TicketId) || h.ServiceName == service.Name)
-            .ToListAsync();
-        var counters = await _context.Counters.Where(c => c.ServiceTypeId == id).ToListAsync();
-        var counterIds = counters.Select(c => c.Id).ToList();
-        var agents = await _context.Agents.Where(a => a.ServiceTypeId == id || counterIds.Contains(a.CounterId)).ToListAsync();
-
-        ServiceType? replacement = null;
-        if (replacementServiceId.HasValue)
-            replacement = await _context.Services.FirstOrDefaultAsync(s => s.Id == replacementServiceId.Value && s.IsActive);
-        replacement ??= await _context.Services.FirstOrDefaultAsync(s => s.Id != id && s.IsActive);
-
-        var fallbackCounter = replacement is null ? null
-            : await _context.Counters.FirstOrDefaultAsync(c => c.ServiceTypeId == replacement.Id && c.IsActive);
-
-        foreach (var agent in agents)
+        try
         {
-            if (replacement is not null && fallbackCounter is not null)
+            var service = await _context.Services.FindAsync(id);
+            if (service is null) { TempData["Error"] = "Service introuvable."; return RedirectToIndexTab("tab-services"); }
+
+            var counters = await _context.Counters.Where(c => c.ServiceTypeId == id).ToListAsync();
+            var counterIds = counters.Select(c => c.Id).ToList();
+            var assignedAgents = await _context.Agents
+                .Where(a => a.ServiceTypeId == id || counterIds.Contains(a.CounterId))
+                .ToListAsync();
+
+            // Cible de réaffectation : un AUTRE service actif + un de ses guichets actifs.
+            ServiceType? replacement = null;
+            if (replacementServiceId.HasValue)
+                replacement = await _context.Services.FirstOrDefaultAsync(s => s.Id == replacementServiceId.Value && s.Id != id && s.IsActive);
+            replacement ??= await _context.Services.FirstOrDefaultAsync(s => s.Id != id && s.IsActive);
+            var fallbackCounter = replacement is null ? null
+                : await _context.Counters.FirstOrDefaultAsync(c => c.ServiceTypeId == replacement.Id && c.IsActive);
+
+            // ── Garde-fou anti-incohérence (item 4) ───────────────────────────
+            // On ne supprime JAMAIS un service auquel des agents sont encore
+            // affectés sans pouvoir les réaffecter proprement : sinon leur
+            // guichet/service pointerait dans le vide (incohérence en base → 500).
+            // On BLOQUE avec un message clair au lieu d'une erreur technique.
+            if (assignedAgents.Count > 0 && (replacement is null || fallbackCounter is null))
             {
-                agent.ServiceTypeId = replacement.Id;
-                agent.CounterId = fallbackCounter.Id;
+                var names = string.Join(", ", assignedAgents.Take(3).Select(a => a.FullName));
+                var extra = assignedAgents.Count > 3 ? "…" : "";
+                TempData["Error"] = $"Suppression impossible : {assignedAgents.Count} agent(s) sont encore affectés à ce service ({names}{extra}). "
+                    + "Réaffectez-les d'abord à un autre guichet actif (onglet Agents), ou créez/activez un autre service disposant d'un guichet, puis réessayez.";
+                return RedirectToIndexTab("tab-services");
             }
-            else
+
+            // Réaffectation propre vers un service/guichet qui survit (aucun lien orphelin).
+            foreach (var agent in assignedAgents)
             {
-                agent.IsActive = false;
+                agent.ServiceTypeId = replacement!.Id;
+                agent.CounterId = fallbackCounter!.Id;
             }
+
+            var tickets = await _context.Tickets.Where(t => t.ServiceTypeId == id).ToListAsync();
+            var ticketIds = tickets.Select(t => t.Id).ToList();
+            var histories = await _context.CallHistories
+                .Where(h => ticketIds.Contains(h.TicketId) || h.ServiceName == service.Name)
+                .ToListAsync();
+
+            _context.CallHistories.RemoveRange(histories);
+            _context.Tickets.RemoveRange(tickets);
+            _context.Counters.RemoveRange(counters);
+            _context.Services.Remove(service);
+            await _context.SaveChangesAsync();
+
+            await _hub.Clients.All.SendAsync("ServicesChanged");
+            foreach (var a in assignedAgents)
+                await _hub.Clients.All.SendAsync("AgentUpdated", a.Id);
+
+            TempData["Success"] = assignedAgents.Count > 0
+                ? $"Service supprimé. {assignedAgents.Count} agent(s) réaffecté(s) à « {replacement!.Name} »."
+                : "Service supprimé.";
         }
-
-        _context.CallHistories.RemoveRange(histories);
-        _context.Tickets.RemoveRange(tickets);
-        _context.Counters.RemoveRange(counters);
-        _context.Services.Remove(service);
-        await _context.SaveChangesAsync();
-        await _hub.Clients.All.SendAsync("ServicesChanged");
-        // Les agents réaffectés/désactivés doivent aussi se mettre à jour (#6).
-        foreach (var a in agents)
-            await _hub.Clients.All.SendAsync("AgentUpdated", a.Id);
-
-        TempData["Success"] = replacement is not null && fallbackCounter is not null
-            ? $"Service supprimé. {agents.Count} agent(s) réaffecté(s) à « {replacement.Name} »."
-            : $"Service supprimé. {agents.Count} agent(s) désactivé(s).";
+        catch (Exception)
+        {
+            TempData["Error"] = "Suppression impossible : ce service est encore lié à d'autres données (agents, guichets, historique). "
+                + "Réaffectez les agents concernés à un autre guichet puis réessayez.";
+        }
         return RedirectToIndexTab("tab-services");
     }
 
@@ -500,42 +517,55 @@ public class AdminController : Controller
     public async Task<IActionResult> DeleteCounter(int id)
     {
         if (!IsLoggedIn()) return RequireLogin();
-        var counter = await _context.Counters.FindAsync(id);
-        if (counter is null) { TempData["Error"] = "Guichet introuvable."; return RedirectToIndexTab("tab-counters"); }
-
-        // Politique : préserver les agents en les réassignant ou désactivant.
-        var tickets = await _context.Tickets.Where(t => t.CounterId == id).ToListAsync();
-        var ticketIds = tickets.Select(t => t.Id).ToList();
-        // Only delete histories tied to tickets of THIS counter, not all counters sharing the same name.
-        var histories = await _context.CallHistories
-            .Where(h => ticketIds.Contains(h.TicketId))
-            .ToListAsync();
-        var agents = await _context.Agents.Where(a => a.CounterId == id).ToListAsync();
-
-        var fallbackCounter = await _context.Counters
-            .FirstOrDefaultAsync(c => c.Id != id && c.ServiceTypeId == counter.ServiceTypeId && c.IsActive);
-
-        foreach (var agent in agents)
+        try
         {
-            if (fallbackCounter is not null)
+            var counter = await _context.Counters.FindAsync(id);
+            if (counter is null) { TempData["Error"] = "Guichet introuvable."; return RedirectToIndexTab("tab-counters"); }
+
+            var agents = await _context.Agents.Where(a => a.CounterId == id).ToListAsync();
+            var fallbackCounter = await _context.Counters
+                .FirstOrDefaultAsync(c => c.Id != id && c.ServiceTypeId == counter.ServiceTypeId && c.IsActive);
+
+            // ── Garde-fou anti-incohérence (item 4) ───────────────────────────
+            // Si des agents sont affectés à CE guichet et qu'aucun autre guichet
+            // actif du même service ne peut les accueillir, on BLOQUE proprement
+            // (sinon leur CounterId pointerait dans le vide → erreur 500).
+            if (agents.Count > 0 && fallbackCounter is null)
             {
-                agent.CounterId = fallbackCounter.Id;
+                var names = string.Join(", ", agents.Take(3).Select(a => a.FullName));
+                var extra = agents.Count > 3 ? "…" : "";
+                TempData["Error"] = $"Suppression impossible : {agents.Count} agent(s) sont encore affectés à ce guichet ({names}{extra}). "
+                    + "Créez/activez un autre guichet pour ce service et réaffectez-les (onglet Agents), puis réessayez.";
+                return RedirectToIndexTab("tab-counters");
+            }
+
+            foreach (var agent in agents)
+            {
+                agent.CounterId = fallbackCounter!.Id;
                 agent.ServiceTypeId = fallbackCounter.ServiceTypeId;
             }
-            else
-            {
-                agent.IsActive = false;
-            }
+
+            var tickets = await _context.Tickets.Where(t => t.CounterId == id).ToListAsync();
+            var ticketIds = tickets.Select(t => t.Id).ToList();
+            var histories = await _context.CallHistories
+                .Where(h => ticketIds.Contains(h.TicketId))
+                .ToListAsync();
+
+            _context.CallHistories.RemoveRange(histories);
+            _context.Tickets.RemoveRange(tickets);
+            _context.Counters.Remove(counter);
+            await _context.SaveChangesAsync();
+            foreach (var a in agents)
+                await _hub.Clients.All.SendAsync("AgentUpdated", a.Id);
+
+            TempData["Success"] = agents.Count > 0
+                ? $"Guichet supprimé. {agents.Count} agent(s) réaffecté(s) à « {fallbackCounter!.Name} »."
+                : "Guichet supprimé.";
         }
-
-        _context.CallHistories.RemoveRange(histories);
-        _context.Tickets.RemoveRange(tickets);
-        _context.Counters.Remove(counter);
-        await _context.SaveChangesAsync();
-
-        TempData["Success"] = fallbackCounter is not null
-            ? $"Guichet supprimé. {agents.Count} agent(s) réaffecté(s) à « {fallbackCounter.Name} »."
-            : $"Guichet supprimé. {agents.Count} agent(s) désactivé(s).";
+        catch (Exception)
+        {
+            TempData["Error"] = "Suppression impossible : ce guichet est encore lié à des données (agents, tickets). Réaffectez les agents à un autre guichet puis réessayez.";
+        }
         return RedirectToIndexTab("tab-counters");
     }
 
@@ -617,11 +647,29 @@ public class AdminController : Controller
     public async Task<IActionResult> DeleteAgent(int id)
     {
         if (!IsLoggedIn()) return RequireLogin();
-        var agent = await _context.Agents.FindAsync(id);
-        if (agent is null) { TempData["Error"] = "Agent introuvable."; return RedirectToIndexTab("tab-agents"); }
-        _context.Agents.Remove(agent);
-        await _context.SaveChangesAsync();
-        TempData["Success"] = "Agent supprimé.";
+        try
+        {
+            var agent = await _context.Agents.FindAsync(id);
+            if (agent is null) { TempData["Error"] = "Agent introuvable."; return RedirectToIndexTab("tab-agents"); }
+
+            // On PRÉSERVE l'historique des appels : on garde le nom de l'agent dans
+            // l'historique mais on détache la référence, pour éviter toute contrainte
+            // et ne perdre aucune statistique passée.
+            var histories = await _context.CallHistories.Where(h => h.AgentId == id).ToListAsync();
+            foreach (var h in histories)
+            {
+                if (string.IsNullOrWhiteSpace(h.AgentName)) h.AgentName = agent.FullName;
+                h.AgentId = null;
+            }
+
+            _context.Agents.Remove(agent);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Agent supprimé.";
+        }
+        catch (Exception)
+        {
+            TempData["Error"] = "Suppression impossible : cet agent est encore lié à des données. Réessayez plus tard ou réaffectez-le d'abord.";
+        }
         return RedirectToIndexTab("tab-agents");
     }
 
