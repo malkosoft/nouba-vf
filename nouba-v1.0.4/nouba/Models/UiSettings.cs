@@ -159,6 +159,14 @@ public class UiSettings
     /// <summary>Afficher un QR général sur l'écran TV pointant vers /suivi (sans publicId).</summary>
     public bool QrFollowShowOnDisplay { get; set; } = false;
 
+    /// <summary>
+    /// Sécurité : adresses IP (ou plages CIDR) autorisées à joindre l'administration
+    /// (/Admin, /Printer, /Ai) DEPUIS le réseau local, EN PLUS du poste hôte (localhost,
+    /// toujours autorisé). Séparateurs : virgule, point-virgule, espace ou retour ligne.
+    /// Exemples : « 192.168.1.50 » ou « 192.168.1.0/24 ». Vide = localhost uniquement.
+    /// </summary>
+    [StringLength(500)] public string? AdminAllowedIps { get; set; }
+
     [StringLength(250)] public string? TicketFooterFr { get; set; } = "Merci de votre visite";
     [StringLength(250)] public string? TicketFooterAr { get; set; } = "شكرا لزيارتكم";
     [StringLength(250)] public string? TicketFooterTz { get; set; } = "Tanemmirt ɣef tirza-nwen";

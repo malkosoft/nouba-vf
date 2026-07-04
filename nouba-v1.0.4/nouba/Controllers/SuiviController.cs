@@ -66,6 +66,13 @@ public class SuiviController : Controller
 
         if (ticket is null)
         {
+            // Ticket inexistant : page utilisateur propre MAIS bon code HTTP (404),
+            // pas un faux 200 (P7/P8 du plan). On désactive la ré-exécution
+            // StatusCodePages pour conserver NOTRE page « introuvable » (sinon la
+            // page d'erreur générique la remplacerait).
+            var scp = HttpContext.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>();
+            if (scp is not null) scp.Enabled = false;
+            Response.StatusCode = StatusCodes.Status404NotFound;
             ViewBag.Error = "Ticket introuvable. Vérifiez votre QR code.";
             return View("Disabled");
         }

@@ -23,6 +23,11 @@ nouba-backups/
 appsettings.local.json
 appsettings.Development.json
 
+# Configuration d'éditeur / outils locaux (ne pas versionner)
+.claude/
+.vscode/
+.idea/
+
 # Archives
 *.zip
 *.tar.gz

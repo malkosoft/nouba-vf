@@ -212,6 +212,27 @@ app.Use(async (context, next) =>
 
 // app.UseHttpsRedirection(); // désactivé pour usage local/LAN offline
 
+// ── Sécurité : NE JAMAIS exposer les binaires et modèles TTS en HTTP ──────────
+// piper.exe, les .dll, .onnx, .ort, .onnx.json et README internes vivent sous
+// wwwroot/tts pour être embarqués dans la publication, mais ils sont utilisés
+// UNIQUEMENT côté serveur (PiperTtsService y accède par le système de fichiers).
+// La voix est générée via le contrôleur /Tts/Speak — jamais par ces fichiers.
+// Sans ce filtre, /tts/piper/piper.exe (509 Ko), les README et les configs .json
+// étaient téléchargeables. On coupe donc tout accès HTTP à /tts/piper et
+// /tts/models AVANT UseStaticFiles. Le routage MVC /Tts/... n'est pas concerné
+// (« /Tts/Speak » ne commence ni par « /tts/piper » ni par « /tts/models »).
+app.Use(async (context, next) =>
+{
+    var p = context.Request.Path.Value ?? string.Empty;
+    if (p.StartsWith("/tts/piper", StringComparison.OrdinalIgnoreCase) ||
+        p.StartsWith("/tts/models", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next();
+});
+
 // Static files : cache long pour les assets versionnés.
 var staticFileOptions = new StaticFileOptions
 {
@@ -266,6 +287,42 @@ app.Use(async (context, next) =>
     }
     await next();
 });
+
+// ── Sécurité : administration réservée au poste hôte + IP LAN autorisées ──────
+// (Codex #2) /Admin, /Printer et /Ai ne doivent pas être joignables par n'importe
+// quel appareil du réseau local : par défaut SEUL le mini-PC (localhost) y accède.
+// Le client peut autoriser des adresses/plages précises (ex. une tablette d'admin)
+// via « IP autorisées » dans l'onglet Système. Les pages publiques (/Borne,
+// /Display, /Agent, /Suivi) ne sont JAMAIS concernées. Le loopback est toujours
+// permis : impossible de se verrouiller dehors depuis le poste hôte.
+var adminGuardCache = app.Services.GetRequiredService<Nouba.Services.UiSettingsCache>();
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    static bool InArea(string p, string area) =>
+        p.Equals(area, StringComparison.OrdinalIgnoreCase) ||
+        p.StartsWith(area + "/", StringComparison.OrdinalIgnoreCase);
+
+    if (InArea(path, "/Admin") || InArea(path, "/Printer") || InArea(path, "/Ai"))
+    {
+        var guardSettings = await adminGuardCache.GetAsync(context.RequestAborted);
+        if (!Nouba.Infrastructure.IpAccessList.IsAllowed(context.Connection.RemoteIpAddress, guardSettings.AdminAllowedIps))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync(
+                "Acces a l'administration restreint. Sur le mini-PC Nouba, ouvrez l'administration via "
+                + "http://localhost:5000/Admin (adresse « localhost »). Pour administrer depuis CET appareil du "
+                + "reseau, ajoutez son adresse IP dans « IP autorisees » (onglet Systeme) depuis le mini-PC.");
+            return;
+        }
+    }
+    await next();
+});
+
+// Garde « disque plein » (P3) : intercepte les écritures SQLite/fichiers
+// impossibles faute d'espace et rend une page claire (507) au lieu d'un 500.
+// Placé sous UseExceptionHandler pour capter en PREMIER les erreurs des actions.
+app.UseMiddleware<Nouba.Infrastructure.DiskGuardMiddleware>();
 
 app.UseRouting();
 app.UseSession();

@@ -69,6 +69,10 @@ public class AdminController : Controller
 
     private async Task<bool> CanActivateOneMoreAgentAsync(int? currentAgentId = null)
     {
+        // Mode dev/maquette : le bypass licence lève AUSSI la limite d'agents, sinon on ne
+        // peut ni tester ni faire de démonstration hors licence. Sans effet en production
+        // (la variable n'y est jamais définie), où la vraie licence continue de décider.
+        if (Environment.GetEnvironmentVariable("NOUBA_DEV_BYPASS_LICENSE") == "1") return true;
         var license = LicenseManager.CheckLicense(_storagePaths);
         if (!license.IsValid || license.Payload is null) return false;
 
@@ -147,10 +151,12 @@ public class AdminController : Controller
         if (!IsLoggedIn()) return RequireLogin();
 
         var today = DateTime.Today;
-        var services = await _context.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder).ToListAsync();
-        // Pour l'admin on charge TOUS les guichets et agents (y compris inactifs) afin de
-        // permettre la réactivation/réassignation. Les listes d'assignation côté UI filtrent
-        // explicitement sur les actifs là où c'est nécessaire.
+        // Pour l'admin on charge TOUS les services, guichets et agents (y compris INACTIFS)
+        // afin de permettre la réactivation/réassignation/suppression. Sans les inactifs, un
+        // service désactivé disparaîtrait de l'admin → impossible à réactiver. Les menus
+        // déroulants d'affectation filtrent explicitement sur les actifs là où c'est nécessaire.
+        var services = await _context.Services
+            .OrderByDescending(s => s.IsActive).ThenBy(s => s.DisplayOrder).ToListAsync();
         var counters = await _context.Counters.Include(c => c.ServiceType).OrderBy(c => c.Name).ToListAsync();
         var agents = await _context.Agents.Include(a => a.Counter).Include(a => a.ServiceType).OrderBy(a => a.FullName).ToListAsync();
         var settings = await _context.UiSettings.FirstAsync();
@@ -166,8 +172,8 @@ public class AdminController : Controller
         var absentToday = ticketsToday.Count(t => t.Status == TicketStatus.Absent);
         var totalToday = ticketsToday.Count;
 
-        // Per-service stats
-        var serviceStats = services.Select(s => new
+        // Per-service stats (dashboard : services actifs uniquement)
+        var serviceStats = services.Where(s => s.IsActive).Select(s => new
         {
             Service = s,
             Total = ticketsToday.Count(t => t.ServiceTypeId == s.Id),
@@ -320,6 +326,22 @@ public class AdminController : Controller
         return View(services);
     }
 
+    // Langue de l'interface d'ADMINISTRATION (FR/AR), indépendante de la borne/affichage.
+    [HttpGet]
+    public IActionResult SetAdminLanguage(string lang, string? returnUrl = null)
+    {
+        if (!IsLoggedIn()) return RequireLogin();
+        var value = lang == "ar" ? "ar" : "fr";
+        Response.Cookies.Append("nouba_admin_lang", value, new CookieOptions
+        {
+            Expires = DateTimeOffset.UtcNow.AddYears(1),
+            IsEssential = true,
+            SameSite = SameSiteMode.Lax
+        });
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) return Redirect(returnUrl);
+        return RedirectToAction(nameof(Index));
+    }
+
     // ── Services ──────────────────────────────────────────────────
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> AddService(ServiceType model, IFormFile? serviceLogoFile)
@@ -438,52 +460,60 @@ public class AdminController : Controller
             var fallbackCounter = replacement is null ? null
                 : await _context.Counters.FirstOrDefaultAsync(c => c.ServiceTypeId == replacement.Id && c.IsActive);
 
-            // ── Garde-fou anti-incohérence (item 4) ───────────────────────────
-            // On ne supprime JAMAIS un service auquel des agents sont encore
-            // affectés sans pouvoir les réaffecter proprement : sinon leur
-            // guichet/service pointerait dans le vide (incohérence en base → 500).
-            // On BLOQUE avec un message clair au lieu d'une erreur technique.
+            // VRAIE suppression. Les statistiques passées vivent dans CallHistory (noms en
+            // clair, sans clé étrangère) : elles ne sont donc jamais perdues. Pour garder un
+            // service tout en le masquant, l'admin dispose du bouton « Désactiver » ;
+            // « Supprimer » le retire réellement de la liste.
+
+            // Garde-fou : les agents ont des clés étrangères NON nulles (service + guichet).
+            // On ne peut les préserver que s'il existe un AUTRE service actif avec un guichet
+            // où les déplacer. Sinon on bloque avec un message clair (plutôt qu'un 500).
             if (assignedAgents.Count > 0 && (replacement is null || fallbackCounter is null))
             {
                 var names = string.Join(", ", assignedAgents.Take(3).Select(a => a.FullName));
                 var extra = assignedAgents.Count > 3 ? "…" : "";
-                TempData["Error"] = $"Suppression impossible : {assignedAgents.Count} agent(s) sont encore affectés à ce service ({names}{extra}). "
-                    + "Réaffectez-les d'abord à un autre guichet actif (onglet Agents), ou créez/activez un autre service disposant d'un guichet, puis réessayez.";
+                TempData["Error"] = $"Suppression impossible : {assignedAgents.Count} agent(s) sont affectés à ce service ({names}{extra}) et il n'existe aucun autre service actif (avec guichet) où les déplacer. "
+                    + "Créez/activez un autre service, ou supprimez d'abord ces agents. Astuce : vous pouvez aussi simplement « Désactiver » ce service.";
                 return RedirectToIndexTab("tab-services");
             }
-
-            // Réaffectation propre vers un service/guichet qui survit (aucun lien orphelin).
             foreach (var agent in assignedAgents)
-            {
-                agent.ServiceTypeId = replacement!.Id;
-                agent.CounterId = fallbackCounter!.Id;
-            }
+            { agent.ServiceTypeId = replacement!.Id; agent.CounterId = fallbackCounter!.Id; }
 
-            var tickets = await _context.Tickets.Where(t => t.ServiceTypeId == id).ToListAsync();
-            var ticketIds = tickets.Select(t => t.Id).ToList();
-            var histories = await _context.CallHistories
-                .Where(h => ticketIds.Contains(h.TicketId) || h.ServiceName == service.Name)
-                .ToListAsync();
+            // Tickets de ce service : retirés (la file disparaît avec le service). Les
+            // statistiques servies restent dans CallHistory → aucune statistique perdue.
+            var svcTickets = await _context.Tickets.Where(t => t.ServiceTypeId == id).ToListAsync();
+            _context.Tickets.RemoveRange(svcTickets);
 
-            _context.CallHistories.RemoveRange(histories);
-            _context.Tickets.RemoveRange(tickets);
             _context.Counters.RemoveRange(counters);
             _context.Services.Remove(service);
             await _context.SaveChangesAsync();
-
             await _hub.Clients.All.SendAsync("ServicesChanged");
-            foreach (var a in assignedAgents)
-                await _hub.Clients.All.SendAsync("AgentUpdated", a.Id);
-
+            foreach (var a in assignedAgents) await _hub.Clients.All.SendAsync("AgentUpdated", a.Id);
             TempData["Success"] = assignedAgents.Count > 0
-                ? $"Service supprimé. {assignedAgents.Count} agent(s) réaffecté(s) à « {replacement!.Name} »."
-                : "Service supprimé.";
+                ? $"Service « {service.Name} » supprimé. {assignedAgents.Count} agent(s) réaffecté(s) à « {replacement!.Name} ». Les statistiques passées restent dans l'historique."
+                : $"Service « {service.Name} » supprimé. Les statistiques passées restent dans l'historique.";
         }
         catch (Exception)
         {
             TempData["Error"] = "Suppression impossible : ce service est encore lié à d'autres données (agents, guichets, historique). "
                 + "Réaffectez les agents concernés à un autre guichet puis réessayez.";
         }
+        return RedirectToIndexTab("tab-services");
+    }
+
+    // Activer / Désactiver un service (réversible, ne perd rien — alternative douce à Supprimer).
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleService(int id)
+    {
+        if (!IsLoggedIn()) return RequireLogin();
+        var service = await _context.Services.FindAsync(id);
+        if (service is null) { TempData["Error"] = "Service introuvable."; return RedirectToIndexTab("tab-services"); }
+        service.IsActive = !service.IsActive;
+        await _context.SaveChangesAsync();
+        await _hub.Clients.All.SendAsync("ServicesChanged");
+        TempData["Success"] = service.IsActive
+            ? $"Service « {service.Name} » activé : il réapparaît sur la borne."
+            : $"Service « {service.Name} » désactivé : masqué de la borne, mais conservé (réactivable à tout moment).";
         return RedirectToIndexTab("tab-services");
     }
 
@@ -526,46 +556,58 @@ public class AdminController : Controller
             var fallbackCounter = await _context.Counters
                 .FirstOrDefaultAsync(c => c.Id != id && c.ServiceTypeId == counter.ServiceTypeId && c.IsActive);
 
-            // ── Garde-fou anti-incohérence (item 4) ───────────────────────────
-            // Si des agents sont affectés à CE guichet et qu'aucun autre guichet
-            // actif du même service ne peut les accueillir, on BLOQUE proprement
-            // (sinon leur CounterId pointerait dans le vide → erreur 500).
-            if (agents.Count > 0 && fallbackCounter is null)
-            {
-                var names = string.Join(", ", agents.Take(3).Select(a => a.FullName));
-                var extra = agents.Count > 3 ? "…" : "";
-                TempData["Error"] = $"Suppression impossible : {agents.Count} agent(s) sont encore affectés à ce guichet ({names}{extra}). "
-                    + "Créez/activez un autre guichet pour ce service et réaffectez-les (onglet Agents), puis réessayez.";
-                return RedirectToIndexTab("tab-counters");
-            }
+            // VRAIE suppression. Les statistiques passées vivent dans CallHistory (basé sur
+            // le NOM du guichet, sans clé étrangère) : elles ne sont donc JAMAIS perdues,
+            // même en supprimant le guichet. Pour garder l'historique, l'admin dispose du
+            // bouton « Désactiver » ; « Supprimer » retire vraiment le guichet de la liste.
 
+            // 1) Réaffecter les agents à un autre guichet actif du même service, sinon les désactiver.
             foreach (var agent in agents)
             {
-                agent.CounterId = fallbackCounter!.Id;
-                agent.ServiceTypeId = fallbackCounter.ServiceTypeId;
+                if (fallbackCounter is not null)
+                { agent.CounterId = fallbackCounter.Id; agent.ServiceTypeId = fallbackCounter.ServiceTypeId; }
+                else
+                    agent.IsActive = false;
             }
 
-            var tickets = await _context.Tickets.Where(t => t.CounterId == id).ToListAsync();
-            var ticketIds = tickets.Select(t => t.Id).ToList();
-            var histories = await _context.CallHistories
-                .Where(h => ticketIds.Contains(h.TicketId))
-                .ToListAsync();
+            // 2) Détacher les tickets liés (Ticket.CounterId est nullable) : ils restent en base,
+            //    aucune contrainte violée, et l'historique CallHistory n'est pas touché.
+            var linkedTickets = await _context.Tickets.Where(t => t.CounterId == id).ToListAsync();
+            foreach (var t in linkedTickets) t.CounterId = null;
 
-            _context.CallHistories.RemoveRange(histories);
-            _context.Tickets.RemoveRange(tickets);
+            // 3) Supprimer physiquement le guichet.
             _context.Counters.Remove(counter);
             await _context.SaveChangesAsync();
-            foreach (var a in agents)
-                await _hub.Clients.All.SendAsync("AgentUpdated", a.Id);
+            await _hub.Clients.All.SendAsync("ServicesChanged");
+            foreach (var a in agents) await _hub.Clients.All.SendAsync("AgentUpdated", a.Id);
 
-            TempData["Success"] = agents.Count > 0
-                ? $"Guichet supprimé. {agents.Count} agent(s) réaffecté(s) à « {fallbackCounter!.Name} »."
-                : "Guichet supprimé.";
+            var msg = $"Guichet « {counter.Name} » supprimé.";
+            if (agents.Count > 0)
+                msg += fallbackCounter is not null
+                    ? $" {agents.Count} agent(s) réaffecté(s) à « {fallbackCounter.Name} »."
+                    : $" {agents.Count} agent(s) désactivé(s) (aucun autre guichet actif pour ce service).";
+            TempData["Success"] = msg;
         }
         catch (Exception)
         {
-            TempData["Error"] = "Suppression impossible : ce guichet est encore lié à des données (agents, tickets). Réaffectez les agents à un autre guichet puis réessayez.";
+            TempData["Error"] = "Suppression impossible pour le moment. Réessayez, ou utilisez « Désactiver » pour masquer ce guichet.";
         }
+        return RedirectToIndexTab("tab-counters");
+    }
+
+    // Activer / Désactiver un guichet (réversible — alternative douce à Supprimer).
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleCounter(int id)
+    {
+        if (!IsLoggedIn()) return RequireLogin();
+        var counter = await _context.Counters.FindAsync(id);
+        if (counter is null) { TempData["Error"] = "Guichet introuvable."; return RedirectToIndexTab("tab-counters"); }
+        counter.IsActive = !counter.IsActive;
+        await _context.SaveChangesAsync();
+        await _hub.Clients.All.SendAsync("ServicesChanged");
+        TempData["Success"] = counter.IsActive
+            ? $"Guichet « {counter.Name} » activé."
+            : $"Guichet « {counter.Name} » désactivé : masqué de l'usage, mais conservé (réactivable).";
         return RedirectToIndexTab("tab-counters");
     }
 
@@ -670,6 +712,24 @@ public class AdminController : Controller
         {
             TempData["Error"] = "Suppression impossible : cet agent est encore lié à des données. Réessayez plus tard ou réaffectez-le d'abord.";
         }
+        return RedirectToIndexTab("tab-agents");
+    }
+
+    // Activer / Désactiver un agent (réversible ; à l'activation, respecte la limite licence).
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleAgent(int id)
+    {
+        if (!IsLoggedIn()) return RequireLogin();
+        var agent = await _context.Agents.FindAsync(id);
+        if (agent is null) { TempData["Error"] = "Agent introuvable."; return RedirectToIndexTab("tab-agents"); }
+        if (!agent.IsActive && !await CanActivateOneMoreAgentAsync(agent.Id))
+        { TempData["Error"] = AgentLimitMessage(); return RedirectToIndexTab("tab-agents"); }
+        agent.IsActive = !agent.IsActive;
+        await _context.SaveChangesAsync();
+        await _hub.Clients.All.SendAsync("AgentUpdated", agent.Id);
+        TempData["Success"] = agent.IsActive
+            ? $"Agent « {agent.FullName} » activé."
+            : $"Agent « {agent.FullName} » désactivé : il ne peut plus se connecter, mais son compte est conservé.";
         return RedirectToIndexTab("tab-agents");
     }
 
@@ -851,12 +911,27 @@ public class AdminController : Controller
         if (Has(nameof(input.ThemePreset)) && !Has(nameof(input.DisplayAccentColor)) && !Has(nameof(input.DisplayCardColor)))
             ApplyThemePreset(settings);
 
-        // Médias / uploads
-        settings.DisplayBackgroundImageUrl = await ResolveMediaPathAsync(backgroundImageFile, input.DisplayBackgroundImageUrl, settings.DisplayBackgroundImageUrl, "bg");
-        settings.DisplayBackgroundVideoUrl = await ResolveMediaPathAsync(backgroundVideoFile, input.DisplayBackgroundVideoUrl, settings.DisplayBackgroundVideoUrl, "video");
-        settings.DisplayLogoUrl = await ResolveMediaPathAsync(displayLogoFile, input.DisplayLogoUrl, settings.DisplayLogoUrl, "logo");
-        settings.DisplayBannerImageUrl = await ResolveMediaPathAsync(bannerImageFile, input.DisplayBannerImageUrl, settings.DisplayBannerImageUrl, "banner");
-        settings.HeaderImageUrl = await ResolveMediaPathAsync(headerImageFile, input.HeaderImageUrl, settings.HeaderImageUrl, "header");
+        // Médias / uploads. Suppression INTUITIVE : un champ URL vidé (ou le bouton
+        // « Retirer ») supprime le média et laisse vide. Sans ça, ResolveMediaPathAsync
+        // gardait l'ancienne valeur quand le champ était vide → impossible de retirer une
+        // vidéo pour laisser vide, ni de repasser de la vidéo à l'image.
+        async Task<string?> ResolveMediaField(IFormFile? file, string urlKey, string clearKey, string? current, string prefix)
+        {
+            if (Bool(clearKey, false)) return null;                             // bouton « Retirer »
+            if (file is { Length: > 0 }) return await ResolveMediaPathAsync(file, null, current, prefix);
+            if (Has(urlKey))                                                    // champ présent dans CE formulaire
+            {
+                var v = Posted(urlKey);
+                if (string.IsNullOrWhiteSpace(v)) return null;                  // vidé volontairement = supprimer
+                return await ResolveMediaPathAsync(null, v, current, prefix);
+            }
+            return current;                                                    // champ absent (formulaire partiel) = inchangé
+        }
+        settings.DisplayBackgroundImageUrl = await ResolveMediaField(backgroundImageFile, nameof(input.DisplayBackgroundImageUrl), "clearBackgroundImage", settings.DisplayBackgroundImageUrl, "bg");
+        settings.DisplayBackgroundVideoUrl = await ResolveMediaField(backgroundVideoFile, nameof(input.DisplayBackgroundVideoUrl), "clearBackgroundVideo", settings.DisplayBackgroundVideoUrl, "video");
+        settings.DisplayLogoUrl = await ResolveMediaField(displayLogoFile, nameof(input.DisplayLogoUrl), "clearDisplayLogo", settings.DisplayLogoUrl, "logo");
+        settings.DisplayBannerImageUrl = await ResolveMediaField(bannerImageFile, nameof(input.DisplayBannerImageUrl), "clearBanner", settings.DisplayBannerImageUrl, "banner");
+        settings.HeaderImageUrl = await ResolveMediaField(headerImageFile, nameof(input.HeaderImageUrl), "clearHeaderImage", settings.HeaderImageUrl, "header");
 
         // ── Suivi mobile par QR code (v2.7.12+) ──
         // Les bools "absents" du formulaire (checkbox non cochée) ne sont PAS
@@ -899,6 +974,53 @@ public class AdminController : Controller
         if (Has(nameof(input.BorneTitleFr)) || Has(nameof(input.TicketClosureMessageFr)) || Has(nameof(input.BorneShowLanguageSwitcher)) || Has("BorneLangEnabled_fr"))
             return RedirectToIndexTab("tab-borne");
         return RedirectToIndexTab("tab-display");
+    }
+
+    // ── Sécurité : IP autorisées à joindre l'administration (Codex #2) ──────────
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateAdminAllowedIps([FromForm] string? adminAllowedIps)
+    {
+        if (!IsLoggedIn()) return RequireLogin();
+        var settings = await _context.UiSettings.FirstAsync();
+
+        string? cleaned = null;
+        if (!string.IsNullOrWhiteSpace(adminAllowedIps))
+        {
+            var parts = adminAllowedIps
+                .Split(new[] { ',', ';', '\n', '\r', ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => s.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var invalid = parts.Where(p => !IsValidIpOrCidr(p)).ToList();
+            var valid = parts.Where(IsValidIpOrCidr).ToList();
+            if (invalid.Count > 0)
+                TempData["Error"] = "Adresse(s) ignorée(s) car invalide(s) : " + string.Join(", ", invalid)
+                    + ". Format attendu : 192.168.1.50 ou 192.168.1.0/24.";
+            cleaned = valid.Count > 0 ? string.Join(", ", valid) : null;
+        }
+
+        settings.AdminAllowedIps = cleaned;
+        await _context.SaveChangesAsync();
+        _settingsCache.Invalidate();
+        if (TempData["Error"] is null)
+            TempData["Success"] = cleaned is null
+                ? "Administration restreinte au poste local (aucune IP du réseau autorisée)."
+                : "IP autorisées enregistrées. Le poste local reste toujours autorisé.";
+        return RedirectToIndexTab("tab-system");
+    }
+
+    private static bool IsValidIpOrCidr(string entry)
+    {
+        var slash = entry.IndexOf('/');
+        if (slash > 0)
+        {
+            var ipPart = entry.Substring(0, slash);
+            var prefixPart = entry.Substring(slash + 1);
+            return System.Net.IPAddress.TryParse(ipPart, out _)
+                && int.TryParse(prefixPart, out var pfx) && pfx >= 0 && pfx <= 128;
+        }
+        return System.Net.IPAddress.TryParse(entry, out _);
     }
 
     [HttpPost, ValidateAntiForgeryToken]

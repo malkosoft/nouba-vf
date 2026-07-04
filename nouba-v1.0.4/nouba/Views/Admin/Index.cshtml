@@ -30,9 +30,30 @@
     long sysDiskTotalMb = (long)(ViewBag.SystemDiskTotalMb ?? 0L);
     string tunnelStatusTop = ViewBag.TunnelStatus as string ?? "initializing";
     string? tunnelUrlTop   = ViewBag.TunnelUrl as string;
+
+    // ── Langue de l'ADMIN (indépendante de la borne). Bascule FR/AR via le bouton du topbar. ──
+    var adminLang = Context.Request.Cookies["nouba_admin_lang"] == "ar" ? "ar" : "fr";
+    bool arRtl = adminLang == "ar";
+    var adminAr = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["A · Général"]="أ · عام", ["B · Affichage borne"]="ب · العرض والكشك", ["C · Tickets"]="ج · التذاكر",
+        ["D · Impression"]="د · الطباعة", ["E · Langues"]="هـ · اللغات", ["F · Sécurité / maintenance"]="و · الأمان والصيانة",
+        ["Accès rapide"]="وصول سريع",
+        ["Tableau de bord"]="لوحة القيادة", ["Écran d'affichage"]="شاشة العرض", ["Borne kiosque"]="الكشك",
+        ["Services"]="الخدمات", ["Guichets"]="الشبابيك", ["Agents"]="الأعوان", ["Imprimante"]="الطابعة",
+        ["Textes & Langues"]="النصوص واللغات", ["Diagnostic"]="التشخيص", ["Système"]="النظام",
+        ["Ouvrir l'affichage"]="فتح شاشة العرض", ["Ouvrir la borne"]="فتح الكشك", ["Interface agent"]="واجهة العون",
+        ["Administrateur"]="مدير", ["Déconnexion"]="تسجيل الخروج", ["Fournisseur"]="مورّد", ["Client"]="عميل",
+        ["Services configurés"]="الخدمات المُعدّة", ["Nouveau guichet"]="شباك جديد", ["Nouveau service"]="خدمة جديدة", ["Nouvel agent"]="عون جديد",
+        ["Ajouter"]="إضافة", ["Enregistrer"]="حفظ", ["Modifier"]="تعديل", ["Supprimer"]="حذف",
+        ["Activer"]="تفعيل", ["Désactiver"]="تعطيل",
+        ["Identifiants administrateur"]="بيانات دخول المدير", ["Accès à l'administration"]="الوصول إلى الإدارة",
+    };
+    // Traducteur : renvoie l'arabe si dispo en mode AR, sinon le texte français d'origine.
+    Func<string, string> T = s => (arRtl && adminAr.TryGetValue(s, out var v)) ? v : s;
 }
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="@adminLang" dir="@(arRtl ? "rtl" : "ltr")">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -132,6 +153,20 @@ a{text-decoration:none;color:inherit;}
 }
 .topbar-btn:hover{background:var(--surface3);}
 .topbar-btn.primary{background:var(--accent);border-color:var(--accent);color:#1a1206;font-weight:800;}
+
+/* ── RTL (admin en arabe) : la barre latérale passe à DROITE, le contenu se décale. ── */
+[dir="rtl"] .sidebar{left:auto;right:0;border-right:none;border-left:1px solid var(--border);}
+[dir="rtl"] .main{margin-left:0;margin-right:var(--sidebar-w);}
+[dir="rtl"] .nav-item{text-align:right;}
+[dir="rtl"] .nav-section-label{text-align:right;}
+[dir="rtl"] .nav-badge{margin-left:0;margin-right:auto;}
+[dir="rtl"] .me-1,[dir="rtl"] .me-2{margin-right:0;margin-left:.5rem;}
+[dir="rtl"] .ms-auto{margin-left:0;margin-right:auto;}
+@@media(max-width:900px){[dir="rtl"] .main{margin-right:0;}}
+.lang-toggle{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:3px;}
+.lang-toggle a{padding:4px 11px;border-radius:6px;font-size:.82rem;font-weight:800;color:var(--muted);transition:all .15s;}
+.lang-toggle a.active{background:var(--accent);color:#1a1206;}
+.lang-toggle a:hover:not(.active){color:var(--text);}
 .topbar-btn.primary:hover{background:var(--accent2);}
 .topbar-btn.danger{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5;}
 .topbar-btn.danger:hover{background:rgba(239,68,68,.25);}
@@ -420,34 +455,34 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
 
     <div class="nav-section">
-        <div class="nav-section-label">A · Général</div>
+        <div class="nav-section-label">@T("A · Général")</div>
         <button class="nav-item @(tab=="dashboard"?"active":"")" onclick="switchTab('dashboard')">
-            <span class="nav-icon"><i class="bi bi-grid"></i></span> Tableau de bord
+            <span class="nav-icon"><i class="bi bi-grid"></i></span> @T("Tableau de bord")
         </button>
     </div>
 
     <div class="nav-section">
-        <div class="nav-section-label">B · Affichage borne</div>
+        <div class="nav-section-label">@T("B · Affichage borne")</div>
         <button class="nav-item @(tab=="display"?"active":"")" onclick="switchTab('display')">
-            <span class="nav-icon"><i class="bi bi-display"></i></span> Écran d'affichage
+            <span class="nav-icon"><i class="bi bi-display"></i></span> @T("Écran d'affichage")
         </button>
         <button class="nav-item @(tab=="borne"?"active":"")" onclick="switchTab('borne')">
-            <span class="nav-icon"><i class="bi bi-tablet"></i></span> Borne kiosque
+            <span class="nav-icon"><i class="bi bi-tablet"></i></span> @T("Borne kiosque")
         </button>
     </div>
 
     <div class="nav-section">
-        <div class="nav-section-label">C · Tickets</div>
+        <div class="nav-section-label">@T("C · Tickets")</div>
         <button class="nav-item @(tab=="services"?"active":"")" onclick="switchTab('services')">
-            <span class="nav-icon"><i class="bi bi-layers"></i></span> Services
+            <span class="nav-icon"><i class="bi bi-layers"></i></span> @T("Services")
             <span class="nav-badge">@Model.Count</span>
         </button>
         <button class="nav-item @(tab=="counters"?"active":"")" onclick="switchTab('counters')">
-            <span class="nav-icon"><i class="bi bi-person-workspace"></i></span> Guichets
+            <span class="nav-icon"><i class="bi bi-person-workspace"></i></span> @T("Guichets")
             <span class="nav-badge">@counters.Count</span>
         </button>
         <button class="nav-item @(tab=="agents"?"active":"")" onclick="switchTab('agents')">
-            <span class="nav-icon"><i class="bi bi-headset"></i></span> Agents
+            <span class="nav-icon"><i class="bi bi-headset"></i></span> @T("Agents")
             <span class="nav-badge">@agents.Count</span>
         </button>
     </div>
@@ -455,9 +490,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     @if (isProvider)
     {
     <div class="nav-section">
-        <div class="nav-section-label">D · Impression</div>
+        <div class="nav-section-label">@T("D · Impression")</div>
         <button class="nav-item @(tab=="printer"?"active":"")" onclick="switchTab('printer')">
-            <span class="nav-icon"><i class="bi bi-printer"></i></span> Imprimante
+            <span class="nav-icon"><i class="bi bi-printer"></i></span> @T("Imprimante")
             @{
                 bool prEnabled = (bool)(ViewBag.PrinterEnabled ?? false);
                 string prMode = ViewBag.PrintMode as string ?? "all";
@@ -468,38 +503,38 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     }
 
     <div class="nav-section">
-        <div class="nav-section-label">E · Langues</div>
+        <div class="nav-section-label">@T("E · Langues")</div>
         <button class="nav-item @(tab=="texts"?"active":"")" onclick="switchTab('texts')">
-            <span class="nav-icon"><i class="bi bi-translate"></i></span> Textes & Langues
+            <span class="nav-icon"><i class="bi bi-translate"></i></span> @T("Textes & Langues")
         </button>
     </div>
 
     <div class="nav-section">
-        <div class="nav-section-label">F · Sécurité / maintenance</div>
+        <div class="nav-section-label">@T("F · Sécurité / maintenance")</div>
         @if (isProvider)
         {
         <button class="nav-item @(tab=="diagnostic"?"active":"")" onclick="switchTab('diagnostic')">
-            <span class="nav-icon"><i class="bi bi-activity"></i></span> Diagnostic
+            <span class="nav-icon"><i class="bi bi-activity"></i></span> @T("Diagnostic")
             <span class="nav-badge" style="background:#22c55e">AUTO</span>
         </button>
         }
         <button class="nav-item @(tab=="system"?"active":"")" onclick="switchTab('system')">
-            <span class="nav-icon"><i class="bi bi-gear"></i></span> Système
+            <span class="nav-icon"><i class="bi bi-gear"></i></span> @T("Système")
         </button>
     </div>
 
     <div class="nav-section">
-        <div class="nav-section-label">Accès rapide</div>
+        <div class="nav-section-label">@T("Accès rapide")</div>
         <a class="nav-item" href="/Display" target="_blank">
-            <span class="nav-icon"><i class="bi bi-tv"></i></span> Ouvrir l'affichage
+            <span class="nav-icon"><i class="bi bi-tv"></i></span> @T("Ouvrir l'affichage")
             <i class="bi bi-arrow-up-right ms-auto" style="font-size:.7rem;"></i>
         </a>
         <a class="nav-item" href="/Borne" target="_blank">
-            <span class="nav-icon"><i class="bi bi-upc-scan"></i></span> Ouvrir la borne
+            <span class="nav-icon"><i class="bi bi-upc-scan"></i></span> @T("Ouvrir la borne")
             <i class="bi bi-arrow-up-right ms-auto" style="font-size:.7rem;"></i>
         </a>
         <a class="nav-item" href="/Agent/Login" target="_blank">
-            <span class="nav-icon"><i class="bi bi-person-badge"></i></span> Interface agent
+            <span class="nav-icon"><i class="bi bi-person-badge"></i></span> @T("Interface agent")
             <i class="bi bi-arrow-up-right ms-auto" style="font-size:.7rem;"></i>
         </a>
     </div>
@@ -509,13 +544,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             <div class="admin-avatar">@(adminName.Length>0?adminName[0].ToString().ToUpper():"A")</div>
             <div>
                 <div class="admin-name">@adminName</div>
-                <div class="admin-role">Administrateur</div>
+                <div class="admin-role">@T("Administrateur")</div>
             </div>
         </div>
         <form asp-action="Logout" method="post" style="margin-top:8px;">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-ghost btn-sm btn-w">
-                <i class="bi bi-box-arrow-left"></i> Déconnexion
+                <i class="bi bi-box-arrow-left"></i> @T("Déconnexion")
             </button>
         </form>
     </div>
@@ -524,8 +559,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <!-- ═══ MAIN ═══ -->
 <div class="main">
     <div class="topbar">
-        <div class="topbar-title" id="pageTitle">Tableau de bord</div>
+        <div class="topbar-title" id="pageTitle">@T("Tableau de bord")</div>
         <div class="topbar-actions">
+            <div class="lang-toggle" title="Langue de l'administration / لغة الإدارة">
+                <a href="@Url.Action("SetAdminLanguage", new { lang = "fr", returnUrl = Context.Request.Path + Context.Request.QueryString })" class="@(adminLang=="fr" ? "active" : "")">FR</a>
+                <a href="@Url.Action("SetAdminLanguage", new { lang = "ar", returnUrl = Context.Request.Path + Context.Request.QueryString })" class="@(adminLang=="ar" ? "active" : "")">ع</a>
+            </div>
             <!-- Sélecteur de thème (clair / sombre / auto Windows / contraste) — item 1.
                  Préférence propre à l'ADMIN (indépendante de l'agent). -->
             <label class="nouba-theme-switch" title="Thème de l'interface d'administration">
@@ -1064,7 +1103,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="tab-pane @(tab=="services"?"active":"")" id="tab-services">
         <div class="grid-2">
             <div class="panel">
-                <div class="panel-header"><h2><i class="bi bi-plus-circle me-2" style="color:var(--accent)"></i>Nouveau service</h2></div>
+                <div class="panel-header"><h2><i class="bi bi-plus-circle me-2" style="color:var(--accent)"></i>@T("Nouveau service")</h2></div>
                 <div class="panel-body">
                     <form asp-action="AddService" method="post" enctype="multipart/form-data" class="vstack gap-3">
                         @Html.AntiForgeryToken()
@@ -1128,15 +1167,45 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             </div>
 
             <div class="panel">
-                <div class="panel-header"><h2><i class="bi bi-layers me-2" style="color:var(--accent)"></i>Services configurés</h2><p>@Model.Count service(s)</p></div>
+                <div class="panel-header"><h2><i class="bi bi-layers me-2" style="color:var(--accent)"></i>@T("Services configurés")</h2><p>@Model.Count service(s)</p></div>
                 <div class="panel-body" style="max-height:500px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+                    @{
+                        // Langues (hors fr) activées sur la borne : on n'alerte que pour
+                        // celles réellement proposées au public quand le sélecteur est actif.
+                        var borneCheckLangs = (settings.BorneEnabledLanguages ?? "fr")
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => x.Trim().ToLowerInvariant())
+                            .Where(x => x != "fr")
+                            .ToArray();
+                    }
                     @foreach (var svc in Model)
                     {
-                        <div class="service-card">
+                        <div class="service-card" style="@(svc.IsActive ? "" : "opacity:.6;")">
                             <div class="service-dot" style="background:@svc.ButtonColor;color:@svc.TextColor;">@svc.Code</div>
                             <div class="service-info">
                                 <div class="service-name">@svc.Name</div>
                                 <div class="service-code">Code: @svc.Code · Ordre: @svc.DisplayOrder · @(svc.IsActive?"Actif":"Inactif")</div>
+                                @{
+                                    // Badge « traduction manquante » (Codex #6) : uniquement pour un service
+                                    // ACTIF quand le sélecteur de langue borne est activé. On liste les langues
+                                    // proposées au public dont le nom traduit est vide (fallback = nom français).
+                                    var missingLangs = new List<string>();
+                                    if (settings.BorneShowLanguageSwitcher && svc.IsActive)
+                                    {
+                                        foreach (var l in borneCheckLangs)
+                                        {
+                                            var v = l == "ar" ? svc.NameAr : l == "en" ? svc.NameEn : l == "tz" ? svc.NameTz : "x";
+                                            if (string.IsNullOrWhiteSpace(v)) missingLangs.Add(l.ToUpperInvariant());
+                                        }
+                                    }
+                                }
+                                @if (missingLangs.Count > 0)
+                                {
+                                    <div title="Sur la borne, ce service s'affichera avec son nom français faute de traduction dans ces langues. Renseignez-les via « Modifier » pour un affichage 100% traduit."
+                                         style="margin-top:5px;display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);padding:2px 8px;border-radius:6px;">
+                                        <i class="bi bi-translate"></i> Traduction manquante : @string.Join(", ", missingLangs)
+                                    </div>
+                                }
                             </div>
                             <div class="service-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
                                 <button type="button" class="btn btn-ghost btn-sm js-edit-service"
@@ -1153,13 +1222,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
                                         title="Modifier ce service">
                                     <i class="bi bi-pencil"></i> Modifier
                                 </button>
+                                <form asp-action="ToggleService" method="post" style="margin:0;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@svc.Id"/>
+                                    <button type="submit" class="btn btn-ghost btn-sm" title="@(svc.IsActive?"Désactiver : retirer de la borne sans supprimer":"Activer : réafficher sur la borne")">
+                                        <i class="bi @(svc.IsActive?"bi-pause-circle":"bi-play-circle")"></i> @(svc.IsActive?"Désactiver":"Activer")
+                                    </button>
+                                </form>
                                 <form asp-action="DeleteService" method="post"
-                                      data-confirm="Supprimer définitivement le service « @(svc.Name.Replace("\\","\\\\").Replace("\"","")) » ?&#10;&#10;Les guichets et tickets associés seront aussi supprimés. Les agents seront réassignés ou désactivés."
+                                      data-confirm="Supprimer définitivement le service « @(svc.Name.Replace("\\","\\\\").Replace("\"","")) » ?&#10;&#10;Ses guichets et ses tickets en cours sont supprimés ; les agents sont réaffectés à un autre service (ou désactivés). Les statistiques passées restent dans l'historique.&#10;&#10;Pour seulement le retirer de la borne, utilisez plutôt « Désactiver »."
                                       data-confirm-danger="1" data-confirm-title="Supprimer le service"
                                       style="margin:0;">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@svc.Id"/>
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Supprimer ce service">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Supprimer définitivement ce service">
                                         <i class="bi bi-trash"></i> Supprimer
                                     </button>
                                 </form>
@@ -1173,60 +1249,70 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
     <!-- ═══ TAB: GUICHETS ═══ -->
     <div class="tab-pane @(tab=="counters"?"active":"")" id="tab-counters">
-        <div class="grid-2">
-            <div class="panel">
-                <div class="panel-header"><h2><i class="bi bi-plus-circle me-2" style="color:var(--accent)"></i>Nouveau guichet</h2></div>
-                <div class="panel-body">
-                    <form asp-action="AddCounter" method="post" class="vstack gap-3">
-                        @Html.AntiForgeryToken()
-                        <div><label>Nom du guichet</label><input class="form-control" name="name" placeholder="Guichet 4" required/></div>
-                        <div>
-                            <label>Service associé</label>
-                            <select class="form-select" name="serviceTypeId">
-                                @foreach (var s in Model) { <option value="@s.Id">@s.Name</option> }
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-w"><i class="bi bi-plus-lg"></i> Ajouter</button>
-                    </form>
-                </div>
+        <!-- Ajout : barre horizontale compacte -->
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-header"><h2><i class="bi bi-plus-circle me-2" style="color:var(--accent)"></i>Nouveau guichet</h2></div>
+            <div class="panel-body">
+                <form asp-action="AddCounter" method="post" style="display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end;">
+                    @Html.AntiForgeryToken()
+                    <div><label>Nom du guichet</label><input class="form-control" name="name" placeholder="Guichet 4" required/></div>
+                    <div>
+                        <label>Service associé</label>
+                        <select class="form-select" name="serviceTypeId">
+                            @foreach (var s in Model.Where(x => x.IsActive)) { <option value="@s.Id">@s.Name</option> }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Ajouter</button>
+                </form>
             </div>
+        </div>
 
-            <div class="panel">
-                <div class="panel-header"><h2><i class="bi bi-person-workspace me-2" style="color:var(--accent)"></i>Guichets</h2><p>@counters.Count guichet(s)</p></div>
-                <div class="panel-body" style="padding:0;">
+        <!-- Liste : pleine largeur pour que la colonne Actions ne soit jamais coupée -->
+        <div class="panel">
+            <div class="panel-header"><h2><i class="bi bi-person-workspace me-2" style="color:var(--accent)"></i>@T("Guichets")</h2><p>@counters.Count guichet(s)</p></div>
+            <div class="panel-body" style="padding:0;overflow-x:auto;">
                     <table class="data-table">
                         <thead><tr><th>Guichet</th><th>Service</th><th>Statut</th><th>Actions</th></tr></thead>
                         <tbody>
                         @foreach (var c in counters)
                         {
-                            <tr>
+                            <tr style="@(c.IsActive ? "" : "opacity:.6;")">
                                 <td><span style="font-weight:700;color:#fff;">@c.Name</span></td>
                                 <td><span class="badge badge-blue">@(c.ServiceType?.Name ?? "—")</span></td>
                                 <td><span class="badge @(c.IsActive?"badge-green":"badge-gray")">@(c.IsActive?"Actif":"Inactif")</span></td>
                                 <td>
-                                    <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:280px;">
+                                    <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:300px;">
                                         <form asp-action="UpdateCounter" method="post" style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:center;margin:0;">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@c.Id"/>
                                             <input class="form-control form-control-sm" name="name" value="@c.Name" placeholder="Nom" style="padding:6px 10px;min-width:0;"/>
                                             <select class="form-select form-select-sm" name="serviceTypeId" style="padding:6px 10px;min-width:0;">
-                                                @foreach (var s in Model)
+                                                @foreach (var s in Model.Where(x => x.IsActive || x.Id == c.ServiceTypeId))
                                                 { <option value="@s.Id" selected="@(s.Id==c.ServiceTypeId?"selected":null)">@s.Name</option> }
                                             </select>
                                             <button type="submit" class="btn btn-success btn-sm" title="Enregistrer les modifications" style="white-space:nowrap;">
                                                 <i class="bi bi-check-lg"></i> Enregistrer
                                             </button>
                                         </form>
-                                        <form asp-action="DeleteCounter" method="post"
-                                              data-confirm="Supprimer définitivement le guichet « @(c.Name.Replace("\\","\\\\").Replace("\"","")) » ?&#10;&#10;Les tickets liés seront supprimés. Les agents seront réassignés à un autre guichet du même service ou désactivés."
-                                              data-confirm-danger="1" data-confirm-title="Supprimer le guichet"
-                                              style="margin:0;display:flex;justify-content:flex-end;">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@c.Id"/>
-                                            <button type="submit" class="btn btn-danger btn-sm" title="Supprimer ce guichet" style="white-space:nowrap;">
-                                                <i class="bi bi-trash"></i> Supprimer
-                                            </button>
-                                        </form>
+                                        <div style="display:flex;gap:6px;justify-content:flex-end;">
+                                            <form asp-action="ToggleCounter" method="post" style="margin:0;">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@c.Id"/>
+                                                <button type="submit" class="btn btn-ghost btn-sm" title="@(c.IsActive?"Désactiver : masquer sans supprimer":"Activer")" style="white-space:nowrap;">
+                                                    <i class="bi @(c.IsActive?"bi-pause-circle":"bi-play-circle")"></i> @(c.IsActive?"Désactiver":"Activer")
+                                                </button>
+                                            </form>
+                                            <form asp-action="DeleteCounter" method="post"
+                                                  data-confirm="Supprimer définitivement le guichet « @(c.Name.Replace("\\","\\\\").Replace("\"","")) » ?&#10;&#10;Il disparaît de la liste. Les agents affectés sont réaffectés à un autre guichet du même service (ou désactivés). Les statistiques passées restent dans l'historique.&#10;&#10;Pour seulement le masquer, utilisez plutôt « Désactiver »."
+                                                  data-confirm-danger="1" data-confirm-title="Supprimer le guichet"
+                                                  style="margin:0;">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@c.Id"/>
+                                                <button type="submit" class="btn btn-danger btn-sm" title="Supprimer définitivement ce guichet" style="white-space:nowrap;">
+                                                    <i class="bi bi-trash"></i> Supprimer
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -1235,14 +1321,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
                     </table>
                 </div>
             </div>
-        </div>
     </div>
 
     <!-- ═══ TAB: AGENTS ═══ -->
     <div class="tab-pane @(tab=="agents"?"active":"")" id="tab-agents">
         <div class="grid-2">
             <div class="panel">
-                <div class="panel-header"><h2><i class="bi bi-person-plus me-2" style="color:var(--accent)"></i>Nouvel agent</h2></div>
+                <div class="panel-header"><h2><i class="bi bi-person-plus me-2" style="color:var(--accent)"></i>@T("Nouvel agent")</h2></div>
                 <div class="panel-body">
                     <form asp-action="AddAgent" method="post" class="vstack gap-3">
                         @Html.AntiForgeryToken()
@@ -1264,11 +1349,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             </div>
 
             <div class="panel">
-                <div class="panel-header"><h2><i class="bi bi-people me-2" style="color:var(--accent)"></i>Agents</h2><p>@agents.Count agent(s)</p></div>
+                <div class="panel-header"><h2><i class="bi bi-people me-2" style="color:var(--accent)"></i>@T("Agents")</h2><p>@agents.Count agent(s)</p></div>
                 <div class="panel-body" style="max-height:500px;overflow-y:auto;">
                     @foreach (var agent in agents)
                     {
-                        <div class="agent-row">
+                        <div class="agent-row" style="@(agent.IsActive ? "" : "opacity:.6;")">
                             <div class="agent-avatar">@(agent.FullName.Length>0?agent.FullName[0].ToString().ToUpper():"A")</div>
                             <div class="agent-info" style="flex:1;min-width:0;">
                                 <div class="agent-name">@agent.FullName <span class="badge @(agent.IsActive?"badge-green":"badge-red")" style="margin-left:6px;">@(agent.IsActive?"Actif":"Inactif")</span></div>
@@ -1298,8 +1383,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
                                         title="Modifier cet agent">
                                     <i class="bi bi-pencil"></i> Modifier
                                 </button>
+                                <form asp-action="ToggleAgent" method="post" style="margin:0;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@agent.Id"/>
+                                    <button type="submit" class="btn btn-ghost btn-sm" title="@(agent.IsActive?"Désactiver : empêcher la connexion sans supprimer le compte":"Activer ce compte agent")">
+                                        <i class="bi @(agent.IsActive?"bi-pause-circle":"bi-play-circle")"></i> @(agent.IsActive?"Désactiver":"Activer")
+                                    </button>
+                                </form>
                                 <form asp-action="DeleteAgent" method="post"
-                                      data-confirm="Supprimer définitivement l'agent « @(agent.FullName.Replace("\\","\\\\").Replace("\"","")) » ?&#10;&#10;L'historique des appels qu'il a effectués sera conservé."
+                                      data-confirm="Supprimer définitivement l'agent « @(agent.FullName.Replace("\\","\\\\").Replace("\"","")) » ?&#10;&#10;L'historique des appels qu'il a effectués sera conservé.&#10;&#10;Pour seulement l'empêcher de se connecter, utilisez plutôt « Désactiver »."
                                       data-confirm-danger="1" data-confirm-title="Supprimer l'agent"
                                       style="margin:0;">
                                     @Html.AntiForgeryToken()
@@ -1623,33 +1715,94 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             <div class="settings-section" data-settings-section="media">
                 <div class="settings-section-grid single">
                     <div class="panel">
-                        <div class="panel-header"><h2><i class="bi bi-image me-2" style="color:var(--accent)"></i>Médias & Logos</h2></div>
-                        <div class="panel-body vstack gap-3">
-                            <div>
-                                <label>Logo principal (URL ou chemin local)</label>
-                                <input class="form-control" name="HeaderImageUrl" value="@settings.HeaderImageUrl" placeholder="/uploads/logo.png ou https://..."/>
-                                <input class="form-control mt-2" type="file" name="headerImageFile" accept="image/*"/>
+                        <div class="panel-header"><h2><i class="bi bi-image me-2" style="color:var(--accent)"></i>Médias &amp; Logos</h2><p>Voyez d'un coup d'œil où chaque logo, image ou vidéo apparaît sur l'écran TV.</p></div>
+                        <div class="panel-body">
+
+                            <!-- Aperçu schématique de l'écran TV : les numéros renvoient aux champs ci-dessous -->
+                            <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;max-width:600px;margin:0 auto 24px;background:var(--surface2);box-shadow:0 8px 24px rgba(0,0,0,.22);">
+                                <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;background:linear-gradient(90deg,rgba(129,140,248,.20),transparent);border-bottom:1px solid var(--border);">
+                                    <span style="background:var(--accent);color:#0b1220;font-weight:800;border-radius:6px;padding:3px 9px;font-size:.72rem;white-space:nowrap;">① Logo</span>
+                                    <span style="font-weight:700;color:var(--text);font-size:.92rem;">Nom de l'établissement</span>
+                                    <span style="margin-left:auto;color:var(--muted);font-size:.8rem;">🕐 09:57</span>
+                                </div>
+                                <div style="display:grid;grid-template-columns:160px 1fr;gap:12px;padding:16px;">
+                                    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 10px;text-align:center;">
+                                        <div style="font-size:.6rem;color:var(--muted);letter-spacing:1.5px;">TICKET</div>
+                                        <div style="font-size:1.7rem;font-weight:900;color:var(--accent);line-height:1.1;">A&#8209;042</div>
+                                        <div style="font-size:.74rem;color:var(--text);">Guichet 3</div>
+                                    </div>
+                                    <div style="border:2px dashed var(--accent2);border-radius:12px;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--accent2);font-weight:800;font-size:.82rem;background:rgba(129,140,248,.06);gap:3px;">
+                                        <span>② Image &nbsp;/&nbsp; ③ Vidéo</span>
+                                        <small style="color:var(--muted);font-weight:500;">zone de communication (pub · message · clip)</small>
+                                    </div>
+                                </div>
+                                <div style="padding:9px 16px;background:rgba(232,184,75,.12);border-top:1px solid var(--border);text-align:center;color:var(--text);font-size:.78rem;font-weight:700;">④ Bandeau bas — logo/image + texte défilant</div>
                             </div>
-                            <div>
-                                <label>Logo sur affichage (URL ou chemin local)</label>
-                                <input class="form-control" name="DisplayLogoUrl" value="@settings.DisplayLogoUrl" placeholder="/uploads/logo.png ou https://..."/>
-                                <input class="form-control mt-2" type="file" name="displayLogoFile" accept="image/*"/>
+
+                            <div class="vstack gap-3">
+                                <!-- ① Logo (HeaderImageUrl : le SEUL logo réellement affiché) -->
+                                <div class="media-slot" style="border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--surface2);">
+                                    <div style="font-weight:800;color:var(--text);"><span style="background:var(--accent);color:#0b1220;border-radius:5px;padding:1px 7px;font-size:.72rem;margin-right:6px;">①</span> Logo de l'établissement</div>
+                                    <div style="font-size:.74rem;color:var(--muted);margin:2px 0 10px;">Ce logo s'affiche <b>en haut de l'écran TV</b>, sur la <b>borne</b> et sur les <b>tickets imprimés</b>.</div>
+                                    <input type="hidden" name="clearHeaderImage" value="false" class="clear-flag"/>
+                                    @if(!string.IsNullOrWhiteSpace(settings.HeaderImageUrl)){<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><img src="@settings.HeaderImageUrl" style="max-height:48px;max-width:160px;border-radius:8px;border:1px solid var(--border);background:#fff;padding:3px;"/><button type="button" class="btn btn-ghost btn-sm" onclick="noubaClearMedia(this)">✕ Retirer</button></div>}
+                                    <input class="form-control" type="file" name="headerImageFile" accept="image/*"/>
+                                    <input class="form-control mt-2" name="HeaderImageUrl" value="@settings.HeaderImageUrl" placeholder="… ou coller une adresse : /uploads/logo.png"/>
+                                </div>
+                                <!-- ②③ Zone de communication : image OU vidéo (vidéo prioritaire) -->
+                                <div style="border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--surface2);">
+                                    <div style="font-weight:800;color:var(--text);"><span style="background:var(--accent2);color:#0b1220;border-radius:5px;padding:1px 7px;font-size:.72rem;margin-right:6px;">②③</span> Zone de communication <span style="color:var(--muted);font-weight:500;">(grande zone centrale)</span></div>
+                                    <div style="font-size:.74rem;color:var(--muted);margin:2px 0 10px;">Mettez une <b>image</b> OU une <b>vidéo</b>. <b style="color:var(--text);">Si les deux sont présentes, la vidéo passe devant l'image.</b></div>
+                                    @{
+                                        var hasCommVideo = !string.IsNullOrWhiteSpace(settings.DisplayBackgroundVideoUrl);
+                                        var hasCommImage = !string.IsNullOrWhiteSpace(settings.DisplayBackgroundImageUrl);
+                                    }
+                                    <div style="margin:0 0 12px;padding:9px 12px;border-radius:8px;font-size:.8rem;font-weight:700;@(hasCommVideo ? "background:rgba(129,140,248,.14);color:#a5b4fc;border:1px solid rgba(129,140,248,.4);" : hasCommImage ? "background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.35);" : "background:rgba(148,163,184,.10);color:var(--muted);border:1px solid var(--border);")">
+                                        @if (hasCommVideo) { <text>🎬 En ce moment, l'écran affiche : <b>LA VIDÉO</b>@(hasCommImage ? " — l'image est gardée en réserve (retirez la vidéo pour afficher l'image)." : ".")</text> }
+                                        else if (hasCommImage) { <text>🖼️ En ce moment, l'écran affiche : <b>L'IMAGE</b>.</text> }
+                                        else { <text>Aucun média — la grande zone affiche le <b>ticket appelé en grand</b>.</text> }
+                                    </div>
+
+                                    <div class="media-slot" style="border-top:1px dashed var(--border);padding-top:10px;">
+                                        <div style="font-weight:700;font-size:.82rem;color:var(--text);margin-bottom:6px;">🖼️ Image <span style="color:var(--muted);font-weight:400;">(photo, affiche — jpg/png)</span></div>
+                                        <input type="hidden" name="clearBackgroundImage" value="false" class="clear-flag"/>
+                                        @if(hasCommImage){<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><img src="@settings.DisplayBackgroundImageUrl" style="max-height:64px;max-width:200px;border-radius:8px;border:1px solid var(--border);object-fit:cover;"/><button type="button" class="btn btn-ghost btn-sm" onclick="noubaClearMedia(this)">✕ Retirer l'image</button></div>}
+                                        <input class="form-control" type="file" name="backgroundImageFile" accept="image/*"/>
+                                        <input class="form-control mt-2" name="DisplayBackgroundImageUrl" value="@settings.DisplayBackgroundImageUrl" placeholder="… ou /uploads/image.jpg"/>
+                                    </div>
+
+                                    <div class="media-slot" style="border-top:1px dashed var(--border);padding-top:10px;margin-top:12px;">
+                                        <div style="font-weight:700;font-size:.82rem;color:var(--text);margin-bottom:6px;">🎬 Vidéo <span style="color:var(--muted);font-weight:400;">(.mp4, tourne en boucle — passe devant l'image)</span></div>
+                                        <input type="hidden" name="clearBackgroundVideo" value="false" class="clear-flag"/>
+                                        @if(hasCommVideo){<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:.78rem;color:var(--accent2);font-weight:700;">🎬 Vidéo en place</span><button type="button" class="btn btn-ghost btn-sm" onclick="noubaClearMedia(this)">✕ Retirer la vidéo</button></div>}
+                                        <input class="form-control" type="file" name="backgroundVideoFile" accept="video/*"/>
+                                        <input class="form-control mt-2" name="DisplayBackgroundVideoUrl" value="@settings.DisplayBackgroundVideoUrl" placeholder="… ou /uploads/video.mp4"/>
+                                    </div>
+                                </div>
+                                <!-- ④ Bandeau bas -->
+                                <div class="media-slot" style="border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--surface2);">
+                                    <div style="font-weight:800;color:var(--text);"><span style="background:var(--accent);color:#0b1220;border-radius:5px;padding:1px 7px;font-size:.72rem;margin-right:6px;">④</span> Logo / image du bandeau bas</div>
+                                    <div style="font-size:.74rem;color:var(--muted);margin:2px 0 10px;">Petit logo à gauche du bandeau défilant, en bas de l'écran.</div>
+                                    <input type="hidden" name="clearBanner" value="false" class="clear-flag"/>
+                                    @if(!string.IsNullOrWhiteSpace(settings.DisplayBannerImageUrl)){<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><img src="@settings.DisplayBannerImageUrl" style="max-height:40px;max-width:150px;border-radius:8px;border:1px solid var(--border);"/><button type="button" class="btn btn-ghost btn-sm" onclick="noubaClearMedia(this)">✕ Retirer</button></div>}
+                                    <input class="form-control" type="file" name="bannerImageFile" accept="image/*"/>
+                                    <input class="form-control mt-2" name="DisplayBannerImageUrl" value="@settings.DisplayBannerImageUrl" placeholder="… ou /uploads/banner.png"/>
+                                </div>
                             </div>
-                            <div>
-                                <label>Image communication affichage (URL ou chemin local)</label>
-                                <input class="form-control" name="DisplayBackgroundImageUrl" value="@settings.DisplayBackgroundImageUrl" placeholder="/uploads/image.jpg ou https://..."/>
-                                <input class="form-control mt-2" type="file" name="backgroundImageFile" accept="image/*"/>
-                            </div>
-                            <div>
-                                <label>Vidéo communication affichage (URL ou chemin local mp4)</label>
-                                <input class="form-control" name="DisplayBackgroundVideoUrl" value="@settings.DisplayBackgroundVideoUrl" placeholder="/uploads/video.mp4 ou https://.../video.mp4"/>
-                                <input class="form-control mt-2" type="file" name="backgroundVideoFile" accept="video/*"/>
-                            </div>
-                            <div>
-                                <label>Logo / image bandeau bas (URL ou chemin local)</label>
-                                <input class="form-control" name="DisplayBannerImageUrl" value="@settings.DisplayBannerImageUrl" placeholder="/uploads/banner.png ou https://..."/>
-                                <input class="form-control mt-2" type="file" name="bannerImageFile" accept="image/*"/>
-                            </div>
+                            <script>
+                              // Bouton « Retirer » d'un média : marque le drapeau clear*, vide les
+                              // champs du bloc puis enregistre (sans lui, un champ vidé garde l'ancienne
+                              // valeur côté serveur). Permet aussi de basculer vidéo → image.
+                              function noubaClearMedia(btn){
+                                var slot = btn.closest('.media-slot');
+                                if(!slot) return;
+                                var flag = slot.querySelector('.clear-flag');
+                                if(flag) flag.value = 'true';
+                                slot.querySelectorAll('input.form-control').forEach(function(i){ i.value=''; });
+                                var form = btn.closest('form');
+                                if(form) form.submit();
+                              }
+                            </script>
                         </div>
                     </div>
                 </div>
@@ -2291,6 +2444,35 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
                                 <div><label>Confirmation</label><input class="form-control" name="confirmPassword" type="password" placeholder="••••••••"/></div>
                             </div>
                             <button type="submit" class="btn btn-primary btn-w"><i class="bi bi-key"></i> Mettre à jour</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><h2><i class="bi bi-hdd-network me-2" style="color:var(--accent)"></i>Accès à l'administration</h2></div>
+                    <div class="panel-body">
+                        <p style="color:var(--muted);font-size:.84rem;margin:0 0 12px">
+                            Par sécurité, l'administration (cette console, l'imprimante, l'assistant) n'est
+                            accessible que depuis le <strong>mini-PC Nouba</strong>. Pour administrer depuis un
+                            autre appareil du réseau (tablette, PC), ajoutez son adresse IP ci-dessous. La borne,
+                            l'écran d'affichage et le poste agent restent, eux, accessibles à tout le réseau local.
+                        </p>
+                        @{
+                            var reqIp = Context.Connection.RemoteIpAddress?.ToString();
+                            if (reqIp != null && reqIp.StartsWith("::ffff:")) reqIp = reqIp.Substring(7);
+                            if (reqIp == "::1") reqIp = "127.0.0.1 (ce mini-PC)";
+                        }
+                        <div style="margin:0 0 12px;padding:8px 12px;background:rgba(129,140,248,.08);border-radius:8px;font-size:.78rem;color:var(--muted)">
+                            <i class="bi bi-info-circle me-1" style="color:var(--accent2)"></i>
+                            Vous êtes connecté depuis : <strong style="font-family:monospace;color:#cbd5e1">@reqIp</strong>
+                        </div>
+                        <form asp-action="UpdateAdminAllowedIps" method="post" class="vstack gap-3">
+                            @Html.AntiForgeryToken()
+                            <div>
+                                <label>IP du réseau local autorisées <span style="color:var(--muted);font-weight:400">(une par ligne — vide = mini-PC uniquement)</span></label>
+                                <textarea class="form-control" name="adminAllowedIps" rows="3" placeholder="192.168.1.50&#10;192.168.1.0/24" style="font-family:monospace;font-size:.85rem;">@settings.AdminAllowedIps</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-w"><i class="bi bi-shield-check"></i> Enregistrer les accès</button>
                         </form>
                     </div>
                 </div>

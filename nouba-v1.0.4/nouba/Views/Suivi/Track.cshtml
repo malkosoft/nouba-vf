@@ -123,26 +123,41 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
   // La politique des mobiles bloque le son/la vibration sans geste : on
   // déverrouille au 1er tap (bouton « Activer les alertes » ou tap n'importe où).
   // Ensuite : UNE alerte quand le tour APPROCHE, UNE quand C'EST AU CLIENT.
-  let alertsOn = false, audioCtx = null, lastAlert = '';
+  let alertsOn = false, audioCtx = null, lastAlert = '', wakeLock = null, turnRepeat = null;
   function vibrate(p){ if (navigator.vibrate) { try { navigator.vibrate(p); } catch(_){} } }
+  // Réveille (ou crée) le contexte audio. Sur mobile il passe en veille quand la
+  // page dort ; on le relance avant chaque son et au retour au premier plan,
+  // sinon le bip reste muet au moment précis où le tour arrive.
+  function ensureAudio(){
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(_){} }
+    if (audioCtx && audioCtx.state === 'suspended') { try { audioCtx.resume(); } catch(_){} }
+    return audioCtx;
+  }
   function beep(freq, dur, vol, delay){
-    if (!audioCtx) return;
+    var ctx = ensureAudio();
+    if (!ctx) return;
     setTimeout(function(){
       try {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        if (ctx.state === 'suspended') ctx.resume();
+        var o = ctx.createOscillator(), g = ctx.createGain();
         o.type = 'sine'; o.frequency.value = freq;
-        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(vol || 0.25, audioCtx.currentTime + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.18));
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start(); o.stop(audioCtx.currentTime + (dur || 0.18) + 0.03);
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(vol || 0.30, ctx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (dur || 0.18));
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(ctx.currentTime + (dur || 0.18) + 0.03);
       } catch(_){}
     }, delay || 0);
   }
-  function alertApproaching(){ vibrate([120,60,120]); beep(620,0.16,0.22,0); beep(820,0.16,0.22,200); }
-  function alertReady(){ vibrate([180,80,180,80,180]); beep(760,0.16,0.28,0); beep(1010,0.18,0.28,220); beep(1010,0.18,0.28,440); }
-  function alertYourTurn(){ vibrate([250,100,250,100,300]); beep(988,0.18,0.32,0); beep(988,0.18,0.32,260); beep(1320,0.24,0.34,520); }
+  function alertApproaching(){ vibrate([140,70,140]); beep(620,0.18,0.28,0); beep(820,0.18,0.28,220); }
+  function alertReady(){ vibrate([200,90,200,90,200]); beep(760,0.18,0.34,0); beep(1010,0.20,0.34,240); beep(1010,0.20,0.34,480); }
+  function alertYourTurn(){ vibrate([300,120,300,120,350]); beep(988,0.20,0.40,0); beep(988,0.20,0.40,300); beep(1320,0.28,0.42,600); }
+  // Maintient l'écran allumé tant que la page de suivi est ouverte (nécessite un
+  // contexte sécurisé → actif via le tunnel HTTPS). Empêche la mise en veille qui
+  // coupe le polling et le son juste avant le tour du client.
+  async function requestWakeLock(){
+    try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', function(){ wakeLock = null; }); } } catch(_){}
+  }
 
   // Notification navigateur (si autorisée + contexte sécurisé, ex. via le tunnel
   // HTTPS) + bandeau à l'écran. Aucun blocage si l'API n'est pas disponible.
@@ -155,9 +170,10 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
   function enableAlerts(){
     if (alertsOn) return;
     alertsOn = true;
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(_){}
+    ensureAudio();
+    requestWakeLock();
     try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch(_){}
-    vibrate([60]); beep(880,0.12,0.20,0);  // confirmation immédiate
+    vibrate([60]); beep(880,0.14,0.24,0);  // confirmation immédiate
     var b = $('alertBtn');
     if (b){ b.textContent = '🔔 Alertes activées ✓'; b.style.background = 'rgba(34,197,94,.15)'; b.style.color = '#86efac'; b.style.boxShadow = 'none'; b.style.cursor = 'default'; }
   }
@@ -172,13 +188,21 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
     if (!alertsOn || !d) return;
     var ahead = (typeof d.peopleAhead === 'number') ? d.peopleAhead : 99;
     if (d.status === 'called'){
-      if (lastAlert !== 'turn'){ alertYourTurn(); notify("C'est votre tour !", d.counterName ? ('Présentez-vous au ' + d.counterName) : 'Présentez-vous au guichet'); lastAlert = 'turn'; }
+      if (lastAlert !== 'turn'){
+        alertYourTurn(); notify("C'est votre tour !", d.counterName ? ('Présentez-vous au ' + d.counterName) : 'Présentez-vous au guichet'); lastAlert = 'turn';
+        // On répète l'alerte du tour (jusqu'à 5 fois, toutes les 4 s) pour être
+        // certain que le client la remarque même s'il a détourné le regard.
+        var n = 0; clearInterval(turnRepeat);
+        turnRepeat = setInterval(function(){ if (++n >= 5){ clearInterval(turnRepeat); return; } alertYourTurn(); }, 4000);
+      }
     } else if (d.status === 'soon' || ahead <= 1){
+      clearInterval(turnRepeat);
       if (lastAlert !== 'ready' && lastAlert !== 'turn'){ alertReady(); notify('Préparez-vous', "C'est presque à vous (1 personne devant)."); lastAlert = 'ready'; }
     } else if (ahead === 2){
+      clearInterval(turnRepeat);
       if (lastAlert === ''){ alertApproaching(); notify('Bientôt à vous', '2 personnes avant vous.'); lastAlert = 'soon2'; }
     } else if (d.status === 'waiting' && ahead > 2){
-      lastAlert = '';
+      clearInterval(turnRepeat); lastAlert = '';
     }
   }
 
@@ -275,7 +299,7 @@ body{background:radial-gradient(ellipse at top,#1e293b 0%,#020617 70%);min-heigh
 
   // Si l'app passe en background, on espace les polls.
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) { poll(); }
+    if (!document.hidden) { if (alertsOn){ ensureAudio(); requestWakeLock(); } poll(); }
   });
 })();
 </script>

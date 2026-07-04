@@ -6,14 +6,17 @@
     var rows = (Model.ActiveCalls ?? new List<Nouba.Models.DisplayActiveCallViewModel>()).Take(3).ToList();
     int histRows = settings.DisplayHistoryRows > 0 ? settings.DisplayHistoryRows : 5;
 
-    string tTicket  = lang switch { "ar" => "التذكرة",  "en" => "TICKET",  _ => "TICKET"  };
+    // Tamazight (tz) : on réutilise le vocabulaire kabyle déjà validé ailleurs dans
+    // l'app (Borne/Agent/Confirmation). Pour les 2 termes techniques sans traduction
+    // vérifiée (GUICHET, Plein écran), on garde le français — toléré pour tamazight.
+    string tTicket  = lang switch { "ar" => "التذكرة",  "en" => "TICKET",  "tz" => "TIKECT",  _ => "TICKET"  };
     string tCounter = lang switch { "ar" => "الشباك",   "en" => "COUNTER", _ => "GUICHET" };
-    string tInfo    = lang switch { "ar" => "معلومات",  "en" => "Info",    _ => "Info"    };
+    string tInfo    = lang switch { "ar" => "معلومات",  "en" => "Info",    "tz" => "Talɣut",  _ => "Info"    };
     string tWaiting = Model.WaitingText;
-    string tNoMedia = lang switch { "ar" => "لا يوجد محتوى", "en" => "No media", _ => "Aucun média" };
+    string tNoMedia = lang switch { "ar" => "لا يوجد محتوى", "en" => "No media", "tz" => "Ulac agbur", _ => "Aucun média" };
     string tFullscr = lang switch { "ar" => "ملء الشاشة", "en" => "Fullscreen", _ => "Plein écran" };
-    string tQrTitle = lang switch { "ar" => "تابع دورك من الهاتف", "en" => "Follow your queue on mobile", _ => "Suivez votre tour sur mobile" };
-    string tQrSub = lang switch { "ar" => "امسح الرمز", "en" => "Scan the QR code", _ => "Scannez le QR code" };
+    string tQrTitle = lang switch { "ar" => "تابع دورك من الهاتف", "en" => "Follow your queue on mobile", "tz" => "Ḍfeṛ tnuba-k ɣef utilifun", _ => "Suivez votre tour sur mobile" };
+    string tQrSub = lang switch { "ar" => "امسح الرمز", "en" => "Scan the QR code", "tz" => "Scan QR code", _ => "Scannez le QR code" };
     var allowedDisplayLayouts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "standard", "compact", "large", "tv-wall", "video-hero", "minimal" };
     var displayLayout = Context.Request.Query.TryGetValue("layout", out var previewLayout) && allowedDisplayLayouts.Contains(previewLayout.ToString())
         ? previewLayout.ToString()
@@ -837,7 +840,13 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
   setTimeout(fitHeaderBrandText, 300);
 
   let lastTicket = '';
+  // Signatures des appels DÉJÀ annoncés. Persistées en sessionStorage pour
+  // survivre à un rechargement de page (ex. changement de langue qui recharge la
+  // page) : sans ça, comme le serveur re-signale l'appel comme « frais » pendant
+  // 20 s, le même appel se rejouait dans la nouvelle langue après le reload.
   let announcedTickets = [];
+  try { const _sv = sessionStorage.getItem('noubaAnnouncedSigs'); if (_sv) announcedTickets = JSON.parse(_sv) || []; } catch(_){}
+  function persistAnnounced(){ try { sessionStorage.setItem('noubaAnnouncedSigs', JSON.stringify(announcedTickets.slice(-80))); } catch(_){} }
   // Garde anti-double TEMPOREL : dernier instant d'annonce par ticket+guichet.
   // Évite qu'un même appel soit annoncé 2 fois quand plusieurs déclencheurs
   // (SignalR TicketCalled + RefreshQueue, ou polling) arrivent quasi en même temps.
@@ -948,6 +957,7 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
     queued.forEach(function(item){
       if (item.signature) {
         announcedTickets = announcedTickets.filter(function(s){ return s !== item.signature; });
+        persistAnnounced();
       }
       announceTicket(item.ticketNumber, item.counterName, item.serviceName, item.lang, item.signature);
     });
@@ -2060,6 +2070,7 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
     if(!signature) return;
     announcedTickets.push(signature);
     if(announcedTickets.length > 120) announcedTickets = announcedTickets.slice(-80);
+    persistAnnounced();
   }
   // ═══════════════════════════════════════════════════════════════════
   // ✨ EFFET WOW À L'APPEL — animation plein écran sur vrai ticket appelé
@@ -2362,10 +2373,10 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
     const title = document.getElementById('displayQrText');
     const sub = document.getElementById('displayQrSub');
     if(title){
-      const txt = uiLang === 'ar' ? 'تابع دورك من الهاتف' : (uiLang === 'en' ? 'Follow your queue on mobile' : 'Suivez votre tour sur mobile');
+      const txt = uiLang === 'ar' ? 'تابع دورك من الهاتف' : (uiLang === 'tz' ? 'Ḍfeṛ tnuba-k ɣef utilifun' : (uiLang === 'en' ? 'Follow your queue on mobile' : 'Suivez votre tour sur mobile'));
       title.childNodes[0].nodeValue = txt;
     }
-    if(sub) sub.textContent = uiLang === 'ar' ? 'امسح الرمز' : (uiLang === 'en' ? 'Scan the QR code' : 'Scannez le QR code');
+    if(sub) sub.textContent = uiLang === 'ar' ? 'امسح الرمز' : (uiLang === 'tz' ? 'Scan QR code' : (uiLang === 'en' ? 'Scan the QR code' : 'Scannez le QR code'));
     const img = document.getElementById('displayQrImg');
     if(img && enabled){
       const src = '/suivi/qr-general.png?size=8';
@@ -2409,9 +2420,9 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
     const historySub = document.getElementById('historySub');
     const headerCenter = document.getElementById('headerCenter');
     const siteName = document.getElementById('siteName');
-    if(ticketHead) ticketHead.textContent = uiLang === 'ar' ? 'التذكرة' : 'TICKET';
+    if(ticketHead) ticketHead.textContent = uiLang === 'ar' ? 'التذكرة' : (uiLang === 'tz' ? 'TIKECT' : 'TICKET');
     if(counterHead) counterHead.textContent = data.counterText || (uiLang === 'en' ? 'COUNTER' : 'GUICHET');
-    if(infoTitle) infoTitle.textContent = uiLang === 'ar' ? 'معلومات' : (uiLang === 'en' ? 'Info' : 'Info');
+    if(infoTitle) infoTitle.textContent = uiLang === 'ar' ? 'معلومات' : (uiLang === 'tz' ? 'Talɣut' : (uiLang === 'en' ? 'Info' : 'Info'));
     if(recentTitle && data.recentText) recentTitle.textContent = data.recentText;
     if(historySub){
       const n = parseInt(root.dataset.historyRows || '5') || 5;
@@ -2429,7 +2440,7 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
     }
     fitHeaderBrandText();
     updateQrBadge(data.settings);
-    root.dataset.noMedia = uiLang === 'ar' ? 'لا يوجد محتوى' : (uiLang === 'en' ? 'No media' : 'Aucun média');
+    root.dataset.noMedia = uiLang === 'ar' ? 'لا يوجد محتوى' : (uiLang === 'tz' ? 'Ulac agbur' : (uiLang === 'en' ? 'No media' : 'Aucun média'));
     root.dataset.waiting = data.waitingText || root.dataset.waiting || '';
     root.dataset.counterLabel = data.counterText || root.dataset.counterLabel || '';
   }
@@ -2477,11 +2488,13 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
           root.dataset.historyRows = String(historyRows);
         }
       }
+      let langChangedThisFetch = false;
       if(data.currentLanguage && data.currentLanguage !== uiLang){
         uiLang = data.currentLanguage;
         document.documentElement.lang = uiLang;
         document.documentElement.dir = uiLang === 'ar' ? 'rtl' : 'ltr';
         root.dataset.currentLang = uiLang;
+        langChangedThisFetch = true;
       }
       updateStaticLabels(data);
 
@@ -2537,8 +2550,15 @@ body.tv-density-ultra .footer{grid-template-columns:1fr}
       if(freshCalls.length){
         freshCalls.forEach(function(call){
           const callSignature = (call.ticketNumber || '') + '|' + (call.counterName || '') + '|' + (call.calledAtTicks || call.calledAt || '');
-          window.NOUBA_DEBUG && console.info('[Nouba DIAG] Tentative announceTicket pour signature:', callSignature, '— déjà dite ?', hasAnnouncedSignature(callSignature));
           lastTicket = callSignature;
+          // Un simple CHANGEMENT DE LANGUE ne doit pas rejouer un appel déjà passé
+          // dans l'ancienne langue : on marque les appels courants comme déjà dits
+          // (ils restent affichés et traduits, mais ne sont pas re-vocalisés).
+          if(langChangedThisFetch){
+            rememberAnnouncement(callSignature);
+            return;
+          }
+          window.NOUBA_DEBUG && console.info('[Nouba DIAG] Tentative announceTicket pour signature:', callSignature, '— déjà dite ?', hasAnnouncedSignature(callSignature));
           announceTicket(call.ticketNumber, call.counterName, call.serviceName, uiLang, callSignature);
         });
       } else {

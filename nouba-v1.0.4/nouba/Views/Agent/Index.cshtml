@@ -56,6 +56,13 @@
 .agent-avatar { width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg,var(--np-gold-soft,#f3d486),var(--np-gold-deep,#b8862b)); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: #1a1206; border: 1px solid rgba(255,255,255,.25); box-shadow:var(--np-shadow-gold,0 10px 36px rgba(232,184,75,.28)); }
 .agent-name { font-size: 1.1rem; font-weight: 800; font-family:var(--np-font-display,"Segoe UI",sans-serif); }
 .agent-sub { font-size: .85rem; color:var(--np-ink-soft,#aab6ce); }
+.agent-topbar-left { display:flex; align-items:center; gap:16px; min-width:0; }
+.agent-brand { display:flex; align-items:center; gap:11px; padding-right:16px; border-right:1px solid var(--np-line,rgba(255,255,255,.09)); }
+.agent-brand-icon { width:40px; height:40px; border-radius:12px; overflow:hidden; background:rgba(255,255,255,.06); border:1px solid var(--np-line,rgba(255,255,255,.12)); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.agent-brand-icon img { width:100%; height:100%; object-fit:contain; }
+.agent-brand-name { font-weight:800; font-size:1rem; color:#fff; line-height:1; }
+.agent-brand-sub { font-size:.68rem; color:var(--np-ink-faint,#6f7e9c); letter-spacing:.6px; text-transform:uppercase; margin-top:3px; }
+@@media (max-width:640px){ .agent-brand{ display:none; } }
 .topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lang-pill { display: flex; gap: 4px; background: rgba(255,255,255,.07); border:1px solid var(--np-line,rgba(255,255,255,.09)); border-radius: 12px; padding: 4px; }
 .lang-pill a { padding: 6px 12px; border-radius: 9px; font-size: .82rem; font-weight: 700; color: var(--np-ink-soft,#aab6ce); text-decoration: none; transition: .15s; }
@@ -96,6 +103,11 @@
 .btn-call.absent { background: rgba(255,255,255,.05); color: var(--np-ink-soft,#aab6ce); }
 .btn-call:disabled, .btn-call[disabled] { opacity:.4; cursor:not-allowed; filter:grayscale(.3); transform:none; }
 .btn-call:disabled:hover, .btn-call[disabled]:hover { transform:none; filter:grayscale(.3); }
+.btn-call.transfer { background: rgba(2,132,199,.16); color:#38bdf8; }
+/* Actions secondaires en grille 2×2 : tout visible sans ascenseur. */
+.call-actions-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.call-actions-grid form { margin:0; }
+.call-actions-grid .btn-call { padding:11px; font-size:.95rem; border-radius:14px; }
 .call-hint { font-size:.78rem; line-height:1.4; color:var(--np-gold-soft,#f3d486); background:rgba(232,184,75,.10); border:1px solid rgba(232,184,75,.28); border-radius:12px; padding:9px 12px; margin-top:2px; text-align:center; }
 .empty-queue { text-align: center; padding: 40px 20px; color: var(--np-ink-faint,#6f7e9c); }
 .empty-queue svg { opacity: .35; margin-bottom: 12px; }
@@ -154,11 +166,20 @@
 <div class="agent-shell">
   <!-- Top Bar -->
   <div class="agent-topbar">
-    <div class="agent-identity">
-      <div class="agent-avatar">@(agentName.Length > 0 ? agentName[0].ToString().ToUpper() : "A")</div>
-      <div>
-        <div class="agent-name">@agentName</div>
-        <div class="agent-sub">@agentCounter @(string.IsNullOrEmpty(agentService) ? "" : "— " + agentService)</div>
+    <div class="agent-topbar-left">
+      <div class="agent-brand">
+        <div class="agent-brand-icon"><img src="~/images/nouba-icon.png" alt="Nouba"/></div>
+        <div>
+          <div class="agent-brand-name">Nouba Pro</div>
+          <div class="agent-brand-sub">Poste Agent</div>
+        </div>
+      </div>
+      <div class="agent-identity">
+        <div class="agent-avatar">@(agentName.Length > 0 ? agentName[0].ToString().ToUpper() : "A")</div>
+        <div>
+          <div class="agent-name">@agentName</div>
+          <div class="agent-sub">@agentCounter @(string.IsNullOrEmpty(agentService) ? "" : "— " + agentService)</div>
+        </div>
       </div>
     </div>
     <div class="topbar-right">
@@ -288,33 +309,39 @@
             var calledTicket = calledTickets.FirstOrDefault();
             @if (calledTicket != null)
             {
-              <form asp-action="Recall" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="ticketId" value="@calledTicket.Id" />
-                <input type="hidden" name="serviceId" value="@selectedServiceId" />
-                <button type="submit" class="btn-call recall">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c4.4 0 8.2-2.8 9.5-6.8"/><path d="M22 12l-2 2-2-2"/><path d="M14 8v5l3 3"/></svg>
-                  @tRecall
+              <div class="call-actions-grid">
+                <form asp-action="Recall" method="post">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="ticketId" value="@calledTicket.Id" />
+                  <input type="hidden" name="serviceId" value="@selectedServiceId" />
+                  <button type="submit" class="btn-call recall">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c4.4 0 8.2-2.8 9.5-6.8"/><path d="M22 12l-2 2-2-2"/><path d="M14 8v5l3 3"/></svg>
+                    @tRecall
+                  </button>
+                </form>
+                <button type="button" class="btn-call transfer" onclick="openTransfer(@calledTicket.Id)" title="@tTransferTitle">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h13"/><path d="M12 5l7 7-7 7"/></svg>
+                  @tTransfer
                 </button>
-              </form>
-              <form asp-action="Finish" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="ticketId" value="@calledTicket.Id" />
-                <input type="hidden" name="serviceId" value="@selectedServiceId" />
-                <button type="submit" class="btn-call finish">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  @tFinish
-                </button>
-              </form>
-              <form asp-action="MarkAbsent" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="ticketId" value="@calledTicket.Id" />
-                <input type="hidden" name="serviceId" value="@selectedServiceId" />
-                <button type="submit" class="btn-call absent">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                  @tAbsent
-                </button>
-              </form>
+                <form asp-action="Finish" method="post">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="ticketId" value="@calledTicket.Id" />
+                  <input type="hidden" name="serviceId" value="@selectedServiceId" />
+                  <button type="submit" class="btn-call finish">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    @tFinish
+                  </button>
+                </form>
+                <form asp-action="MarkAbsent" method="post">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="ticketId" value="@calledTicket.Id" />
+                  <input type="hidden" name="serviceId" value="@selectedServiceId" />
+                  <button type="submit" class="btn-call absent">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    @tAbsent
+                  </button>
+                </form>
+              </div>
             }
           }
         </div>

@@ -67,6 +67,7 @@ public static class DbMigrator
                 ("QrFollowSiteId", "TEXT", "NULL"),
                 ("QrFollowApiKey", "TEXT", "NULL"),
                 ("QrFollowShowOnDisplay", "INTEGER", "0"),
+                ("AdminAllowedIps", "TEXT", "NULL"),
                 ("TicketFooterFr", "TEXT", "'Merci de votre visite'"),
                 ("TicketFooterAr", "TEXT", "'شكرا لزيارتكم'"),
                 ("TicketFooterTz", "TEXT", "'Tanemmirt ɣef tirza-nwen'"),
